@@ -89,8 +89,18 @@ English | [简体中文](./README.md)
       <p align="center"><b>User Management</b><br>Full user permission and role management</p>
     </td>
     <td width="50%">
-      <img src="./frontend/docs/docs/public/images/screenshots/4.png" alt="System Settings">
-      <p align="center"><b>System Settings</b><br>Flexible AI model configuration</p>
+      <img src="./frontend/docs/docs/public/images/screenshots/4.png" alt="Model Configuration">
+      <p align="center"><b>Model Configuration</b><br>Flexible AI model configuration</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="./frontend/docs/docs/public/images/screenshots/6.png" alt="Document Parser">
+      <p align="center"><b>Document Parser</b><br>Deep integration with MinerU/Docling engines</p>
+    </td>
+    <td width="50%">
+      <img src="./frontend/docs/docs/public/images/screenshots/7.png" alt="Site Management">
+      <p align="center"><b>Site Management</b><br>Multi-site independent operation and configuration</p>
     </td>
   </tr>
 </table>
@@ -98,8 +108,8 @@ English | [简体中文](./README.md)
 ### 💬 Client Side
 
 <div align="center">
-  <img src="./frontend/docs/docs/public/images/screenshots/5.png" alt="AI Intelligent Q&A" width="80%">
-  <p><b>AI Intelligent Q&A</b> - Intelligent conversation assistant based on knowledge base content with context awareness</p>
+  <img src="./frontend/docs/docs/public/images/screenshots/5.png" alt="AI Chat" width="80%">
+  <p><b>AI Chat</b> - Intelligent conversation assistant based on knowledge base content with context awareness</p>
 </div>
 
 ---

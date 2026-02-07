@@ -80,8 +80,8 @@
 <table>
   <tr>
     <td width="50%">
-      <img src="./frontend/docs/docs/public/images/screenshots/1.png" alt="运营概览">
-      <p align="center"><b>运营概览</b><br>实时查看站点运行状态和关键指标</p>
+      <img src="./frontend/docs/docs/public/images/screenshots/1.png" alt="运营概括">
+      <p align="center"><b>运营概括</b><br>实时查看站点运行状态和关键指标</p>
     </td>
     <td width="50%">
       <img src="./frontend/docs/docs/public/images/screenshots/2.png" alt="文档管理">
@@ -94,8 +94,18 @@
       <p align="center"><b>用户管理</b><br>完整的用户权限和角色管理</p>
     </td>
     <td width="50%">
-      <img src="./frontend/docs/docs/public/images/screenshots/4.png" alt="系统设置">
-      <p align="center"><b>系统设置</b><br>灵活的 AI 模型配置</p>
+      <img src="./frontend/docs/docs/public/images/screenshots/4.png" alt="模型配置">
+      <p align="center"><b>模型配置</b><br>灵活的 AI 模型配置</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="./frontend/docs/docs/public/images/screenshots/6.png" alt="文档解析器">
+      <p align="center"><b>文档解析器</b><br>深度集成 MinerU/Docling 等引擎</p>
+    </td>
+    <td width="50%">
+      <img src="./frontend/docs/docs/public/images/screenshots/7.png" alt="站点管理">
+      <p align="center"><b>站点管理</b><br>多站点独立化运营与配置</p>
     </td>
   </tr>
 </table>
@@ -103,8 +113,8 @@
 ### 💬 客户端
 
 <div align="center">
-  <img src="./frontend/docs/docs/public/images/screenshots/5.png" alt="AI 智能问答" width="80%">
-  <p><b>AI 智能问答</b> - 基于知识库内容的智能对话助手，支持上下文理解</p>
+  <img src="./frontend/docs/docs/public/images/screenshots/5.png" alt="AI对话" width="80%">
+  <p><b>AI对话</b> - 基于知识库内容的智能对话助手，支持上下文理解</p>
 </div>
 
 ---

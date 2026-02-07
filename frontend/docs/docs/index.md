@@ -142,15 +142,15 @@ make prod-up
 <div class="screenshot-grid">
   <figure>
     <div class="img-wrapper">
-      <img src="/images/screenshots/1.png" alt="运营概览">
+      <img src="/images/screenshots/1.png" alt="运营概括">
     </div>
-    <figcaption>运营概览</figcaption>
+    <figcaption>运营概括</figcaption>
   </figure>
   <figure>
     <div class="img-wrapper">
-      <img src="/images/screenshots/2.png" alt="文档编辑">
+      <img src="/images/screenshots/2.png" alt="文档管理">
     </div>
-    <figcaption>文档编辑</figcaption>
+    <figcaption>文档管理</figcaption>
   </figure>
   <figure>
     <div class="img-wrapper">
@@ -160,9 +160,21 @@ make prod-up
   </figure>
   <figure>
     <div class="img-wrapper">
-      <img src="/images/screenshots/4.png" alt="系统设置">
+      <img src="/images/screenshots/4.png" alt="模型配置">
     </div>
-    <figcaption>系统设置</figcaption>
+    <figcaption>模型配置</figcaption>
+  </figure>
+  <figure>
+    <div class="img-wrapper">
+      <img src="/images/screenshots/6.png" alt="文档解析器">
+    </div>
+    <figcaption>文档解析器</figcaption>
+  </figure>
+  <figure>
+    <div class="img-wrapper">
+      <img src="/images/screenshots/7.png" alt="站点管理">
+    </div>
+    <figcaption>站点管理</figcaption>
   </figure>
   <figure>
     <div class="img-wrapper">
