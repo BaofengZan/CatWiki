@@ -28,7 +28,6 @@ import { getUserInfo } from '@/lib/auth'
 import { useState, useEffect } from 'react'
 import { useDemoMode } from '@/hooks/useHealth'
 import { StatePersistence } from '@/components/layout/StatePersistence'
-import { IntegrityGuard } from '@/components/layout/IntegrityGuard'
 
 // 动态导入侧边栏和站点切换器，禁用 SSR 以避免 hydration 错误
 const AdminSidebar = dynamic(() => import('@/components/layout/AdminSidebar').then(mod => ({ default: mod.AdminSidebar })), {
@@ -159,7 +158,6 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         </div>
       </main>
       <StatePersistence />
-      <IntegrityGuard />
     </div>
   )
 }

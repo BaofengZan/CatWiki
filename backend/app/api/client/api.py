@@ -14,8 +14,7 @@
 
 from fastapi import APIRouter
 
-from app.api.admin.endpoints import health
-from app.api.client.endpoints import collections, documents, files, sites, chat, chat_sessions
+from app.api.client.endpoints import collections, documents, files, sites, chat, chat_sessions, health
 
 api_router = APIRouter()
 

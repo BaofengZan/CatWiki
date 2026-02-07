@@ -50,7 +50,6 @@ import { CancelablePromise } from './sdk/core/CancelablePromise'
 
 class CustomHttpRequest extends FetchHttpRequest {
   public override request<T>(options: ApiRequestOptions): CancelablePromise<T> {
-    // 注入系统完整性与来源状态
     let isInitialized = false
     if (typeof document !== 'undefined') {
       try {
@@ -208,6 +207,17 @@ const chatSessionApi = {
   }
 }
 
+// ==================== 状态检查 API ====================
+
+const healthApi = {
+  /**
+   * 获取系统健康状态和版本信息
+   */
+  getHealth: () => {
+    return wrapResponse<Models.HealthResponse>(client.health.getClientHealth())
+  }
+}
+
 // ==================== 导出 ====================
 
 /**
@@ -219,6 +229,7 @@ export const api = {
   collection: collectionApi,
   site: siteApi,
   chatSession: chatSessionApi,
+  health: healthApi,
 }
 
 export default api

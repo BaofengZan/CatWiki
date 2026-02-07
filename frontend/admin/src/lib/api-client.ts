@@ -74,7 +74,6 @@ function handleUnauthorized() {
 
 class CustomHttpRequest extends FetchHttpRequest {
   public override request<T>(options: ApiRequestOptions): CancelablePromise<T> {
-    // 注入系统完整性与来源状态
     let isInitialized = false
     if (typeof document !== 'undefined') {
       try {

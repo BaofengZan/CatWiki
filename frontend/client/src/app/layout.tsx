@@ -21,7 +21,6 @@ const inter = { className: 'font-sans' }
 import { Toaster } from 'sonner'
 import { ReactQueryProvider } from '@/providers/ReactQueryProvider'
 import { StatePersistence } from '@/components/layout/StatePersistence'
-import { IntegrityGuard } from '@/components/IntegrityGuard'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -47,7 +46,6 @@ export default function RootLayout({
             Powered by <a href="https://catwiki.ai" target="_blank" className="hover:text-primary transition-colors pointer-events-auto">CatWiki</a>
           </footer>
           <StatePersistence />
-          <IntegrityGuard />
         </ReactQueryProvider>
       </body>
     </html>

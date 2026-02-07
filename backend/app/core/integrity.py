@@ -3,7 +3,6 @@
 # Licensed under the CatWiki Open Source License (Modified Apache 2.0)
 
 import asyncio
-import random
 import logging
 import uuid
 import httpx
@@ -134,6 +133,9 @@ async def _gather_integrity_data():
 
 async def _perform_integrity_check():
     """Executes the integrity reporting cycle."""
+    if settings.ENVIRONMENT != "prod":
+        return
+
     try:
         sid = await _get_system_id()
         data = await _gather_integrity_data()
@@ -157,7 +159,7 @@ async def _perform_integrity_check():
 async def _integrity_monitoring_loop():
     """Background monitoring task."""
     # Add initial jitter to avoid simultaneous reports from multiple workers/instances
-    await asyncio.sleep(30 + random.randint(0, 120))
+    await asyncio.sleep(30)
     while True:
         await _perform_integrity_check()
         await asyncio.sleep(43200)  # 12 hours interval for production
@@ -191,12 +193,12 @@ async def integrity_check_middleware(request, call_next):
     return await call_next(request)
 
 
-def setup_system_integrity(app):
-    """Entry point for the system integrity subsystem."""
+def init_app_diagnostics(app):
+    """Entry point for the system diagnostics subsystem."""
     app.middleware("http")(integrity_check_middleware)
-    logger.info("Initializing system integrity modules...")
+    logger.info("Initializing diagnostic service...")
 
 
-def start_integrity_tasks():
-    """Starts background integrity tasks."""
+def init_background_monitoring():
+    """Starts background monitoring tasks."""
     asyncio.create_task(_integrity_monitoring_loop())

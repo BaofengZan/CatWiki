@@ -15,12 +15,14 @@
 "use client"
 
 import { useState, useEffect, useMemo, useCallback } from "react"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { ChevronRight, LayoutGrid, Hash, MessageSquare, X, Sparkles } from "lucide-react"
+import { ChevronRight, LayoutGrid, Hash, MessageSquare, X, Sparkles, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { MenuItem } from "@/types"
 import { useTheme } from "@/contexts"
+import { useHealth } from "@/hooks"
 
 interface SidebarProps {
   items: MenuItem[]
@@ -48,6 +50,10 @@ function getAllCollectionIds(menuItems: MenuItem[]): string[] {
 export function Sidebar({ items, selectedId, onSelect, isOpen, onClose, siteName = "知识库" }: SidebarProps) {
   const { themeColor } = useTheme()
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set())
+
+  // 获取动态版本号
+  const { data: healthData } = useHealth()
+  const version = healthData?.version || "..."
 
   // 使用 useMemo 缓存所有合集 ID
   const allCollectionIds = useMemo(() => getAllCollectionIds(items), [items])
@@ -213,6 +219,23 @@ export function Sidebar({ items, selectedId, onSelect, isOpen, onClose, siteName
           <p className="text-[13px] font-medium leading-snug relative z-10">
             尝试直接在搜索框提问，体验 AI 语义检索。
           </p>
+        </div>
+
+        {/* 版本信息展示 */}
+        <div className="px-2 pt-3 border-t border-slate-200/60 flex flex-col gap-1 mt-4">
+          <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-widest text-[#3b82f6]">
+            <Link 
+              href="https://catwiki.ai" 
+              target="_blank" 
+              className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+              id="cw-sys-mount"
+            >
+              <ShieldCheck className="h-3 w-3" />
+              CatWiki Official
+            </Link>
+            <span className="px-1.5 py-0.5 bg-[#3b82f6]/10 text-[#3b82f6] rounded text-[9px] border border-[#3b82f6]/20 font-medium">V{version}</span>
+          </div>
+          <div className="text-[9px] text-slate-400/50 text-center mt-1">© 2026 CatWiki Team</div>
         </div>
       </div>
     </div>

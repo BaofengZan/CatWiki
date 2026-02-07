@@ -35,8 +35,7 @@ import { useSiteData } from "@/hooks"
 import { getUserInfo } from "@/lib/auth"
 import { useEffect, useState, useMemo } from "react"
 import { getRoutePath, useRouteContext } from "@/lib/routing"
-import packageInfo from "../../../package.json"
-const { version } = packageInfo
+import { useHealth } from "@/hooks/useHealth"
 
 interface MenuItem {
   title: string
@@ -79,6 +78,10 @@ function AdminSidebarComponent() {
     const user = getUserInfo()
     return user?.role || 'editor'
   })
+
+  // 获取动态版本号
+  const { data: healthData } = useHealth()
+  const version = healthData?.version || "..."
 
   // 使用 useMemo 优化菜单过滤（只在角色变化时重新计算）
   const menuItems = useMemo(() => {
@@ -365,15 +368,20 @@ function AdminSidebarComponent() {
             <span className="font-medium">Documentation</span>
           </Link>
         </div>
-        <div className="px-2 pt-2 border-t border-border/40 flex flex-col gap-1">
-          <div className="flex items-center justify-between text-[10px] text-slate-400/60 font-bold uppercase tracking-widest text-[#3b82f6]">
-            <span className="flex items-center gap-1" id="cw-sys-mount">
-              <ShieldCheck className="h-2.5 w-2.5" />
-              OFFICIAL CatWiki
-            </span>
-            <span className="px-1.5 py-0.5 bg-[#3b82f6]/5 text-[#3b82f6] rounded text-[9px] border border-[#3b82f6]/10">V{version}</span>
+        <div className="px-2 pt-3 border-t border-slate-200/60 flex flex-col gap-1 mt-4">
+          <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-widest text-[#3b82f6]">
+            <Link 
+              href="https://catwiki.ai" 
+              target="_blank" 
+              className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+              id="cw-sys-mount"
+            >
+              <ShieldCheck className="h-3 w-3" />
+              CatWiki Official
+            </Link>
+            <span className="px-1.5 py-0.5 bg-[#3b82f6]/10 text-[#3b82f6] rounded text-[9px] border border-[#3b82f6]/20 font-medium">V{version}</span>
           </div>
-          <div className="text-[9px] text-slate-400/40 text-center mt-1">© 2026 CatWiki Team</div>
+          <div className="text-[9px] text-slate-400/50 text-center mt-1">© 2026 CatWiki Team</div>
         </div>
       </div>
     </div>

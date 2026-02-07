@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-"use client"
+import { useQuery } from '@tanstack/react-query'
+import api from '@/lib/api-client'
 
-import { useEffect } from "react"
+export const healthKeys = {
+  all: ['health'] as const,
+}
 
-/**
- * 集成完整性守卫 (客户端版)
- */
-export function IntegrityGuard() {
-  useEffect(() => {
-    // 逻辑已成功迁移至 api-client.ts 通过 SDK 中间件处理
-  }, [])
-
-  return null
+export function useHealth() {
+  return useQuery({
+    queryKey: healthKeys.all,
+    queryFn: () => api.health.getHealth(),
+    staleTime: 1000 * 60 * 60, // 1 hour
+  })
 }

@@ -27,7 +27,6 @@ from app.core.middleware import setup_middleware
 from app.core.openapi_utils import filter_openapi_by_prefix
 from app.core.rustfs import init_rustfs
 from app.core.system_config_init import init_system_configs
-from app.core.integrity import setup_system_integrity, start_integrity_tasks
 from app.db.database import engine
 
 # 配置日志
@@ -68,9 +67,6 @@ async def lifespan(app: FastAPI):
     logger.info(f"{settings.PROJECT_NAME} 启动成功!")
     logger.info("API 文档: http://localhost:3000/docs")
 
-    # 启动系统完整性检查任务
-    start_integrity_tasks()
-
     yield
 
     # 关闭时执行
@@ -103,10 +99,6 @@ def create_application() -> FastAPI:
 
     # 注册 Admin API 路由（管理后台）
     application.include_router(admin_router, prefix=settings.ADMIN_API_V1_STR)
-
-    # 注册系统完整性监测模块
-    # 必须在应用完全启动前注册中间件
-    setup_system_integrity(application)
 
     return application
 
