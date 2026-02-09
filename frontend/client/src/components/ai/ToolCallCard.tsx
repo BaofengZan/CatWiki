@@ -74,7 +74,7 @@ export function ToolCallCard({ toolCalls, className }: ToolCallCardProps) {
             <span>
               {displayName}
               {query && (
-                <span className="opacity-70 ml-1">"{query.length > 15 ? query.slice(0, 15) + "..." : query}"</span>
+                <span className="opacity-70 ml-1">&quot;{query.length > 15 ? query.slice(0, 15) + "..." : query}&quot;</span>
               )}
             </span>
           </div>

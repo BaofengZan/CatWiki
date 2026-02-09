@@ -61,7 +61,7 @@ async def stream_graph_events(
     """流式响应生成器 - 适配 OpenAI SSE 格式（含 tool_calls 支持）"""
     full_response = ""
     citations = []
-    
+
     # 生成唯一的 chunk ID 前缀
     chunk_id_prefix = f"chatcmpl-{uuid.uuid4()}"
 
@@ -69,16 +69,16 @@ async def stream_graph_events(
         # 使用 v1 event 格式
         async for event in graph.astream_events(input_state, config, version="v1"):
             kind = event["event"]
-            
+
             # 1. 处理 LLM 流式输出 (Token)
             if kind == "on_chat_model_stream":
                 chunk_data = event["data"]["chunk"]
                 chunk_content = chunk_data.content
-                
+
                 # 处理文本内容
                 if chunk_content:
                     full_response += chunk_content
-                    
+
                     # 构造 OpenAI 兼容 chunk
                     chunk = ChatCompletionChunk(
                         id=chunk_id_prefix,
@@ -94,7 +94,7 @@ async def stream_graph_events(
                         ],
                     )
                     yield f"data: {chunk.model_dump_json()}\n\n"
-                
+
                 # 处理 tool_calls (如果存在)
                 # LangChain 的 AIMessageChunk 可能包含 tool_call_chunks
                 if hasattr(chunk_data, "tool_call_chunks") and chunk_data.tool_call_chunks:
@@ -105,14 +105,20 @@ async def stream_graph_events(
                             "type": "function" if tc_chunk.get("id") else None,
                             "function": {
                                 "name": tc_chunk.get("name"),
-                                "arguments": tc_chunk.get("args", "")
-                            }
+                                "arguments": tc_chunk.get("args", ""),
+                            },
                         }
                         # 清理 None 值
-                        tool_call_delta = {k: v for k, v in tool_call_delta.items() if v is not None}
+                        tool_call_delta = {
+                            k: v for k, v in tool_call_delta.items() if v is not None
+                        }
                         if tool_call_delta.get("function"):
-                            tool_call_delta["function"] = {k: v for k, v in tool_call_delta["function"].items() if v is not None}
-                        
+                            tool_call_delta["function"] = {
+                                k: v
+                                for k, v in tool_call_delta["function"].items()
+                                if v is not None
+                            }
+
                         chunk = ChatCompletionChunk(
                             id=chunk_id_prefix,
                             object="chat.completion.chunk",
@@ -121,15 +127,13 @@ async def stream_graph_events(
                             choices=[
                                 ChatCompletionChunkChoice(
                                     index=0,
-                                    delta=ChatCompletionChunkDelta(
-                                        tool_calls=[tool_call_delta]
-                                    ),
+                                    delta=ChatCompletionChunkDelta(tool_calls=[tool_call_delta]),
                                     finish_reason=None,
                                 )
                             ],
                         )
                         yield f"data: {chunk.model_dump_json()}\n\n"
-            
+
             # 2. 工具开始调用 - 发送状态指示
             elif kind == "on_tool_start":
                 tool_name = event.get("name", "unknown")
@@ -138,13 +142,13 @@ async def stream_graph_events(
                 # 这不是 OpenAI 标准，但可作为扩展
                 status_chunk = {"status": "tool_calling", "tool": tool_name}
                 yield f"data: {json.dumps(status_chunk)}\n\n"
-            
+
             # 3. 监听工具调用结束
             elif kind == "on_tool_end":
                 pass
 
         # 循环结束，处理收尾工作
-        
+
         # 从 Checkpoint 获取最终状态以提取引用
         # 注意: astream_events 结束时，graph 状态已更新
         # 我们需要一个新的 state snapshot 或者从 event history 分析
@@ -161,7 +165,7 @@ async def stream_graph_events(
 
         # 发送 [DONE]
         yield "data: [DONE]\n\n"
-        
+
         # 3. 异步更新数据库记录 (Side Effect)
         if full_response:
             async with AsyncSessionLocal() as db:
@@ -223,6 +227,7 @@ async def create_site_chat_completion(
 
     async with AsyncSessionLocal() as db:
         from app.crud.site import crud_site
+
         site = await crud_site.get_by_api_token(db, api_token=token)
 
     if not site:
@@ -251,7 +256,7 @@ async def _process_chat_request(
         api_key=current_api_key,
         base_url=current_base_url,
         temperature=request.temperature or 0.7,
-        streaming=True, # 启用流式
+        streaming=True,  # 启用流式
     )
 
     # 3. 记录日志
@@ -276,24 +281,24 @@ async def _process_chat_request(
             thread_id=request.thread_id,
             site_id=site_id,
             user_message=request.message,
-            member_id=request.user, 
+            member_id=request.user,
         )
 
     # 5. 准备 Agent
     # 使用 checkpointer 管理状态
     checkpointer_cm = get_checkpointer()
-    checkpointer = await checkpointer_cm.__aenter__() # 手动 enter 以便后续使用
-    
+    checkpointer = await checkpointer_cm.__aenter__()  # 手动 enter 以便后续使用
+
     try:
         graph = create_agent_graph(checkpointer=checkpointer, model=llm)
-        
+
         # 构造初始状态
         initial_state = {
             "messages": [HumanMessage(content=request.message)],
             # 其他状态字段根据 graph_state.py 如果有默认值可省略，或在此初始化
             "site_id": site_id,
         }
-        
+
         config = {"configurable": {"thread_id": request.thread_id}}
 
         # 6. 处理请求
@@ -305,39 +310,41 @@ async def _process_chat_request(
             # 或者，由于 postgres checkpointer 是无状态连接池，也许可以？
             # 更好的做法：把 checkpointer 的生命周期交给 generator 或者不使用 context manager (如果它支持).
             # 这里我们重构 stream_generator 内部去处理 checkpointer 的获取。
-            
+
             # 为了避免连接泄露，我们先关闭这里的 checkpointer，让 generator 自己去获取
             await checkpointer_cm.__aexit__(None, None, None)
-            
+
             async def protected_generator():
                 async with get_checkpointer() as cp:
                     g = create_agent_graph(checkpointer=cp, model=llm)
-                    async for chunk in stream_graph_events(g, initial_state, config, current_model, request.thread_id):
+                    async for chunk in stream_graph_events(
+                        g, initial_state, config, current_model, request.thread_id
+                    ):
                         yield chunk
 
             return StreamingResponse(
                 protected_generator(),
                 media_type="text/event-stream",
             )
-        
+
         else:
             # 非流式响应
             result = await graph.ainvoke(initial_state, config)
-            
+
             # 提取最后回复
             messages = result["messages"]
             last_message = messages[-1] if messages else AIMessage(content="")
             content = last_message.content if isinstance(last_message, BaseMessage) else ""
-            
+
             # 提取引用
             citations = extract_citations_from_messages(messages)
-            
+
             # 更新数据库
             async with AsyncSessionLocal() as db:
                 await ChatSessionService.update_assistant_response(
                     db=db, thread_id=request.thread_id, assistant_message=content
                 )
-            
+
             # 构造响应
             return ChatCompletionResponse(
                 id=f"chatcmpl-{uuid.uuid4()}",
@@ -351,16 +358,16 @@ async def _process_chat_request(
                         finish_reason="stop",
                     )
                 ],
-                usage=None, #这里略过 token 计算
+                usage=None,  # 这里略过 token 计算
                 # 注意：标准 OpenAI 响应不包含 citations 字段，
                 # 如果客户端需要，通常通过 side-channel 或 message extra 字段。
-                # 但 CatWiki 前端可能期望在 response 中? 
-                # 根据之前的代码，非流式并没有返回 citations... 
+                # 但 CatWiki 前端可能期望在 response 中?
+                # 根据之前的代码，非流式并没有返回 citations...
                 # 查看之前的代码：citations 似乎没有被返回在 standard response body (Pydantic model) 中。
                 # 只有流式最后发送了 citation chunk。
                 # 我们可以暂时保持一致。
             )
-            
+
             # 别忘了关闭 checkpointer
             await checkpointer_cm.__aexit__(None, None, None)
 
@@ -368,7 +375,7 @@ async def _process_chat_request(
         logger.error(f"❌ [Chat] Execution Error: {e}", exc_info=True)
         # 确保资源释放
         try:
-             await checkpointer_cm.__aexit__(None, None, None)
+            await checkpointer_cm.__aexit__(None, None, None)
         except:
             pass
         raise e

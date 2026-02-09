@@ -14,7 +14,15 @@
 
 from fastapi import APIRouter
 
-from app.api.client.endpoints import collections, documents, files, sites, chat, chat_sessions, health
+from app.api.client.endpoints import (
+    collections,
+    documents,
+    files,
+    sites,
+    chat,
+    chat_sessions,
+    health,
+)
 
 api_router = APIRouter()
 
