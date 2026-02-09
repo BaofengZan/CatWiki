@@ -12,6 +12,6 @@ export type ChatSessionMessagesResponse = {
     /**
      * 引用来源列表
      */
-    citations?: null;
+    citations?: Array<Record<string, any>>;
 };
 

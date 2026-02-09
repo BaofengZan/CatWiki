@@ -138,15 +138,17 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
       // 保存所有历史 tool calls（已完成的）
       const allCompletedToolCalls: Array<{ id: string; name: string; arguments: string }> = []
 
+      let lineBuffer = ""
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
 
-        const chunk = decoder.decode(value, { stream: true })
-        // 处理 SSE 格式数据 (data: {...})
-        const lines = chunk.split("\n")
+        lineBuffer += decoder.decode(value, { stream: true })
+        const lines = lineBuffer.split("\n")
+        lineBuffer = lines.pop() || ""
 
         for (const line of lines) {
+
           const trimmedLine = line.trim()
           if (!trimmedLine.startsWith("data: ")) continue
 

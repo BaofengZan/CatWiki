@@ -66,7 +66,7 @@ class ChatMessage(BaseModel):
     role: str = Field(..., description="角色: user/assistant/system")
     content: Optional[str] = Field(None, description="内容，tool_call 时可能为空")
     id: Optional[str] = Field(None, description="消息ID")
-    tool_calls: Optional[list[dict]] = Field(None, description="工具调用列表")
+    tool_calls: list[dict] = Field(default_factory=list, description="工具调用列表")
     tool_call_id: Optional[str] = Field(None, description="工具调用ID（role=tool时）")
 
 
@@ -75,4 +75,4 @@ class ChatSessionMessagesResponse(BaseModel):
 
     thread_id: str
     messages: list[ChatMessage]
-    citations: Optional[list[dict]] = Field(None, description="引用来源列表")
+    citations: list[dict] = Field(default_factory=list, description="引用来源列表")

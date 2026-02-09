@@ -21,7 +21,7 @@ export type app__schemas__chat_session__ChatMessage = {
     /**
      * 工具调用列表
      */
-    tool_calls?: null;
+    tool_calls?: Array<Record<string, any>>;
     /**
      * 工具调用ID（role=tool时）
      */
