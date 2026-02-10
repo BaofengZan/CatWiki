@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 
-def extract_citations_from_messages(
+def extract_sources_from_messages(
     messages: list[BaseMessage], 
     from_last_turn: bool = False
 ) -> list[dict]:
@@ -24,7 +24,7 @@ def extract_citations_from_messages(
     注意：为了确保与 UI 的自动编号 [1, 2, 3...] 匹配，我们严格按顺序收集。
     由于工具侧已进行“合并”处理，此处按 document_id 过滤仅为多工具调用时的稳健性。
     """
-    citations = {}
+    sources = {}
     target_messages = messages
 
     if from_last_turn:
@@ -52,8 +52,8 @@ def extract_citations_from_messages(
                         source_idx = doc.get("source_index") or meta.get("source_index")
                         
                         # 仅保留每个文档的首个引用点，以对齐 AI 开始引用该文档时的序号
-                        if doc_id and doc_id not in citations:
-                            citations[doc_id] = {
+                        if doc_id and doc_id not in sources:
+                            sources[doc_id] = {
                                 "id": str(doc_id),
                                 "title": meta.get("title", "Unknown"),
                                 "siteId": meta.get("site_id"),
@@ -64,14 +64,14 @@ def extract_citations_from_messages(
             except (json.JSONDecodeError, AttributeError):
                 continue
             except Exception as e:
-                logger.error(f"❌ Error extracting citations: {e}")
+                logger.error(f"❌ Error extracting sources: {e}")
 
     # 按 sourceIndex 排序以确保前端列表序号递增
-    sorted_citations = sorted(
-        citations.values(), 
+    sorted_sources = sorted(
+        sources.values(), 
         key=lambda x: x.get("sourceIndex") if x.get("sourceIndex") is not None else 999
     )
-    return sorted_citations
+    return sorted_sources
 
 def convert_tool_call_chunk_to_openai(tc_chunk: dict[str, Any]) -> dict[str, Any]:
     """将 LangChain 的 tool_call_chunk 转换为 OpenAI 兼容格式"""

@@ -23,7 +23,7 @@ from sqlalchemy import desc, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.rag_utils import extract_citations_from_messages
+from app.core.rag_utils import extract_sources_from_messages
 from app.models.chat_message import ChatMessage
 from app.models.chat_session import ChatSession
 
@@ -378,9 +378,9 @@ class ChatSessionService:
             # 为每一条 Assistant 消息提取其对应的引用
             if msg.role == "assistant":
                 # 传入截止到当前消息的历史，并只提取当前回合的引用
-                msg_citations = extract_citations_from_messages(langchain_msgs[:i+1], from_last_turn=True)
-                if msg_citations:
-                    msg_dict["sources"] = msg_citations
+                msg_sources = extract_sources_from_messages(langchain_msgs[:i+1], from_last_turn=True)
+                if msg_sources:
+                    msg_dict["sources"] = msg_sources
 
             messages.append(msg_dict)
 

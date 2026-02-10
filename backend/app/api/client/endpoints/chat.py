@@ -19,7 +19,7 @@ from langchain_openai import ChatOpenAI
 
 from app.core.checkpointer import get_checkpointer
 from app.core.graph import create_agent_graph
-from app.core.rag_utils import convert_tool_call_chunk_to_openai, extract_citations_from_messages
+from app.core.rag_utils import convert_tool_call_chunk_to_openai, extract_sources_from_messages
 from app.db.database import AsyncSessionLocal
 from app.schemas.chat import (
     ChatCompletionChoice,
@@ -124,7 +124,7 @@ async def stream_graph_events(
         if state_snapshot.values:
             final_messages = state_snapshot.values.get("messages", [])
 
-            sources = extract_citations_from_messages(final_messages, from_last_turn=True)
+            sources = extract_sources_from_messages(final_messages, from_last_turn=True)
 
         # 发送 Sources (自定义协议，客户端需支持)
         if sources:
@@ -311,7 +311,7 @@ async def _process_chat_request(
                 content = last_message.content if isinstance(last_message, BaseMessage) else ""
 
                 # 提取引用 (仅当前回合)
-                sources = extract_citations_from_messages(messages, from_last_turn=True)
+                sources = extract_sources_from_messages(messages, from_last_turn=True)
 
                 # 更新数据库 (元数据 + 全量历史)
                 async with AsyncSessionLocal() as db:
