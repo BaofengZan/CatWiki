@@ -248,6 +248,26 @@ async def _process_chat_request(
 
     # 3. 记录日志
     msg_preview = request.message[:200] + "..." if len(request.message) > 200 else request.message
+
+
+    # 4. 创建/更新数据库会话记录
+    async with AsyncSessionLocal() as db:
+        session = await ChatSessionService.create_or_update(
+            db=db,
+            thread_id=request.thread_id,
+            site_id=site_id,
+            user_message=request.message,
+            member_id=request.user,
+        )
+        # 对话轮次 = (消息总数 + 1) // 2
+        round_count = (session.message_count + 1) // 2
+
+    # 5. 准备 Agent
+    # 使用 checkpointer 管理状态
+    checkpointer_cm = get_checkpointer()
+    checkpointer = await checkpointer_cm.__aenter__()  # 手动 enter 以便后续使用
+
+    # 记录日志 (放在 session 更新后以获取正确轮次)
     log_banner = (
         "\n"
         "╭───────────────────────  AI Chat Request (ReAct) ───────────────────────────╮\n"
@@ -255,26 +275,12 @@ async def _process_chat_request(
         f"│ 🌊 Stream   : {str(request.stream):<50} │\n"
         f"│ 🧵 Thread   : {request.thread_id:<50} │\n"
         f"│ 🏢 Site ID  : {site_id:<50} │\n"
+        f"│ 🔄 Round    : {round_count:<50} │\n"
         "│ ──────────────────────────────────────────────────────────────────────────── │\n"
         f"│ 🗨️  Message: {msg_preview[:60]:<60} │\n"
         "╰──────────────────────────────────────────────────────────────────────────────╯"
     )
     print(log_banner)
-
-    # 4. 创建/更新数据库会话记录
-    async with AsyncSessionLocal() as db:
-        await ChatSessionService.create_or_update(
-            db=db,
-            thread_id=request.thread_id,
-            site_id=site_id,
-            user_message=request.message,
-            member_id=request.user,
-        )
-
-    # 5. 准备 Agent
-    # 使用 checkpointer 管理状态
-    checkpointer_cm = get_checkpointer()
-    checkpointer = await checkpointer_cm.__aenter__()  # 手动 enter 以便后续使用
 
     try:
         graph = create_agent_graph(checkpointer=checkpointer, model=llm)

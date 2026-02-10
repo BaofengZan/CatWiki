@@ -165,6 +165,12 @@ class Settings(BaseSettings):
         le=10,
         description="连续空结果自动终止阈值，减少无效 API 调用",
     )
+    AGENT_SUMMARY_TRIGGER_MSG_COUNT: int = Field(
+        default=10,
+        ge=4,
+        le=50,
+        description="触发对话摘要的消息数量阈值",
+    )
 
     # 文档解析服务配置 (DocProcessor)
     DOCLING_NAME: str = Field(default="Docling")

@@ -24,7 +24,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.chat_session import ChatSession
 from app.core.checkpointer import get_checkpointer
-from app.core.checkpointer import get_checkpointer
 import json
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage, ToolMessage
 

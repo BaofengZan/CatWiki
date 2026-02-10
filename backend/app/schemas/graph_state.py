@@ -26,6 +26,7 @@ class ChatGraphState(TypedDict):
     citations: List[dict]
     should_retrieve: bool
     rewritten_query: str
+    summary: str  # 对话摘要，用于长期记忆
     site_id: Optional[int]  # 站点ID上下文 (0=全局)
     iteration_count: int  # 工具调用迭代计数，用于限制最大循环次数
     consecutive_empty_count: int  # 连续空结果计数，用于智能终止
