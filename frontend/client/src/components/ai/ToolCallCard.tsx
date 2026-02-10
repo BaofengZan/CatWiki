@@ -37,13 +37,17 @@ export function ToolCallCard({ toolCalls, className }: ToolCallCardProps) {
   return (
     <div className={cn("flex flex-wrap gap-2 mb-3", className)}>
       {toolCalls.map((tc) => {
-        const displayName = TOOL_DISPLAY_NAMES[tc.function.name] || tc.function.name
-        
+        // 按照 OpenAI 标准结构提取信息
+        const func = tc.function
+        const name = func?.name || (tc as any).name || "unknown"
+        const displayName = TOOL_DISPLAY_NAMES[name] || name
+
         // 解析查询参数
         let query = ""
         try {
-          const args = JSON.parse(tc.function.arguments || "{}")
-          query = args.query || ""
+          const argsRaw = func?.arguments || (tc as any).args || "{}"
+          const args = typeof argsRaw === 'string' ? JSON.parse(argsRaw) : argsRaw
+          query = args?.query || ""
         } catch {
           // ignore
         }
@@ -69,7 +73,7 @@ export function ToolCallCard({ toolCalls, className }: ToolCallCardProps) {
             ) : (
               <Search className="h-3 w-3" />
             )}
-            
+
             {/* 工具名称 + 查询 */}
             <span>
               {displayName}

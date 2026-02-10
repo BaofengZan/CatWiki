@@ -75,4 +75,5 @@ export interface Message {
   toolCalls?: ToolCall[]
   status?: MessageStatus
   activeToolName?: string // 当前正在调用的工具名称
+  additional_kwargs?: Record<string, any> // [NEW] 扩展元数据 (Token 统计等)
 }

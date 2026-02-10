@@ -99,13 +99,14 @@ async def get_session(
 )
 async def get_session_messages(
     thread_id: str,
+    db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[ChatSessionMessagesResponse]:
     """
     获取单个会话的完整聊天历史信息
 
-    从持久化 Checkpointer 中读取所有消息。
+    从数据库全量历史表中读取所有消息。
     """
-    result = await ChatSessionService.get_session_messages(thread_id=thread_id)
+    result = await ChatSessionService.get_session_messages(db=db, thread_id=thread_id)
 
     return ApiResponse.ok(
         data=ChatSessionMessagesResponse(

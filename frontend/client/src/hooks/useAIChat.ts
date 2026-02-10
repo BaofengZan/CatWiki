@@ -356,7 +356,7 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
         // 处理 assistant 消息
         if (m.role === "assistant") {
           // 如果是 content 为空但有 tool_calls 的消息，暂存 tool_calls
-          if (!m.content && m.tool_calls?.length) {
+          if ((!m.content || m.content === "") && m.tool_calls?.length) {
             pendingToolCalls = [...pendingToolCalls, ...m.tool_calls]
             continue
           }
@@ -371,10 +371,14 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
               toolCalls: pendingToolCalls.map((tc: any) => ({
                 id: tc.id,
                 type: "function" as const,
-                function: tc.function,
+                function: tc.function || {
+                  name: tc.name || "unknown",
+                  arguments: typeof tc.args === 'string' ? tc.args : JSON.stringify(tc.args || "{}")
+                },
                 status: "completed" as const
               }))
-            } : {})
+            } : {}),
+            additional_kwargs: m.additional_kwargs
           })
           // 清空暂存
           pendingToolCalls = []

@@ -1,4 +1,3 @@
-
 """LangGraph ReAct Agent
 1. ReAct 循环: Agent -> Tools -> Agent ... -> End
 2. 支持多轮检索和推理
@@ -8,9 +7,17 @@
 
 import logging
 import json
+import re
 from typing import Literal, List, Annotated
 
-from langchain_core.messages import SystemMessage, BaseMessage, ToolMessage, HumanMessage, RemoveMessage
+from langchain_core.messages import (
+    SystemMessage,
+    BaseMessage,
+    ToolMessage,
+    HumanMessage,
+    RemoveMessage,
+    AIMessage,
+)
 from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, START, END
@@ -20,7 +27,7 @@ from langchain_core.runnables import RunnableConfig
 from app.schemas.graph_state import ChatGraphState
 from app.services.vector_service import VectorService
 from app.schemas.document import VectorRetrieveFilter
-from app.core.prompts import SYSTEM_PROMPT, NO_RESULTS_MESSAGE, SUMMARIZE_PROMPT
+from app.core.prompts import SYSTEM_PROMPT, NO_RESULTS_MESSAGE, SUMMARIZE_PROMPT, FORCE_STOP_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -49,9 +56,24 @@ async def search_knowledge_base(query: str, config: RunnableConfig) -> str:
         JSON 格式的字符串，包含搜索结果列表。
         每个结果包含 'content' (内容摘录) 和 'metadata' (包含 title, document_id 等)。
     """
-    # 获取站点上下文
+    # 获取站点上下文和消息历史以计算偏移量
     site_id = config.get("configurable", {}).get("site_id")
-    logger.info(f"🔧 [Tool] search_knowledge_base: query='{query}', site_id={site_id}")
+    messages = config.get("configurable", {}).get("messages", [])
+
+    offset = 0
+    if messages:
+        for msg in messages:
+            if isinstance(msg, ToolMessage) and msg.name == "search_knowledge_base":
+                try:
+                    prev_results = json.loads(msg.content)
+                    if isinstance(prev_results, list):
+                        offset += len(prev_results)
+                except:
+                    continue
+
+    logger.info(
+        f"🔧 [Tool] search_knowledge_base: query='{query}', site_id={site_id}, offset={offset}"
+    )
 
     try:
         search_filter = VectorRetrieveFilter(site_id=int(site_id)) if site_id else None
@@ -59,7 +81,7 @@ async def search_knowledge_base(query: str, config: RunnableConfig) -> str:
         # 执行检索
         retrieved_docs = await VectorService.retrieve(
             query=query,
-            k=5,
+            k=10,
             threshold=0.3,
             filter=search_filter,
         )
@@ -67,20 +89,26 @@ async def search_knowledge_base(query: str, config: RunnableConfig) -> str:
         if not retrieved_docs:
             return NO_RESULTS_MESSAGE
 
-        # 格式化结果
-        results = [
-            {
-                "content": doc.content,
-                "metadata": {
-                    "document_id": doc.document_id,
+        # 格式化结果，增加全局索引 source_index
+        results = []
+        for i, doc in enumerate(retrieved_docs):
+            current_idx = offset + i + 1
+            results.append(
+                {
+                    "source_index": current_idx,
                     "title": doc.document_title,
-                    "score": doc.score,
-                    **doc.metadata,
-                },
-            }
-            for doc in retrieved_docs
-        ]
+                    "content": doc.content,
+                    "metadata": {
+                        "document_id": doc.document_id,
+                        "title": doc.document_title,
+                        "score": doc.score,
+                        "source_index": current_idx,  # 冗余存一份在 metadata
+                        **doc.metadata,
+                    },
+                }
+            )
 
+        # 为了让 AI 绝对不会数错，我们在返回的字符串中显式标注
         return json.dumps(results, ensure_ascii=False)
 
     except Exception as e:
@@ -97,7 +125,9 @@ tools = [search_knowledge_base]
 # =============================================================================
 
 
-def extract_citations_from_messages(messages: List[BaseMessage], from_last_turn: bool = False) -> List[dict]:
+def extract_citations_from_messages(
+    messages: List[BaseMessage], from_last_turn: bool = False
+) -> List[dict]:
     """从历史消息的 ToolMessage 中提取引用
 
     Args:
@@ -114,7 +144,7 @@ def extract_citations_from_messages(messages: List[BaseMessage], from_last_turn:
             if isinstance(messages[i], HumanMessage):
                 last_human_idx = i
                 break
-        
+
         if last_human_idx != -1:
             target_messages = messages[last_human_idx:]
 
@@ -123,7 +153,7 @@ def extract_citations_from_messages(messages: List[BaseMessage], from_last_turn:
             try:
                 content = msg.content if isinstance(msg.content, str) else json.dumps(msg.content)
                 results = json.loads(content)
-                
+
                 if isinstance(results, list):
                     for doc in results:
                         meta = doc.get("metadata", {})
@@ -169,19 +199,18 @@ def create_agent_graph(checkpointer=None, model: ChatOpenAI = None):
     async def agent_node(state: ChatGraphState) -> dict:
         """Agent 决策节点"""
         logger.debug("🤖 [Agent] Thinking...")
-        messages = state["messages"]
+        messages = list(state["messages"])
 
-        # 注入 System Prompt 和 摘要
+        # 注入/更新 System Prompt (包含摘要)
         system_content = SYSTEM_PROMPT
         if state.get("summary"):
-           system_content += f"\n\n#### 之前的对话摘要 ####\n{state['summary']}"
+            system_content += f"\n\n#### 之前的对话摘要 ####\n{state['summary']}"
 
+        # 确保第一条消息始终是包含最新摘要的 SystemMessage
         if not messages or not isinstance(messages[0], SystemMessage):
-            messages = [SystemMessage(content=system_content)] + list(messages)
+            messages.insert(0, SystemMessage(content=system_content))
         else:
-             # 如果已有 SystemMessage (例如持久化下来的)，更新其内容
-             # 注意：每次调用 agent_node 都更新 System Prompt 是个好做法，确保摘要最新
-             messages[0] = SystemMessage(content=system_content)
+            messages[0] = SystemMessage(content=system_content)
 
         response = await model_with_tools.ainvoke(messages)
         return {"messages": [response]}
@@ -196,10 +225,10 @@ def create_agent_graph(checkpointer=None, model: ChatOpenAI = None):
         summarize_message = SUMMARIZE_PROMPT
         if summary:
             summarize_message += f"\n\n(现有摘要: {summary})"
-        
+
         # 只取除了 SystemMessage 之外的消息进行摘要
         conversation_messages = [msg for msg in messages if not isinstance(msg, SystemMessage)]
-        
+
         # 如果没有足够的消息需要摘要（虽然路由逻辑应该已经过滤了，但做个防御）
         if not conversation_messages:
             return {}
@@ -215,15 +244,18 @@ def create_agent_graph(checkpointer=None, model: ChatOpenAI = None):
         logger.info(f"📝 [Summarize] New summary: {new_summary[:100]}...")
 
         # 删除旧消息，保留最近的 N 条交互
-        # 策略：保留最后 6 条消息 (通常是 H-A-T-A-H-A)
+        # 策略：保留最后 6 条消息 (通常包含完整的最近 1-2 轮对话及其工具调用)
         KEEP_LAST_N = 6
         delete_messages = []
         if len(conversation_messages) > KEEP_LAST_N:
-             # 要删除的消息 ID
-             # conversation_messages[:-6] 是除了最后 6 条之外的所有消息
-             messages_to_delete = conversation_messages[:-KEEP_LAST_N]
-             delete_messages = [RemoveMessage(id=m.id) for m in messages_to_delete]
-             logger.info(f"🗑️ [Summarize] Pruning {len(delete_messages)} old messages")
+            # 计算需要删除的消息
+            # 我们通过 RemoveMessage 来清理历史，防止 Context Window 溢出
+            messages_to_delete = conversation_messages[:-KEEP_LAST_N]
+
+            # 优化：确保不删除“孤儿”AI消息（如果 AI 消息有 tool_calls，我们最好保留其对应的 ToolMessages）
+            # 简单的 KEEP_LAST_N 策略在 standard ReAct (A -> T -> A) 中通常没问题
+            delete_messages = [RemoveMessage(id=m.id) for m in messages_to_delete]
+            logger.info(f"🗑️ [Summarize] Pruning {len(delete_messages)} old messages")
 
         return {"summary": new_summary, "messages": delete_messages}
 
@@ -239,23 +271,44 @@ def create_agent_graph(checkpointer=None, model: ChatOpenAI = None):
 
     async def tools_wrapper_node(state: ChatGraphState) -> dict:
         """工具节点包装器，执行工具并追踪迭代计数和空结果"""
-        # 调用原始工具节点
+        current_count = state.get("iteration_count", 0)
+        consecutive_empty = state.get("consecutive_empty_count", 0)
+
+        # 检查是否触及中止阈值
+        if current_count >= MAX_ITERATIONS or consecutive_empty >= MAX_CONSECUTIVE_EMPTY:
+            logger.warning(
+                f"⚠️ [Graph] Force stopping tools. Iterations: {current_count}, Empty: {consecutive_empty}"
+            )
+            # 生成中止提示给 Agent，要求其停止搜索并直接回答
+            last_msg = state["messages"][-1]
+            tool_messages = []
+            if hasattr(last_msg, "tool_calls"):
+                for tool_call in last_msg.tool_calls:
+                    tool_messages.append(
+                        ToolMessage(
+                            tool_call_id=tool_call["id"],
+                            content=FORCE_STOP_PROMPT,
+                        )
+                    )
+
+            return {
+                "messages": tool_messages,
+                "iteration_count": current_count + 1,
+                "consecutive_empty_count": consecutive_empty,
+            }
+
+        # 正常执行工具
         result = await tool_node.ainvoke(state)
 
         # 递增迭代计数
-        current_count = state.get("iteration_count", 0)
         result["iteration_count"] = current_count + 1
 
         # 检测工具返回是否为空结果
-        consecutive_empty = state.get("consecutive_empty_count", 0)
         is_empty_result = False
-
-        # 检查最后一条工具消息是否为空结果
         if result.get("messages"):
-            last_tool_msg = result["messages"][-1] if result["messages"] else None
+            last_tool_msg = result["messages"][-1]
             if last_tool_msg:
                 content = getattr(last_tool_msg, "content", "")
-                # 检测空结果标志
                 if content == NO_RESULTS_MESSAGE or "未找到相关文档" in content or content == "[]":
                     is_empty_result = True
 
@@ -265,7 +318,7 @@ def create_agent_graph(checkpointer=None, model: ChatOpenAI = None):
                 f"🔄 [Graph] Empty result, consecutive count: {result['consecutive_empty_count']}/{MAX_CONSECUTIVE_EMPTY}"
             )
         else:
-            result["consecutive_empty_count"] = 0  # 重置
+            result["consecutive_empty_count"] = 0
 
         logger.debug(f"🔄 [Graph] Iteration count: {result['iteration_count']}/{MAX_ITERATIONS}")
         return result
@@ -278,25 +331,12 @@ def create_agent_graph(checkpointer=None, model: ChatOpenAI = None):
 
         # 检查是否需要调用工具
         if last_message and hasattr(last_message, "tool_calls") and last_message.tool_calls:
-            # 检查迭代次数
-            current_count = state.get("iteration_count", 0)
-            if current_count >= MAX_ITERATIONS:
-                logger.warning(f"⚠️ [Graph] Max iterations ({MAX_ITERATIONS}) reached, stopping tools")
-                return "should_summarize"
-
-            # 检查连续空结果
-            consecutive_empty = state.get("consecutive_empty_count", 0)
-            if consecutive_empty >= MAX_CONSECUTIVE_EMPTY:
-                logger.warning(
-                    f"⚠️ [Graph] {MAX_CONSECUTIVE_EMPTY} consecutive empty results, stopping tools"
-                )
-                return "should_summarize"
-
+            # 即使已经超出限制，也最后一次路由到 tools 节点，由 tools_wrapper_node 注入“停止”指令
+            # 这样可以确保 Agent 收到一个 ToolMessage 响应，从而能够生成最终的文本回复。
             return "tools"
 
+        # 如果没有工具调用，说明 Agent 已经生成了文本回复，走向摘要/结束
         return "should_summarize"
-    
-
 
     async def check_summary_node(state: ChatGraphState) -> dict:
         """检查摘要节点的占位符（Pass-through node）"""
@@ -306,15 +346,17 @@ def create_agent_graph(checkpointer=None, model: ChatOpenAI = None):
     def should_summarize(state: ChatGraphState) -> Literal["summarize_conversation", "__end__"]:
         """判断是否需要摘要"""
         messages = state["messages"]
-        
+
         # 简单策略：非 System 消息总数超过阈值则触发摘要
         non_system_msgs = [m for m in messages if not isinstance(m, SystemMessage)]
-        
+
         # 实际生产中可以计算 Token 数
         if len(non_system_msgs) > SUMMARY_TRIGGER_COUNT:
-             logger.info(f"📊 [Graph] Message count {len(non_system_msgs)} > {SUMMARY_TRIGGER_COUNT}, triggering summarization")
-             return "summarize_conversation"
-        
+            logger.info(
+                f"📊 [Graph] Message count {len(non_system_msgs)} > {SUMMARY_TRIGGER_COUNT}, triggering summarization"
+            )
+            return "summarize_conversation"
+
         return "__end__"
 
     graph_builder.add_node("agent", agent_node)
@@ -327,12 +369,7 @@ def create_agent_graph(checkpointer=None, model: ChatOpenAI = None):
 
     # 条件边: Agent -> (Tools | Check Summary)
     graph_builder.add_conditional_edges(
-        "agent",
-        route_after_agent,
-        {
-            "tools": "tools",
-            "should_summarize": "check_summary_node"
-        }
+        "agent", route_after_agent, {"tools": "tools", "should_summarize": "check_summary_node"}
     )
 
     # 循环边: Tools -> Agent
@@ -342,10 +379,7 @@ def create_agent_graph(checkpointer=None, model: ChatOpenAI = None):
     graph_builder.add_conditional_edges(
         "check_summary_node",
         should_summarize,
-        {
-            "summarize_conversation": "summarize_conversation",
-            "__end__": END
-        }
+        {"summarize_conversation": "summarize_conversation", "__end__": END},
     )
 
     # 摘要结束后 -> End

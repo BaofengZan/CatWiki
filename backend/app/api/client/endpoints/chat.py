@@ -1,4 +1,3 @@
-
 """聊天补全端点 (LangGraph ReAct 版本)
 
 基于 LangGraph 实现的 ReAct Agent 聊天流程：
@@ -13,7 +12,7 @@ import json
 import time
 from typing import AsyncGenerator, List, Any
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, BaseMessage
@@ -28,7 +27,6 @@ from app.schemas.chat import (
     ChatCompletionChunkChoice,
     ChatCompletionChunkDelta,
 )
-from app.core.dynamic_config import get_dynamic_chat_config
 from app.core.graph import create_agent_graph, extract_citations_from_messages
 from app.core.checkpointer import get_checkpointer
 from app.db.database import AsyncSessionLocal
@@ -44,6 +42,7 @@ async def stream_graph_events(
     config: dict,
     model_name: str,
     thread_id: str,
+    background_tasks: BackgroundTasks,
 ) -> AsyncGenerator[str, None]:
     """流式响应生成器 - 适配 OpenAI SSE 格式（含 tool_calls 支持）"""
     full_response = ""
@@ -85,41 +84,43 @@ async def stream_graph_events(
                 # 处理 tool_calls (如果存在)
                 # LangChain 的 AIMessageChunk 可能包含 tool_call_chunks
                 if hasattr(chunk_data, "tool_call_chunks") and chunk_data.tool_call_chunks:
-                        # Use helper function to convert tool call chunk to OpenAI format
-                        # This avoids manual dictionary construction and potential errors
-                        tool_call_chunks = [
-                            {
-                                "index": tc_chunk.get("index", 0),
-                                "id": tc_chunk.get("id"),
-                                "type": "function" if tc_chunk.get("id") else None,
-                                "function": {
-                                    "name": tc_chunk.get("name"),
-                                    "arguments": tc_chunk.get("args", ""),
-                                },
+                    # Use helper function to convert tool call chunk to OpenAI format
+                    # This avoids manual dictionary construction and potential errors
+                    tool_call_chunks = [
+                        {
+                            "index": tc_chunk.get("index", 0),
+                            "id": tc_chunk.get("id"),
+                            "type": "function" if tc_chunk.get("id") else None,
+                            "function": {
+                                "name": tc_chunk.get("name"),
+                                "arguments": tc_chunk.get("args", ""),
+                            },
+                        }
+                        for tc_chunk in chunk_data.tool_call_chunks
+                    ]
+
+                    for tc in tool_call_chunks:
+                        # Clean up None values
+                        cleaned_tc = {k: v for k, v in tc.items() if v is not None}
+                        if cleaned_tc.get("function"):
+                            cleaned_tc["function"] = {
+                                k: v for k, v in cleaned_tc["function"].items() if v is not None
                             }
-                            for tc_chunk in chunk_data.tool_call_chunks
-                        ]
-                        
-                        for tc in tool_call_chunks:
-                             # Clean up None values
-                             cleaned_tc = {k: v for k, v in tc.items() if v is not None}
-                             if cleaned_tc.get("function"):
-                                 cleaned_tc["function"] = {k: v for k, v in cleaned_tc["function"].items() if v is not None}
-                             
-                             chunk = ChatCompletionChunk(
-                                id=chunk_id_prefix,
-                                object="chat.completion.chunk",
-                                created=int(time.time()),
-                                model=model_name,
-                                choices=[
-                                    ChatCompletionChunkChoice(
-                                        index=0,
-                                        delta=ChatCompletionChunkDelta(tool_calls=[cleaned_tc]),
-                                        finish_reason=None,
-                                    )
-                                ],
-                            )
-                             yield f"data: {chunk.model_dump_json()}\n\n"
+
+                        chunk = ChatCompletionChunk(
+                            id=chunk_id_prefix,
+                            object="chat.completion.chunk",
+                            created=int(time.time()),
+                            model=model_name,
+                            choices=[
+                                ChatCompletionChunkChoice(
+                                    index=0,
+                                    delta=ChatCompletionChunkDelta(tool_calls=[cleaned_tc]),
+                                    finish_reason=None,
+                                )
+                            ],
+                        )
+                        yield f"data: {chunk.model_dump_json()}\n\n"
 
             # 2. 工具开始调用 - 发送状态指示
             elif kind == "on_tool_start":
@@ -154,11 +155,36 @@ async def stream_graph_events(
         yield "data: [DONE]\n\n"
 
         # 3. 异步更新数据库记录 (Side Effect)
-        if full_response:
+        async def save_history():
             async with AsyncSessionLocal() as db:
-                await ChatSessionService.update_assistant_response(
-                    db=db, thread_id=thread_id, assistant_message=full_response
+                # 获取最终消息列表
+                state_snapshot = await graph.aget_state(config)
+                final_messages = (
+                    state_snapshot.values.get("messages", []) if state_snapshot.values else []
                 )
+
+                # 提取最后一条 AI 回复
+                final_response = ""
+                if final_messages:
+                    for msg in reversed(final_messages):
+                        if isinstance(msg, AIMessage) and msg.content:
+                            final_response = msg.content
+                            break
+
+                # 保存 AI 回复，优先使用消息列表中的内容，若无则使用 full_response
+                persistent_content = final_response or full_response
+
+                if persistent_content:
+                    await ChatSessionService.update_assistant_response(
+                        db=db, thread_id=thread_id, assistant_message=persistent_content
+                    )
+
+                # 保存这一轮产生的所有新消息（AIMessage, ToolMessage 等）
+                await ChatSessionService.save_history_from_messages(
+                    db=db, thread_id=thread_id, messages=final_messages
+                )
+
+        background_tasks.add_task(save_history)
 
     except Exception as e:
         logger.error(f"❌ [Chat] Stream error: {e}", exc_info=True)
@@ -183,6 +209,7 @@ async def stream_graph_events(
 )
 async def create_chat_completion(
     request: ChatCompletionRequest,
+    background_tasks: BackgroundTasks,
     origin: str | None = Header(None),
     referer: str | None = Header(None),
 ) -> ChatCompletionResponse | StreamingResponse:
@@ -192,7 +219,7 @@ async def create_chat_completion(
     # 如果未指定 site_id，则视为全局多站点模式 (site_id=0)
     site_id = request.filter.site_id if (request.filter and request.filter.site_id) else 0
 
-    return await _process_chat_request(request, site_id)
+    return await _process_chat_request(request, site_id, background_tasks)
 
 
 @router.post(
@@ -202,6 +229,7 @@ async def create_chat_completion(
 )
 async def create_site_chat_completion(
     request: ChatCompletionRequest,
+    background_tasks: BackgroundTasks,
     authorization: str = Header(..., description="Bearer <api_key>"),
 ) -> ChatCompletionResponse | StreamingResponse:
     """
@@ -220,24 +248,24 @@ async def create_site_chat_completion(
     if not site:
         raise HTTPException(status_code=401, detail="Invalid API Key")
 
-    return await _process_chat_request(request, site.id)
+    return await _process_chat_request(request, site.id, background_tasks)
 
 
 async def _process_chat_request(
-    request: ChatCompletionRequest, site_id: int
+    request: ChatCompletionRequest, site_id: int, background_tasks: BackgroundTasks
 ) -> ChatCompletionResponse | StreamingResponse:
     """核心聊天处理逻辑 (ReAct Agent)"""
 
-    # 1. 获取动态配置
-    async with AsyncSessionLocal() as db:
-        chat_config = await get_dynamic_chat_config(db)
+    # 1. 获取动态配置 (通过缓存管理器)
+    from app.core.dynamic_config_manager import dynamic_config_manager
+
+    chat_config = await dynamic_config_manager.get_chat_config()
 
     current_model = chat_config["model"]
     current_api_key = chat_config["apiKey"]
     current_base_url = chat_config["baseUrl"]
 
     # 2. 初始化 ChatOpenAI
-    # 这里的模型参数需要与 conf/config.py 或 动态配置保持一致
     llm = ChatOpenAI(
         model=current_model,
         api_key=current_api_key,
@@ -248,7 +276,6 @@ async def _process_chat_request(
 
     # 3. 记录日志
     msg_preview = request.message[:200] + "..." if len(request.message) > 200 else request.message
-
 
     # 4. 创建/更新数据库会话记录
     async with AsyncSessionLocal() as db:
@@ -262,7 +289,12 @@ async def _process_chat_request(
         # 对话轮次 = (消息总数 + 1) // 2
         round_count = (session.message_count + 1) // 2
 
-    # 5. 准备 Agent
+        # 5. [NEW] 保存全量用户消息历史
+        await ChatSessionService.save_message(
+            db=db, thread_id=request.thread_id, role="user", content=request.message
+        )
+
+    # 6. 准备 Agent
     # 使用 checkpointer 管理状态
     checkpointer_cm = get_checkpointer()
     checkpointer = await checkpointer_cm.__aenter__()  # 手动 enter 以便后续使用
@@ -297,16 +329,9 @@ async def _process_chat_request(
 
         config = {"configurable": {"thread_id": request.thread_id, "site_id": site_id}}
 
-        # 6. 处理请求
+        # 7. 处理请求
         if request.stream:
             # 流式响应：返回 StreamingResponse
-            # 注意：StreamingResponse 会在后台运行 generator，我们需要在此处不关闭 checkpointer
-            # 但 checkpointer 需要关闭... 这是一个问题。
-            # 解决方案：在 generator 内部管理 checkpointer？
-            # 或者，由于 postgres checkpointer 是无状态连接池，也许可以？
-            # 更好的做法：把 checkpointer 的生命周期交给 generator 或者不使用 context manager (如果它支持).
-            # 这里我们重构 stream_generator 内部去处理 checkpointer 的获取。
-
             # 为了避免连接泄露，我们先关闭这里的 checkpointer，让 generator 自己去获取
             await checkpointer_cm.__aexit__(None, None, None)
 
@@ -314,7 +339,7 @@ async def _process_chat_request(
                 async with get_checkpointer() as cp:
                     g = create_agent_graph(checkpointer=cp, model=llm)
                     async for chunk in stream_graph_events(
-                        g, initial_state, config, current_model, request.thread_id
+                        g, initial_state, config, current_model, request.thread_id, background_tasks
                     ):
                         yield chunk
 
@@ -333,14 +358,15 @@ async def _process_chat_request(
             content = last_message.content if isinstance(last_message, BaseMessage) else ""
 
             # 提取引用
-            # 提取引用 (非流式也应该只返回本次交互的引用，或者由前端处理)
-            # 这里我们也改为只提取最后一次交互的引用
             citations = extract_citations_from_messages(messages, from_last_turn=True)
 
-            # 更新数据库
+            # 更新数据库 (元数据 + 全量历史)
             async with AsyncSessionLocal() as db:
                 await ChatSessionService.update_assistant_response(
                     db=db, thread_id=request.thread_id, assistant_message=content
+                )
+                await ChatSessionService.save_history_from_messages(
+                    db=db, thread_id=request.thread_id, messages=messages
                 )
 
             # 构造响应
@@ -356,14 +382,7 @@ async def _process_chat_request(
                         finish_reason="stop",
                     )
                 ],
-                usage=None,  # 这里略过 token 计算
-                # 注意：标准 OpenAI 响应不包含 citations 字段，
-                # 如果客户端需要，通常通过 side-channel 或 message extra 字段。
-                # 但 CatWiki 前端可能期望在 response 中?
-                # 根据之前的代码，非流式并没有返回 citations...
-                # 查看之前的代码：citations 似乎没有被返回在 standard response body (Pydantic model) 中。
-                # 只有流式最后发送了 citation chunk。
-                # 我们可以暂时保持一致。
+                usage=None,
             )
 
             # 别忘了关闭 checkpointer

@@ -37,29 +37,18 @@ class Reranker:
         self._enabled = False
 
     async def _ensure_config(self):
-        """确保配置已加载"""
-        from app.db.database import AsyncSessionLocal
-        from app.crud.system_config import crud_system_config
+        """确保配置已加载，使用全局配置管理器"""
+        from app.core.dynamic_config_manager import dynamic_config_manager
 
-        async with AsyncSessionLocal() as db:
-            config = await crud_system_config.get_by_key(db, config_key="ai_config")
-            if not config:
-                return
+        rerank_conf = await dynamic_config_manager.get_rerank_config()
 
-            val = config.config_value
-            # check for manualConfig/legacy structure or flat structure
-            rerank_conf = {}
-            if "manualConfig" in val:
-                rerank_conf = val.get("manualConfig", {}).get("rerank", {})
-            else:
-                rerank_conf = val.get("rerank", {})
-
-            if rerank_conf:
-                self.api_key = rerank_conf.get("apiKey")
-                self.base_url = rerank_conf.get("baseUrl")
-                self.model = rerank_conf.get("model")
-                # 如果有 key/url 就算 enable (或者可以加一个 enable 字段，这里假设存在即启用)
-                self._enabled = bool(self.api_key and self.base_url)
+        if rerank_conf:
+            self.api_key = rerank_conf.get("apiKey")
+            self.base_url = rerank_conf.get("baseUrl")
+            self.model = rerank_conf.get("model")
+            self._enabled = bool(self.api_key and self.base_url)
+        else:
+            self._enabled = False
 
     @property
     def is_enabled(self) -> bool:

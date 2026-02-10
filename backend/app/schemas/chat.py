@@ -68,6 +68,7 @@ class ChatMessage(BaseModel):
     name: Optional[str] = None
     tool_calls: Optional[List[ToolCall]] = None  # assistant 角色可能包含
     tool_call_id: Optional[str] = None  # tool 角色必须包含
+    additional_kwargs: Optional[Dict[str, Any]] = None  # 扩展元数据
 
 
 class ChatCompletionRequest(BaseModel):

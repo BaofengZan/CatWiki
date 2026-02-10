@@ -45,6 +45,7 @@ export default defineConfig({
         {
           text: '技术文档',
           items: [
+            { text: 'AI 对话核心架构', link: '/development/tech/ai-chat-architecture' },
             { text: '网页挂件集成', link: '/development/tech/widget-integration' },
             { text: 'SDK 使用指南', link: '/development/tech/sdk-usage' },
             { text: 'RustFS 对象存储', link: '/development/tech/rustfs' },

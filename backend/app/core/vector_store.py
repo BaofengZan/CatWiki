@@ -60,9 +60,10 @@ class VectorStoreManager:
             return
 
         try:
-            # 1. 获取 AI 配置
-            ai_config = await self._get_ai_config()
-            embedding_conf = ai_config.get("embedding", {})
+            # 1. 获取 AI 配置 (通过缓存管理器)
+            from app.core.dynamic_config_manager import dynamic_config_manager
+
+            embedding_conf = await dynamic_config_manager.get_embedding_config()
 
             # 校验配置
             if not embedding_conf or not embedding_conf.get("apiKey"):
@@ -119,10 +120,6 @@ class VectorStoreManager:
             logger.debug("创建 PGEngine...")
             self._engine = PGEngine.from_engine(engine=async_engine)
 
-            # --- 维度检查 (Start) ---
-            await self._check_database_dimension(dimension)
-            # --- 维度检查 (End) ---
-
             # 定义元数据列
             metadata_columns = [
                 Column(name="source", data_type="TEXT", nullable=True),
@@ -153,10 +150,15 @@ class VectorStoreManager:
                 else:
                     logger.debug(f"表 {self.collection_name} 已存在，跳过初始化")
             except Exception as e:
-                logger.error(f"初始化向量存储表失败: {e}")
                 # 依然尝试捕获并发情况下的 "already exists"
                 if "already exists" not in str(e) and "DuplicateTable" not in str(e):
+                    logger.error(f"初始化向量存储表失败: {e}")
                     raise e
+
+            # --- 维度检查 (Start) ---
+            # 在表确认存在且创建后运行，避免 CAST(... AS regclass) 报错
+            await self._check_database_dimension(dimension)
+            # --- 维度检查 (End) ---
 
             # 创建向量存储实例
             logger.debug("创建 PGVectorStore 实例...")
@@ -170,7 +172,6 @@ class VectorStoreManager:
             )
 
             self._initialized = True
-            self._initialized = True
             logger.info(f"✅ [VectorStore] 初始化完成 (Model: {model})")
 
         except Exception as e:
@@ -179,69 +180,38 @@ class VectorStoreManager:
 
     @classmethod
     async def get_instance(cls) -> "VectorStoreManager":
-        """获取单例实例（异步）"""
+        """获取向量存储管理器单例"""
         if cls._instance is None:
             cls._instance = cls()
-
-        # 确保已初始化
         await cls._instance._ensure_initialized()
         return cls._instance
 
-    async def reload_credentials(self, config_value: dict) -> None:
-        """
-        热更新向量存储的凭证信息
-        :param config_value: 最新的 system_config["config_value"]
-        """
+    async def reload_credentials(self) -> None:
+        """热更新向量存储凭证 (强制刷新缓存后更新)"""
         await self._ensure_initialized()
 
-        try:
-            # 提取 Embedding 配置
-            # 逻辑类似 dynamic_config，但专门针对 embedding
+        from app.core.dynamic_config_manager import dynamic_config_manager
 
-            new_model = ""
-            new_api_key = ""
-            new_base_url = ""
+        # 注意：Manager 内部根据 TTL 自动刷新。
+        # 如果需要立即刷新，我们需要 manager 支持强制刷新，
+        # 或者仅仅是从 cache 获取最新值。
+        embedding_conf = await dynamic_config_manager.get_embedding_config()
 
-            # 1. 尝试读取扁平配置
-            embedding_conf = config_value.get("embedding", {})
+        if embedding_conf.get("apiKey") and embedding_conf.get("baseUrl"):
+            new_api_key = embedding_conf.get("apiKey")
+            new_base_url = embedding_conf.get("baseUrl")
+            new_model = embedding_conf.get("model", "")
 
-            # 2. 兼容旧结构
-            if not embedding_conf and "manualConfig" in config_value:
-                embedding_conf = config_value.get("manualConfig", {}).get("embedding", {})
-
-            if embedding_conf.get("apiKey") and embedding_conf.get("baseUrl"):
-                new_api_key = embedding_conf.get("apiKey")
-                new_base_url = embedding_conf.get("baseUrl")
-                new_model = embedding_conf.get("model", "")
-            else:
-                logger.warning(
-                    "⚠️ [VectorStore] Reload triggered but Config for Embedding is missing or incomplete."
+            logger.info(f"🔄 [VectorStore] Reloading credentials. Model: {new_model}")
+            if hasattr(self.embeddings, "update_credentials"):
+                self.embeddings.update_credentials(
+                    api_key=new_api_key,
+                    base_url=new_base_url,
+                    model=new_model,
+                    embedding_batch_size=settings.AI_EMBEDDING_BATCH_SIZE,
                 )
-
-            if new_api_key and new_base_url:
-                logger.info(
-                    f"🔄 [VectorStore] Reloading credentials. Model: {new_model}, Base: {new_base_url}"
-                )
-
-                # 更新 Embeddings 实例
-                if hasattr(self.embeddings, "update_credentials"):
-                    self.embeddings.update_credentials(
-                        api_key=new_api_key,
-                        base_url=new_base_url,
-                        model=new_model,
-                        embedding_batch_size=settings.AI_EMBEDDING_BATCH_SIZE,
-                    )
-                else:
-                    logger.warning(
-                        "⚠️ Current embeddings instance does not support update_credentials"
-                    )
-            else:
-                logger.warning(
-                    "❌ [VectorStore] Failed to reload: Missing API Key or Base URL in config."
-                )
-
-        except Exception as e:
-            logger.error(f"❌ Failed to reload vector store credentials: {e}")
+        else:
+            logger.warning("⚠️ [VectorStore] Reload failed: config missing or incomplete.")
 
     async def add_documents(
         self, documents: list[LangChainDocument], ids: list[str], storage_batch_size: int = 100
@@ -396,28 +366,6 @@ class VectorStoreManager:
             logger.error(f"获取文档片段失败: {e}", exc_info=True)
             return []
 
-    async def _get_ai_config(self) -> dict:
-        """从数据库获取 AI 配置"""
-        async with AsyncSessionLocal() as db:
-            # 硬编码 key，或者从常量导入。为了避免循环导入，这里直接使用 "ai_config"
-            config = await crud_system_config.get_by_key(db, config_key="ai_config")
-            if not config:
-                return {}
-
-            # 标准化配置 (类似 system_config.py 中的逻辑)
-            val = config.config_value
-            if "manualConfig" in val:
-                manual = val.get("manualConfig", {})
-                return {
-                    "chat": manual.get("chat", {}),
-                    "embedding": manual.get("embedding", {}),
-                    "rerank": manual.get("rerank", {}),
-                    "vl": manual.get("vl", {}),
-                }
-
-            # 假设已经是新结构
-            return val
-
     async def _check_database_dimension(self, expected_dim: int):
         """检查数据库中的向量维度是否与配置匹配"""
         try:
@@ -426,7 +374,7 @@ class VectorStoreManager:
             # 查询列类型定义
             # format_type(atttypid, atttypmod) 会返回如 'vector(1024)' 的字符串
             sql = text(
-                f"SELECT format_type(atttypid, atttypmod) as type_def FROM pg_attribute WHERE attrelid = :table::regclass AND attname = 'embedding'"
+                f"SELECT format_type(atttypid, atttypmod) as type_def FROM pg_attribute WHERE attrelid = CAST(:table AS regclass) AND attname = 'embedding'"
             )
 
             async with self._sa_engine.connect() as conn:

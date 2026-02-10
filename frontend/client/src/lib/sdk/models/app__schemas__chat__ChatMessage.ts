@@ -12,5 +12,6 @@ export type app__schemas__chat__ChatMessage = {
     name?: (string | null);
     tool_calls?: (Array<ToolCall> | null);
     tool_call_id?: (string | null);
+    additional_kwargs?: (Record<string, any> | null);
 };
 

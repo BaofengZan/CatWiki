@@ -113,7 +113,7 @@ export class ChatSessionsService {
      * Get Session Messages
      * 获取单个会话的完整聊天历史信息
      *
-     * 从持久化 Checkpointer 中读取所有消息。
+     * 从数据库全量历史表中读取所有消息。
      * @returns ApiResponse_ChatSessionMessagesResponse_ Successful Response
      * @throws ApiError
      */

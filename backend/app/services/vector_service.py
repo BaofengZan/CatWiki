@@ -1,5 +1,3 @@
-
-
 import logging
 import time
 from typing import Optional, List, Dict, Any
@@ -58,59 +56,47 @@ class VectorService:
             # 确保 Reranker 配置是最新的
             await reranker._ensure_config()
 
-            # 如果启用了 Rerank，初始召回数量需要增加
-            recall_k = k
+            # 不需要合并时，召回深度可以适度减小，或者维持现状给精排留空间
             do_rerank = enable_rerank if enable_rerank is not None else reranker.is_enabled
+            recall_k = rerank_k * 5 if (do_rerank and rerank_k) else k * 10
+            recall_k = min(max(recall_k, 50), 100)  # 保持在 50-100 之间
 
-            if do_rerank:
-                recall_k = max(recall_k * 5, 50)  # 至少召回 50 条用于精排
-                logger.debug(f"🔍 [Retrieve] 启用重排序，初始召回数量: {recall_k}")
+            logger.debug(f"🔍 [Retrieve] 初始召回深度: {recall_k} | Rerank: {do_rerank}")
 
-            # 3. 执行相似度搜索 (返回的是距离, distance)
+            # 3. 执行相似度搜索
             results = await vector_store.similarity_search_with_score(
                 query=query, k=recall_k, filter=filter_dict if filter_dict else None
             )
 
-            duration = time.time() - start_time
-            logger.debug(
-                f"✅ [Retrieve] 向量召回完成 | 数量: {len(results)} | 耗时: {duration:.3f}s"
-            )
-
-            # 4. 初步过滤相似度阈值并转换格式
+            # 4. 转换候选集 (直接转换，不进行合并)
             candidate_list = []
-            for doc, distance in results:
-                similarity = 1.0 - distance
-                if similarity < threshold:
-                    continue
+            if results:
+                for doc, distance in results:
+                    similarity = 1.0 - distance
+                    if similarity < threshold:
+                        continue
 
-                doc_id_val = doc.metadata.get("id")
-                doc_title = doc.metadata.get("title")
-
-                candidate_list.append(
-                    {
-                        "content": doc.page_content,
-                        "score": similarity,
-                        "document_id": int(doc_id_val) if doc_id_val else 0,
-                        "document_title": doc_title,
-                        "metadata": doc.metadata,
-                        # 保留原始分数以便跟踪
-                        "original_score": similarity,
-                    }
-                )
+                    candidate_list.append(
+                        {
+                            "content": doc.page_content,
+                            "score": similarity,
+                            "document_id": int(doc.metadata.get("id", 0)),
+                            "document_title": doc.metadata.get("title"),
+                            "metadata": doc.metadata,
+                            "original_score": similarity,
+                        }
+                    )
 
             # 5. 执行重排序 (如果启用)
             final_list = []
-            if do_rerank:
-                if candidate_list:
-                    final_k = rerank_k or k
-                    final_list = await reranker.rerank(
-                        query=query, documents=candidate_list, top_n=final_k
-                    )
-                else:
-                    logger.warning("⚠️ [Retrieve] 召回结果为空或均未通过阈值，跳过重排序")
-                    final_list = []
+            if do_rerank and candidate_list:
+                final_k = rerank_k or k
+                final_list = await reranker.rerank(
+                    query=query, documents=candidate_list, top_n=final_k
+                )
             else:
-                # 如果没启用 Rerank，直接截取 top k
+                # 没启用 Rerank 则按分数排序取 top k
+                candidate_list.sort(key=lambda x: x["score"], reverse=True)
                 final_list = candidate_list[:k]
 
             # 6. 转换为响应对象
@@ -131,7 +117,12 @@ class VectorService:
             return response_objects
 
         except Exception as e:
-            logger.error(f"❌ [Retrieve] 检索服务异常: {e}", exc_info=True)
-            # 根据需求，这里可以选择抛出或者返回空列表
-            # 为了稳健性，暂时返回空列表，但记录错误
+            logger.error(f"❌ [Retrieve] 检索服务严重异常: {str(e)}", exc_info=True)
+            # 根据错误类型提供更具体的提示（可选）
+            if "AuthenticationError" in str(e):
+                logger.error("🔑 [Retrieve] 可能是 Embedding 或 Reranker 认证失败")
+            elif "ConnectionError" in str(e):
+                logger.error("🌐 [Retrieve] 无法连接到向量数据库或模型服务")
+
+            # 返回空列表以保证下游系统不崩溃，但在日志中留痕
             return []

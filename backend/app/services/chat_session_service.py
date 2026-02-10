@@ -23,6 +23,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.chat_session import ChatSession
+from app.models.chat_message import ChatMessage
 from app.core.checkpointer import get_checkpointer
 import json
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage, ToolMessage
@@ -210,12 +211,122 @@ class ChatSessionService:
         return result.scalar_one_or_none()
 
     @staticmethod
+    async def save_history_from_messages(
+        db: AsyncSession,
+        thread_id: str,
+        messages: list[BaseMessage],
+    ) -> int:
+        """从 LangChain 消息列表同步新消息到 SQL (包括 tool_calls 和 tool 结果)"""
+        # 1. 找到最后一条 HumanMessage 的索引，这通常是当前轮次的起点
+        # 注意：HumanMessage 本身已经由 API 层手动保存了，我们只需要保存它之后的所有消息
+        last_human_idx = -1
+        for i in range(len(messages) - 1, -1, -1):
+            if isinstance(messages[i], HumanMessage):
+                last_human_idx = i
+                break
+
+        if last_human_idx == -1:
+            return 0
+
+        new_messages = messages[last_human_idx + 1 :]
+        saved_count = 0
+
+        for msg in new_messages:
+            role = "assistant"
+            tool_calls = None
+            tool_call_id = None
+
+            if isinstance(msg, AIMessage):
+                role = "assistant"
+                if hasattr(msg, "tool_calls") and msg.tool_calls:
+                    # 按照 OpenAI 标准格式保存 tool_calls
+                    tool_calls = []
+                    for tc in msg.tool_calls:
+                        args = tc.get("args")
+                        tool_calls.append(
+                            {
+                                "id": tc.get("id"),
+                                "type": "function",
+                                "function": {
+                                    "name": tc.get("name"),
+                                    "arguments": args
+                                    if isinstance(args, str)
+                                    else json.dumps(args, ensure_ascii=False),
+                                },
+                            }
+                        )
+            elif isinstance(msg, ToolMessage):
+                role = "tool"
+                tool_call_id = msg.tool_call_id
+            elif isinstance(msg, HumanMessage):
+                role = "user"
+            elif isinstance(msg, SystemMessage):
+                # 系统消息（如摘要后的提示）通常不需要存入给用户看的消息流中
+                # 如果需要也可以存
+                continue
+            else:
+                continue
+
+            additional_kwargs = getattr(msg, "additional_kwargs", {}).copy()
+
+            # 特别处理 AIMessage 的 Token 使用信息
+            if isinstance(msg, AIMessage) and hasattr(msg, "usage_metadata") and msg.usage_metadata:
+                additional_kwargs["usage_metadata"] = msg.usage_metadata
+
+            await ChatSessionService.save_message(
+                db=db,
+                thread_id=thread_id,
+                role=role,
+                content=msg.content
+                if isinstance(msg.content, str)
+                else json.dumps(msg.content, ensure_ascii=False),
+                tool_calls=tool_calls,
+                tool_call_id=tool_call_id,
+                additional_kwargs=additional_kwargs,
+            )
+            saved_count += 1
+
+        return saved_count
+
+    @staticmethod
+    async def save_message(
+        db: AsyncSession,
+        thread_id: str,
+        role: str,
+        content: Optional[str] = None,
+        tool_calls: Optional[list] = None,
+        tool_call_id: Optional[str] = None,
+        additional_kwargs: Optional[dict] = None,
+    ) -> ChatMessage:
+        """保存单条消息到全量历史表"""
+        try:
+            msg = ChatMessage(
+                thread_id=thread_id,
+                role=role,
+                content=content,
+                tool_calls=tool_calls,
+                tool_call_id=tool_call_id,
+                additional_kwargs=additional_kwargs,
+            )
+            db.add(msg)
+            await db.commit()
+            await db.refresh(msg)
+            logger.debug(f"💾 [ChatMessage] Saved: thread_id={thread_id}, role={role}")
+            return msg
+        except Exception as e:
+            logger.error(f"❌ [ChatMessage] Error in save_message: {e}")
+            await db.rollback()
+            raise
+
+    @staticmethod
     async def get_session_messages(
+        db: AsyncSession,
         thread_id: str,
     ) -> dict:
-        """从 LangGraph Checkpointer 获取对话历史
+        """获取对话历史（从 SQL 全量历史表获取）
 
         Args:
+            db: 数据库会话
             thread_id: 会话 ID
 
         Returns:
@@ -223,26 +334,66 @@ class ChatSessionService:
         """
         from app.core.graph import extract_citations_from_messages
 
-        async with get_checkpointer() as checkpointer:
-            config = {"configurable": {"thread_id": thread_id}}
-            checkpoint_tuple = await checkpointer.aget_tuple(config)
+        # 1. 从 SQL 获取全量历史消息
+        result = await db.execute(
+            select(ChatMessage)
+            .where(ChatMessage.thread_id == thread_id)
+            .order_by(ChatMessage.created_at.asc())
+        )
+        db_messages = result.scalars().all()
 
-            if not checkpoint_tuple:
-                logger.warning(f"⚠️ [ChatSession] No checkpoint found for thread_id: {thread_id}")
-                return {"messages": [], "citations": []}
+        # 2. 从全量历史消息中提取引用
+        # 我们将 SQL 消息转换为 LangChain 格式，以便复用 extract_citations_from_messages 逻辑
+        langchain_msgs = []
+        for msg in db_messages:
+            if msg.role == "user":
+                langchain_msgs.append(HumanMessage(content=msg.content))
+            elif msg.role == "assistant":
+                l_tool_calls = []
+                if msg.tool_calls:
+                    for tc in msg.tool_calls:
+                        # 从 OpenAI 标准格式转换回 LangChain 内部格式
+                        func = tc.get("function", {})
+                        args_raw = func.get("arguments", "{}")
+                        try:
+                            args = json.loads(args_raw) if isinstance(args_raw, str) else args_raw
+                        except json.JSONDecodeError:
+                            args = {}
 
-            # 从 checkpoint 中提取消息
-            # LangGraph 的消息存储在 channel_values 的 "messages" 中
-            checkpoint = checkpoint_tuple.checkpoint
-            langchain_messages = checkpoint.get("channel_values", {}).get("messages", [])
+                        l_tool_calls.append(
+                            {
+                                "name": func.get("name", "unknown"),
+                                "args": args,
+                                "id": tc.get("id"),
+                                "type": "tool_call",  # LangChain 期望的类型标识
+                            }
+                        )
+                langchain_msgs.append(AIMessage(content=msg.content or "", tool_calls=l_tool_calls))
+            elif msg.role == "tool":
+                langchain_msgs.append(
+                    ToolMessage(
+                        content=msg.content,
+                        tool_call_id=msg.tool_call_id,
+                        name="search_knowledge_base",
+                    )
+                )
 
-            # 提取引用信息
-            citations = extract_citations_from_messages(langchain_messages)
+        # 提取当前轮次的引用（从最后一条 HumanMessage 开始算）
+        citations = extract_citations_from_messages(langchain_msgs, from_last_turn=True)
 
-            # 使用现有的转换工具转换为 OpenAI 格式 (UI 展示需过滤系统消息)
-            messages = ChatSessionService._messages_to_openai(langchain_messages, filter_system=True)
+        # 3. 转换 SQL 消息为 OpenAI 格式渲染
+        messages = []
+        for msg in db_messages:
+            msg_dict = {"role": msg.role, "content": msg.content}
+            if msg.tool_calls:
+                msg_dict["tool_calls"] = msg.tool_calls
+            if msg.tool_call_id:
+                msg_dict["tool_call_id"] = msg.tool_call_id
+            if msg.additional_kwargs:
+                msg_dict["additional_kwargs"] = msg.additional_kwargs
+            messages.append(msg_dict)
 
-            return {"messages": messages, "citations": citations}
+        return {"messages": messages, "citations": citations}
 
     @staticmethod
     async def delete_by_thread_id(
@@ -268,13 +419,18 @@ class ChatSessionService:
 
             # 同步清理 Checkpointer 中的消息历史，防止数据孤岛
             try:
-                async with get_checkpointer() as checkpointer:
-                    # 尝试删除 checkpointer 数据（如果支持）
-                    if hasattr(checkpointer, "adelete"):
-                        await checkpointer.adelete({"configurable": {"thread_id": thread_id}})
-                        logger.info(
-                            f"🧹 [ChatSession] Checkpointer data cleaned: thread_id={thread_id}"
-                        )
+                from sqlalchemy import text
+
+                # 手动删除 LangGraph 系统表中的相关记录
+                # 涉及表: checkpoints, checkpoint_blobs, checkpoint_writes
+                for table in ["checkpoints", "checkpoint_blobs", "checkpoint_writes"]:
+                    await db.execute(
+                        text(f"DELETE FROM {table} WHERE thread_id = :tid"), {"tid": thread_id}
+                    )
+                await db.commit()
+                logger.info(
+                    f"🧹 [ChatSession] LangGraph checkpoints cleaned: thread_id={thread_id}"
+                )
             except Exception as e:
                 logger.warning(f"⚠️ [ChatSession] Failed to delete checkpointer data: {e}")
 
@@ -419,6 +575,7 @@ class ChatSessionService:
             }
             for s in sessions
         ]
+
     @staticmethod
     def _messages_to_openai(messages: list[BaseMessage], filter_system: bool = False) -> list[dict]:
         """将 LangChain 格式消息转换为 OpenAI 格式 (完全兼容 tool calling)"""

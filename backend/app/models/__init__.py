@@ -20,6 +20,7 @@ from app.models.system_config import SystemConfig  # noqa
 from app.models.user import User, UserRole, UserStatus  # noqa
 from app.models.site import Site  # noqa
 from app.models.chat_session import ChatSession  # noqa
+from app.models.chat_message import ChatMessage  # noqa
 
 __all__ = [
     "BaseModel",
@@ -34,4 +35,5 @@ __all__ = [
     "UserStatus",
     "SystemConfig",
     "ChatSession",
+    "ChatMessage",
 ]

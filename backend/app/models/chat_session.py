@@ -15,6 +15,7 @@
 """Chat Session Model - 会话元数据表"""
 
 from sqlalchemy import Column, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import relationship
 
 from app.models.base import BaseModel
 
@@ -49,6 +50,16 @@ class ChatSession(BaseModel):
 
     # 消息统计
     message_count = Column(Integer, default=0)
+
+    # 关联消息 (用于级联删除)
+    messages = relationship(
+        "ChatMessage",
+        back_populates="session",
+        primaryjoin="ChatSession.thread_id == ChatMessage.thread_id",
+        foreign_keys="ChatMessage.thread_id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
     def __repr__(self) -> str:
         return f"<ChatSession(id={self.id}, thread_id={self.thread_id}, site_id={self.site_id})>"
