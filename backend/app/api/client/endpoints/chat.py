@@ -123,6 +123,7 @@ async def stream_graph_events(
         state_snapshot = await graph.aget_state(config)
         if state_snapshot.values:
             final_messages = state_snapshot.values.get("messages", [])
+
             citations = extract_citations_from_messages(final_messages, from_last_turn=True)
 
         # 发送 Citations (自定义协议，客户端需支持)

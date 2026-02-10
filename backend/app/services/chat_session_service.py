@@ -14,21 +14,18 @@
 
 """ChatSession Service - 会话管理服务"""
 
+import json
 import logging
 from datetime import datetime, timedelta
-from typing import Optional
 
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage
 from sqlalchemy import desc, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.chat_session import ChatSession
-from app.models.chat_message import ChatMessage
-from app.core.checkpointer import get_checkpointer
-import json
-from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage, ToolMessage
-
 from app.core.rag_utils import extract_citations_from_messages
+from app.models.chat_message import ChatMessage
+from app.models.chat_session import ChatSession
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +42,7 @@ class ChatSessionService:
         thread_id: str,
         site_id: int,
         user_message: str,
-        member_id: Optional[str] = None,
+        member_id: str | None = None,
     ) -> ChatSession:
         """创建或更新会话记录
 
@@ -108,7 +105,7 @@ class ChatSessionService:
         db: AsyncSession,
         thread_id: str,
         assistant_message: str,
-    ) -> Optional[ChatSession]:
+    ) -> ChatSession | None:
         """更新助手回复
 
         在助手回复完成后调用，更新 last_message。
@@ -146,9 +143,9 @@ class ChatSessionService:
     @staticmethod
     async def list_sessions(
         db: AsyncSession,
-        site_id: Optional[int] = None,
-        member_id: Optional[str] = None,
-        keyword: Optional[str] = None,
+        site_id: int | None = None,
+        member_id: str | None = None,
+        keyword: str | None = None,
         page: int = 1,
         size: int = 20,
     ) -> tuple[list[ChatSession], int]:
@@ -199,7 +196,7 @@ class ChatSessionService:
     async def get_by_thread_id(
         db: AsyncSession,
         thread_id: str,
-    ) -> Optional[ChatSession]:
+    ) -> ChatSession | None:
         """根据 thread_id 获取会话
 
         Args:
@@ -295,10 +292,10 @@ class ChatSessionService:
         db: AsyncSession,
         thread_id: str,
         role: str,
-        content: Optional[str] = None,
-        tool_calls: Optional[list] = None,
-        tool_call_id: Optional[str] = None,
-        additional_kwargs: Optional[dict] = None,
+        content: str | None = None,
+        tool_calls: list | None = None,
+        tool_call_id: str | None = None,
+        additional_kwargs: dict | None = None,
     ) -> ChatMessage:
         """保存单条消息到全量历史表"""
         try:
@@ -434,7 +431,7 @@ class ChatSessionService:
     @staticmethod
     async def get_stats(
         db: AsyncSession,
-        site_id: Optional[int] = None,
+        site_id: int | None = None,
     ) -> dict:
         """获取会话统计
 
@@ -468,7 +465,7 @@ class ChatSessionService:
         }
 
     @staticmethod
-    async def _get_overview_stats(db: AsyncSession, site_id: Optional[int]) -> dict:
+    async def _get_overview_stats(db: AsyncSession, site_id: int | None) -> dict:
         """获取总览统计"""
 
         # 基础查询构建器
@@ -500,7 +497,7 @@ class ChatSessionService:
         }
 
     @staticmethod
-    async def _get_today_stats(db: AsyncSession, site_id: Optional[int]) -> dict:
+    async def _get_today_stats(db: AsyncSession, site_id: int | None) -> dict:
         """获取今日统计"""
         now = datetime.now()
         start_of_day = datetime(now.year, now.month, now.day)
@@ -513,7 +510,7 @@ class ChatSessionService:
         return {"new_sessions": new_sessions}
 
     @staticmethod
-    async def _get_trends(db: AsyncSession, site_id: Optional[int]) -> list[dict]:
+    async def _get_trends(db: AsyncSession, site_id: int | None) -> list[dict]:
         """获取最近7天趋势"""
         now = datetime.now()
         trends = []
@@ -550,7 +547,7 @@ class ChatSessionService:
         return trends
 
     @staticmethod
-    async def _get_recent_sessions(db: AsyncSession, site_id: Optional[int]) -> list[dict]:
+    async def _get_recent_sessions(db: AsyncSession, site_id: int | None) -> list[dict]:
         """获取最近会话列表"""
         query = select(ChatSession).order_by(desc(ChatSession.created_at)).limit(5)
         if site_id is not None:

@@ -60,7 +60,16 @@ async def search_knowledge_base(query: str, config: RunnableConfig) -> str:
 
     offset = 0
     if messages:
-        for msg in messages:
+        # 仅统计当前轮次（最后一条 HumanMessage 之后）的工具调用结果数量
+        last_human_idx = -1
+        for i in range(len(messages) - 1, -1, -1):
+            if isinstance(messages[i], HumanMessage):
+                last_human_idx = i
+                break
+
+        target_messages = messages[last_human_idx + 1:] if last_human_idx != -1 else messages
+
+        for msg in target_messages:
             if isinstance(msg, ToolMessage) and msg.name == "search_knowledge_base":
                 try:
                     prev_results = json.loads(msg.content)
@@ -85,9 +94,17 @@ async def search_knowledge_base(query: str, config: RunnableConfig) -> str:
         if not retrieved_docs:
             return NO_RESULTS_MESSAGE
 
-        # 格式化结果，增加全局索引 source_index
+        # 1. 工具侧“合并”：按 document_id 进行去重合并（保留最高分/首个出现的片段）
+        seen_ids = set()
+        unique_docs = []
+        for doc in retrieved_docs:
+            if doc.document_id not in seen_ids:
+                unique_docs.append(doc)
+                seen_ids.add(doc.document_id)
+
+        # 2. 格式化结果，增加全局索引 source_index
         results = []
-        for i, doc in enumerate(retrieved_docs):
+        for i, doc in enumerate(unique_docs):
             current_idx = offset + i + 1
             results.append(
                 {
@@ -98,7 +115,7 @@ async def search_knowledge_base(query: str, config: RunnableConfig) -> str:
                         "document_id": doc.document_id,
                         "title": doc.document_title,
                         "score": doc.score,
-                        "source_index": current_idx,  # 冗余存一份在 metadata
+                        "site_id": doc.metadata.get("site_id"),
                         **doc.metadata,
                     },
                 }
