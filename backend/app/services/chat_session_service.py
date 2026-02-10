@@ -24,7 +24,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.chat_session import ChatSession
 from app.core.checkpointer import get_checkpointer
-from app.core.graph import langchain_to_openai
+from app.core.checkpointer import get_checkpointer
+import json
+from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage, ToolMessage
 
 logger = logging.getLogger(__name__)
 
@@ -239,7 +241,7 @@ class ChatSessionService:
             citations = extract_citations_from_messages(langchain_messages)
 
             # 使用现有的转换工具转换为 OpenAI 格式 (UI 展示需过滤系统消息)
-            messages = langchain_to_openai(langchain_messages, filter_system=True)
+            messages = ChatSessionService._messages_to_openai(langchain_messages, filter_system=True)
 
             return {"messages": messages, "citations": citations}
 
@@ -418,3 +420,56 @@ class ChatSessionService:
             }
             for s in sessions
         ]
+    @staticmethod
+    def _messages_to_openai(messages: list[BaseMessage], filter_system: bool = False) -> list[dict]:
+        """将 LangChain 格式消息转换为 OpenAI 格式 (完全兼容 tool calling)"""
+        result = []
+        for msg in messages:
+            if isinstance(msg, SystemMessage):
+                if filter_system:
+                    continue
+                result.append({"role": "system", "content": msg.content})
+
+            elif isinstance(msg, AIMessage):
+                message_dict = {"role": "assistant"}
+
+                # 处理 content（可能为空字符串或 None）
+                if msg.content:
+                    message_dict["content"] = msg.content
+                else:
+                    message_dict["content"] = None
+
+                # 处理 tool_calls（如果存在）
+                if hasattr(msg, "tool_calls") and msg.tool_calls:
+                    tool_calls_list = []
+                    for tc in msg.tool_calls:
+                        # LangChain 的 tool_call 结构转换为 OpenAI 格式
+                        tool_call_dict = {
+                            "id": tc.get("id", ""),
+                            "type": "function",
+                            "function": {
+                                "name": tc.get("name", ""),
+                                "arguments": json.dumps(tc.get("args", {}), ensure_ascii=False),
+                            },
+                        }
+                        tool_calls_list.append(tool_call_dict)
+                    message_dict["tool_calls"] = tool_calls_list
+
+                result.append(message_dict)
+
+            elif isinstance(msg, HumanMessage):
+                result.append({"role": "user", "content": msg.content})
+
+            elif isinstance(msg, ToolMessage):
+                # OpenAI 格式的 tool role 消息
+                result.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": msg.tool_call_id,
+                        "content": msg.content
+                        if isinstance(msg.content, str)
+                        else json.dumps(msg.content, ensure_ascii=False),
+                    }
+                )
+
+        return result

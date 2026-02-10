@@ -1,16 +1,3 @@
-# Copyright 2024 CatWiki Authors
-#
-# Licensed under the CatWiki Open Source License (Modified Apache 2.0);
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://github.com/CatWiki/CatWiki/blob/main/LICENSE
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 """聊天补全端点 (LangGraph ReAct 版本)
 
@@ -42,7 +29,7 @@ from app.schemas.chat import (
     ChatCompletionChunkDelta,
 )
 from app.core.dynamic_config import get_dynamic_chat_config
-from app.core.graph import create_agent_graph, langchain_to_openai, extract_citations_from_messages
+from app.core.graph import create_agent_graph, extract_citations_from_messages
 from app.core.checkpointer import get_checkpointer
 from app.db.database import AsyncSessionLocal
 from app.services.chat_session_service import ChatSessionService
@@ -98,41 +85,41 @@ async def stream_graph_events(
                 # 处理 tool_calls (如果存在)
                 # LangChain 的 AIMessageChunk 可能包含 tool_call_chunks
                 if hasattr(chunk_data, "tool_call_chunks") and chunk_data.tool_call_chunks:
-                    for tc_chunk in chunk_data.tool_call_chunks:
-                        tool_call_delta = {
-                            "index": tc_chunk.get("index", 0),
-                            "id": tc_chunk.get("id"),
-                            "type": "function" if tc_chunk.get("id") else None,
-                            "function": {
-                                "name": tc_chunk.get("name"),
-                                "arguments": tc_chunk.get("args", ""),
-                            },
-                        }
-                        # 清理 None 值
-                        tool_call_delta = {
-                            k: v for k, v in tool_call_delta.items() if v is not None
-                        }
-                        if tool_call_delta.get("function"):
-                            tool_call_delta["function"] = {
-                                k: v
-                                for k, v in tool_call_delta["function"].items()
-                                if v is not None
+                        # Use helper function to convert tool call chunk to OpenAI format
+                        # This avoids manual dictionary construction and potential errors
+                        tool_call_chunks = [
+                            {
+                                "index": tc_chunk.get("index", 0),
+                                "id": tc_chunk.get("id"),
+                                "type": "function" if tc_chunk.get("id") else None,
+                                "function": {
+                                    "name": tc_chunk.get("name"),
+                                    "arguments": tc_chunk.get("args", ""),
+                                },
                             }
-
-                        chunk = ChatCompletionChunk(
-                            id=chunk_id_prefix,
-                            object="chat.completion.chunk",
-                            created=int(time.time()),
-                            model=model_name,
-                            choices=[
-                                ChatCompletionChunkChoice(
-                                    index=0,
-                                    delta=ChatCompletionChunkDelta(tool_calls=[tool_call_delta]),
-                                    finish_reason=None,
-                                )
-                            ],
-                        )
-                        yield f"data: {chunk.model_dump_json()}\n\n"
+                            for tc_chunk in chunk_data.tool_call_chunks
+                        ]
+                        
+                        for tc in tool_call_chunks:
+                             # Clean up None values
+                             cleaned_tc = {k: v for k, v in tc.items() if v is not None}
+                             if cleaned_tc.get("function"):
+                                 cleaned_tc["function"] = {k: v for k, v in cleaned_tc["function"].items() if v is not None}
+                             
+                             chunk = ChatCompletionChunk(
+                                id=chunk_id_prefix,
+                                object="chat.completion.chunk",
+                                created=int(time.time()),
+                                model=model_name,
+                                choices=[
+                                    ChatCompletionChunkChoice(
+                                        index=0,
+                                        delta=ChatCompletionChunkDelta(tool_calls=[cleaned_tc]),
+                                        finish_reason=None,
+                                    )
+                                ],
+                            )
+                             yield f"data: {chunk.model_dump_json()}\n\n"
 
             # 2. 工具开始调用 - 发送状态指示
             elif kind == "on_tool_start":
@@ -156,7 +143,7 @@ async def stream_graph_events(
         state_snapshot = await graph.aget_state(config)
         if state_snapshot.values:
             final_messages = state_snapshot.values.get("messages", [])
-            citations = extract_citations_from_messages(final_messages)
+            citations = extract_citations_from_messages(final_messages, from_last_turn=True)
 
         # 发送 Citations (自定义协议，客户端需支持)
         if citations:
@@ -297,9 +284,12 @@ async def _process_chat_request(
             "messages": [HumanMessage(content=request.message)],
             # 其他状态字段根据 graph_state.py 如果有默认值可省略，或在此初始化
             "site_id": site_id,
+            # 重置计数器，防止跨轮次持久化导致 Agent 提前停止
+            "iteration_count": 0,
+            "consecutive_empty_count": 0,
         }
 
-        config = {"configurable": {"thread_id": request.thread_id}}
+        config = {"configurable": {"thread_id": request.thread_id, "site_id": site_id}}
 
         # 6. 处理请求
         if request.stream:
@@ -337,7 +327,9 @@ async def _process_chat_request(
             content = last_message.content if isinstance(last_message, BaseMessage) else ""
 
             # 提取引用
-            citations = extract_citations_from_messages(messages)
+            # 提取引用 (非流式也应该只返回本次交互的引用，或者由前端处理)
+            # 这里我们也改为只提取最后一次交互的引用
+            citations = extract_citations_from_messages(messages, from_last_turn=True)
 
             # 更新数据库
             async with AsyncSessionLocal() as db:
