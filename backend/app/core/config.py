@@ -172,6 +172,36 @@ class Settings(BaseSettings):
         description="触发对话摘要的消息数量阈值",
     )
 
+    # RAG 检索配置
+    RAG_RECALL_K: int = Field(
+        default=50,
+        ge=1,
+        le=100,
+        description="向量检索初始召回数量",
+    )
+    RAG_RECALL_THRESHOLD: float = Field(
+        default=0.3,
+        ge=0.0,
+        le=1.0,
+        description="向量检索相似度阈值",
+    )
+    RAG_ENABLE_RERANK: bool = Field(
+        default=True,
+        description="[重排] 是否开启 Reranker 精排",
+    )
+    RAG_RERANK_TOP_K: int = Field(
+        default=5,
+        ge=1,
+        le=20,
+        description="[重排/最终] 最终提供给 AI 的精选结果数量",
+    )
+    RAG_RECALL_MAX: int = Field(
+        default=100,
+        ge=10,
+        le=200,
+        description="全局召回硬上限，保护性能",
+    )
+
     # 文档解析服务配置 (DocProcessor)
     DOCLING_NAME: str = Field(default="Docling")
     DOCLING_BASE_URL: str | None = Field(default=None)

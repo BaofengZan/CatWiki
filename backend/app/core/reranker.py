@@ -37,7 +37,7 @@ class Reranker:
         self._enabled = False
 
     async def _ensure_config(self):
-        """确保配置已加载，使用全局配置管理器"""
+        """确保配置已加载，使用全局配置管理器同步 API 配置"""
         from app.core.dynamic_config_manager import dynamic_config_manager
 
         rerank_conf = await dynamic_config_manager.get_rerank_config()
@@ -46,13 +46,11 @@ class Reranker:
             self.api_key = rerank_conf.get("apiKey")
             self.base_url = rerank_conf.get("baseUrl")
             self.model = rerank_conf.get("model")
-            self._enabled = bool(self.api_key and self.base_url)
-        else:
-            self._enabled = False
 
     @property
     def is_enabled(self) -> bool:
-        return self._enabled and bool(self.base_url)
+        """检查后端服务是否配置了 Reranker API"""
+        return bool(self.api_key and self.base_url)
 
     async def rerank(self, query: str, documents: list[dict], top_n: int = 5) -> list[dict]:
         """

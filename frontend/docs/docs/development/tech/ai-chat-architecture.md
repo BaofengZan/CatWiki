@@ -1,54 +1,102 @@
 # AI 对话系统架构与 RAG 逻辑文档
 
-本文旨在详细介绍 CatWiki AI 对话系统的核心架构、处理流程以及针对 RAG（检索增强生成）质量与效率所做的深度优化。
+本文档详细介绍了 CatWiki AI 对话系统的核心架构、处理流程以及针对 RAG（检索增强生成）质量与效率所做的深度设计。
 
 ## 1. 核心架构：基于 LangGraph 的 ReAct 模式
 
-对话系统采用了 **ReAct (Reasoning and Acting)** 范式，利用 [LangGraph](https://langchain-ai.github.io/langgraph/) 构建了一个有状态的循环工作流。
+系统采用了 **ReAct (Reasoning and Acting)** 范式，利用 [LangGraph](https://langchain-ai.github.io/langgraph/) 构建了一个有状态的循环工作流。
 
-### 1.1 工作流节点 (Nodes)
-- **Agent 节点**: 负责思考。LLM 根据历史消息和当前上下文决定是直接回答用户，还是调用工具（如搜索知识库）。
-- **Tools 节点**: 负责执行。当 Agent 生成工具调用指令时，系统自动切换到此节点运行特定工具。
-- **Summarize 节点**: 负责长期记忆管理。当对话条数达到上限时，自动触发摘要生成并清理历史消息，通过 `RemoveMessage` 机制优化 Token 消耗。
+### 1.1 状态机工作流 (Graph Workflow)
 
-### 1.2 循环逻辑 (Edges)
-1. **START -> Agent**: 开始处理用户输入。
-2. **Agent -> Tools**: 如果 LLM 决定搜索知识库。
-3. **Tools -> Agent**: 将搜索结果反馈给 LLM，重新进入思考环节。
-4. **Agent -> END**: LLM 认为已获取足够信息并给出了最终回答。
-5. **Agent -> Summarize**: 如果满足摘要触发条件，则流向摘要生成逻辑。
+系统通过状态机管理对话逻辑，确保推理与行为的解耦。
+
+```mermaid
+graph TD
+    START((开始)) --> API[API 接收请求]
+    API --> DCM[获取动态配置]
+    DCM --> CSS_S[创建会话记录]
+    CSS_S --> Agent[Agent 思考节点]
+    
+    Agent --> Router{决策路由}
+    Router -- 调用工具 --> Tools[工具执行节点]
+    Tools --> KB[知识库检索]
+    KB --> Agent
+    
+    Router -- 生成回答 --> CheckSum{触发摘要?}
+    CheckSum -- 是 --> Summarize[摘要剪枝节点]
+    Summarize --> Stream[流式输出结束]
+    CheckSum -- 否 --> Stream
+    
+    Stream --> Save[异步持久化历史]
+    Save --> END((结束))
+```
+
+### 1.2 核心节点说明
+- **Agent 节点**: 负责决策。LLM 根据 `SystemPrompt` 和历史上下文，决定是直接回答用户，还是通过调工具获取信息。
+- **Tools 包装节点**: 包含防护逻辑。监测 `iteration_count` 和 `consecutive_empty_count`，防止 Agent 陷入无限搜索循环。
+- **Summarize 节点**: 长期记忆管理。当对话长度触及阈值时，自动提取关键点并剪枝历史（RemoveMessage），在保证上下文连续性的同时节省 Token。
+
+---
+
+## 2. RAG 检索深度优化 (Vector Service)
+
+系统通过多阶段处理确保召回的精准度。
+
+### 2.1 请求生命周期中的检索流程
+1. **语义召回 (Recall)**: 
+   - 过滤条件：支持基于 `site_id` 的多租户隔离。
+   - 深度：初始召回 `recall_k` 设置为 50-100 个分片。
+2. **精排重测 (Rerank)**: 
+   - 调用 Reranker 模型对候选集进行二次打分。
+   - 动态调整：如果开启重排序，则仅返回得分最高的 Top K 个分片。
+3. **上下文注入**: 
+   - 检索结果以 JSON 格式注入 `ToolMessage`，包含分片的 `content` 和 `source_index`。
 
 ---
 
-## 2. RAG 检索深度优化
+## 3. 消息持久化与状态恢复
 
-为了解决复杂查询（如医学流程、规范步骤）中的信息碎片化和召回不全问题，系统实施了以下核心优化：
+系统采用“双轨制”存储，兼顾运行效率与审计需求。
 
-### 2.1 语义分片检索 (Chunk Retrieval)
-- **策略**: 文档被切分为约 500 字的分片。系统通过向量相似度直接召回最相关的分片。
-- **重排序**: 召回后，系统会利用 Reranker 对候选分片进行二次精排，确保最准确的信息排在最前供 AI 使用。
+### 3.1 运行态：SQL Checkpointer
+- 基于 `LangGraph` 的 `SqliteSaver/PostgresSaver`。
+- **作用**: 记录图的原子状态，支持跨请求的断点续连和 ReAct 循环的中断恢复。
+- **Thread ID**: 每个用户会话拥有独立的线索 ID。
 
-### 2.2 动态配置缓存 (DynamicConfigManager)
-- **挑战**: Embedding、Reranker 和 Chat 模型配置存储在数据库中，每轮对话重复查询会大幅增加延迟。
-- **方案**: 实现了一个基于单例模式的全局管理器，对 AI 配置进行 5 分钟 TTL 的时间缓存，显著降低了后端接口响应时间（TTFT）。
+### 3.2 审计态：全量消息表 (`ChatMessage`)
+- **作用**: 存储 OpenAI 兼容格式的原始消息流。
+- **包含内容**: 人类问题、AI 思考、中间工具调用参数、工具返回结果以及 Token 消耗统计。
+- **异步保存**: 每一轮对话结束后，通过 FastAPI `BackgroundTasks` 异步同步到 SQL，零延迟影响用户体验。
+
+---
+
+## 4. 引用来源提取策略 (Citation Strategy)
+
+系统确保回答中标记的 `[n]` 与展示的引用列表一致。
+
+### 4.1 提取机制 (Index-Link)
+- **提取源**: 系统遍历当前轮次产生的所有 `ToolMessage`。
+- **提取逻辑**: 目前采用 **全量提取模式**。系统会收集最后一次用户提问后召回的所有文档，并将其元数据（标题、得分、站点 ID）透传给前端渲染。
+- **全局索引**: 工具返回给 AI 的每个分片都带有全局唯一的 `source_index`。AI 被要求严格按照该序号在正文中使用 `[n]` 进行标注。
 
 ---
 
-## 3. 引用来源精准映射 (Citation Strategy)
+## 5. 性能优化 (Performance)
 
-系统采用了一套严密的机制，确保回答中标记的 `[n]` 与底部的“引用来源”列表 100% 对应。
-
-### 3.1 全局会话索引 (Global Indexing)
-- 每一条搜索结果都被分配一个在**当前会话会话中唯一且递增**的编号（如第 1 轮搜到 1-10，第 2 轮搜到 11-20）。
-- 系统通过指令严格禁止 AI 重新编号，必须以此绝对序号进行引用。
-
-### 3.2 Title-Sync 标题对齐技术
-- **逻辑**: 后端提取程序会同时解析 AI 回复中的序号 `[n]` 和它提到的具体标题（如《心肺复苏操作指南》）。
-- **对比**: 即使 AI 偶尔数错序号，系统也会通过标题在文档池中进行模糊匹配，强制修正来源展示。
-- **精准过滤**: 只有在正文中被真正标记到的文档才会出现在底部的“引用来源”列表中。
-
-### 3.3 内文本引用处理 (Index-Link)
-- **挑战**: AI 回复正文中的 `[n]` 标识与检索池文档的一致性。
-- **方案**: 系统采用最基础的索引匹配。通过识别回复正文中的 `[n]` 标记，直接对应检索回来的文档池序号。不进行标题二次校验，保持逻辑的极简与透明。
+- **DynamicConfig 缓存**: 配置管理器对 AI 模型参数进行 5 分钟 TTL 缓存，避免了每秒高频查询数据库导致的 TTFT（首包延迟）增加。
+- **原子更新**: 使用 SQL `update(ChatSession).values(message_count=ChatSession.message_count + 1)` 确保并发状态下计数器的准确性。
 
 ---
+
+## 6. 配置与调优 (Environment Variables)
+
+系统支持通过环境变量动态调整 RAG 质量与性能。
+
+### 6.1 RAG 核心参数项
+| 变量名 | 默认值 | 说明 |
+| :--- | :--- | :--- |
+| `RAG_RECALL_K` | 50 | 初始向量召回数量（海选池大小） |
+| `RAG_RECALL_THRESHOLD` | 0.3 | 向量检索相似度阈值 |
+| `RAG_ENABLE_RERANK` | true | 显式开启/关闭重排序精排阶段 |
+| `RAG_RERANK_TOP_K` | 5 | 最终喂给 AI 的精选文档数量 |
+| `RAG_RECALL_MAX` | 100 | 全局召回硬上限，保护 Reranker 性能 |

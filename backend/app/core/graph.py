@@ -81,8 +81,6 @@ async def search_knowledge_base(query: str, config: RunnableConfig) -> str:
         # 执行检索
         retrieved_docs = await VectorService.retrieve(
             query=query,
-            k=10,
-            threshold=0.3,
             filter=search_filter,
         )
 
