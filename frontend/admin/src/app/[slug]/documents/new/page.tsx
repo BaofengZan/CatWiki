@@ -138,7 +138,7 @@ export default function NewDocumentPage() {
   const collections = collectionsTree ? flattenCollections(collectionsTree) : []
 
   const handleBack = () => {
-    router.push(getRoutePath("/documents", routeContext.domain))
+    router.push(getRoutePath("/documents", routeContext.slug))
   }
 
   const handleSave = (status: DocumentStatus) => {
@@ -181,7 +181,7 @@ export default function NewDocumentPage() {
 
         // 使用 setTimeout 确保在下一个事件循环中跳转，让缓存刷新完成
         setTimeout(() => {
-          router.push(getRoutePath("/documents", routeContext.domain))
+          router.push(getRoutePath("/documents", routeContext.slug))
         }, 100)
       }
     })

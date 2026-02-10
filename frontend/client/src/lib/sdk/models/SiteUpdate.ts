@@ -8,7 +8,7 @@ import type { QuickQuestion } from './QuickQuestion';
  */
 export type SiteUpdate = {
     name?: (string | null);
-    domain?: (string | null);
+    slug?: (string | null);
     description?: (string | null);
     icon?: (string | null);
     status?: (string | null);

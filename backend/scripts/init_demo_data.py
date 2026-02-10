@@ -39,9 +39,38 @@ from app.models.document import Document  # noqa: E402
 from app.schemas.collection import CollectionCreate  # noqa: E402
 from app.schemas.document import DocumentCreate  # noqa: E402
 from app.schemas.site import SiteCreate  # noqa: E402
+from app.crud.user import crud_user  # noqa: E402
+from app.schemas.user import UserCreate  # noqa: E402
+from app.models.user import UserRole, UserStatus  # noqa: E402
 
 setup_logging()
 logger = logging.getLogger(__name__)
+
+
+async def create_default_admin_user():
+    """创建默认管理员用户"""
+    async with AsyncSessionLocal() as db:
+        try:
+            # 检查管理员是否已存在
+            admin_email = "admin@example.com"
+            user = await crud_user.get_by_email(db, email=admin_email)
+            if not user:
+                # 创建管理员
+                user_in = UserCreate(
+                    name="Admin",
+                    email=admin_email,
+                    password="admin123",
+                    role=UserRole.ADMIN,
+                    status=UserStatus.ACTIVE,
+                )
+                user = await crud_user.create(db, obj_in=user_in)
+                logger.info(f"✅ 创建默认管理员用户：{user.email} / admin123")
+            else:
+                logger.info(f"✅ 管理员用户已存在：{user.email}")
+            return user
+        except Exception as e:
+            logger.error(f"❌ 创建管理员用户失败: {e}", exc_info=True)
+            raise
 
 
 async def create_demo_site():
@@ -54,7 +83,7 @@ async def create_demo_site():
                 # 创建新站点
                 site_create = SiteCreate(
                     name="医学科普",
-                    domain="medical",
+                    slug="medical",
                     description="医学知识科普站点，提供常见疾病、健康生活、急救知识等内容",
                     icon="medical",
                     status="active",
@@ -70,11 +99,11 @@ async def create_demo_site():
                 await db.commit()
                 await db.refresh(demo_site)
                 logger.info(
-                    f"✅ 创建 Demo 站点：{demo_site.name} (ID: {demo_site.id}, Domain: {demo_site.domain})"
+                    f"✅ 创建 Demo 站点：{demo_site.name} (ID: {demo_site.id}, Slug: {demo_site.slug})"
                 )
             else:
                 logger.info(
-                    f"✅ Demo 站点已存在：{demo_site.name} (ID: {demo_site.id}, Domain: {demo_site.domain})"
+                    f"✅ Demo 站点已存在：{demo_site.name} (ID: {demo_site.id}, Slug: {demo_site.slug})"
                 )
 
             return demo_site
@@ -1308,6 +1337,9 @@ def get_medical_data():
 async def init_demo_data():
     """初始化 Demo 数据"""
     logger.info("🚀 开始初始化 Demo 数据...")
+
+    # 0. 创建默认管理员
+    await create_default_admin_user()
 
     # 1. 创建或获取 demo 站点
     demo_site = await create_demo_site()

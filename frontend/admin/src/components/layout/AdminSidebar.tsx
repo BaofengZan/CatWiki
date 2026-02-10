@@ -71,7 +71,7 @@ function AdminSidebarComponent() {
 
   // 总是调用 hooks（React 规则要求）
   const routeContext = useRouteContext()
-  const siteData = useSiteData() // 总是调用，但在 sites 页面时 domain 为空，会返回默认值
+  const siteData = useSiteData() // 总是调用，但在 sites 页面时 slug 为空，会返回默认值
 
   // 一次性获取用户角色（不需要 useState + useEffect）
   const [userRole] = useState(() => {
@@ -267,11 +267,11 @@ function AdminSidebarComponent() {
         </div>
 
         <nav className="space-y-1.5">
-          {routeContext.domain ? (
+          {routeContext.slug ? (
             menuItems.map((item) => {
-              // 检查活动状态（所有路由都在域名下）
-              // 对于根路径 "/"，需要同时匹配 /${domain} 和 /${domain}/
-              const basePath = `/${routeContext.domain}${item.href}`
+              // 检查活动状态（所有路由都在站点标识下）
+              // 对于根路径 "/"，需要同时匹配 /${slug} 和 /${slug}/
+              const basePath = `/${routeContext.slug}${item.href}`
               const normalizedBasePath = basePath.replace(/\/$/, '') // 移除末尾斜杠
               const normalizedPathname = pathname.replace(/\/$/, '') // 移除末尾斜杠
 
@@ -280,7 +280,7 @@ function AdminSidebarComponent() {
               const Icon = item.icon
 
               // 构建链接
-              const hrefWithSite = getRoutePath(item.href, routeContext.domain)
+              const hrefWithSite = getRoutePath(item.href, routeContext.slug)
 
               return (
                 <div key={item.href} className="space-y-1">
@@ -308,8 +308,8 @@ function AdminSidebarComponent() {
                   {item.children && isActive && (
                     <div className="ml-10 space-y-1 mt-1 animate-in slide-in-from-left-2 duration-300">
                       {item.children.map((child) => {
-                        const isChildActive = pathname === `/${routeContext.domain}${child.href}`
-                        const childHrefWithSite = getRoutePath(child.href, routeContext.domain)
+                        const isChildActive = pathname === `/${routeContext.slug}${child.href}`
+                        const childHrefWithSite = getRoutePath(child.href, routeContext.slug)
                         return (
                           <Link
                             key={child.href}
@@ -340,9 +340,9 @@ function AdminSidebarComponent() {
 
       <div className="mt-auto px-6 py-6 space-y-4">
         <div className="space-y-1">
-          {routeContext.domain && (
+          {routeContext.slug && (
             <Link
-              href={`${env.NEXT_PUBLIC_CLIENT_URL}/${routeContext.domain}`}
+              href={`${env.NEXT_PUBLIC_CLIENT_URL}/${routeContext.slug}`}
               target="_blank"
               className="flex items-center gap-3 px-2 py-1.5 rounded-lg text-xs text-primary/80 hover:text-primary hover:bg-primary/5 transition-all group mb-2 font-medium"
             >
@@ -370,9 +370,9 @@ function AdminSidebarComponent() {
         </div>
         <div className="px-2 pt-3 border-t border-slate-200/60 flex flex-col gap-1 mt-4">
           <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-widest text-[#3b82f6]">
-            <Link 
-              href="https://catwiki.ai" 
-              target="_blank" 
+            <Link
+              href="https://catwiki.ai"
+              target="_blank"
               className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
               id="cw-sys-mount"
             >

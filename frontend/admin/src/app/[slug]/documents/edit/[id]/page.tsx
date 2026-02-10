@@ -119,13 +119,13 @@ export default function EditDocumentPage() {
   }, [document])
 
   const handleBack = () => {
-    router.push(getRoutePath("/documents", routeContext.domain))
+    router.push(getRoutePath("/documents", routeContext.slug))
   }
 
   const handlePreview = () => {
     const clientUrl = env.NEXT_PUBLIC_CLIENT_URL
-    const domain = routeContext.domain || currentSite.domain || 'demo'
-    window.open(`${clientUrl}/${domain}?documentId=${documentId}`, '_blank')
+    const slug = routeContext.slug || currentSite.slug || 'demo'
+    window.open(`${clientUrl}/${slug}?documentId=${documentId}`, '_blank')
   }
 
   const handleSave = async (newStatus?: DocumentStatus) => {
@@ -186,7 +186,7 @@ export default function EditDocumentPage() {
 
         // 使用 setTimeout 确保在下一个事件循环中跳转，让缓存刷新完成
         setTimeout(() => {
-          router.push(getRoutePath("/documents", routeContext.domain))
+          router.push(getRoutePath("/documents", routeContext.slug))
         }, 100)
       }
     })

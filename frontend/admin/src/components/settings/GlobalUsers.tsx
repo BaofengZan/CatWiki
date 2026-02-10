@@ -304,7 +304,7 @@ export function GlobalUsers() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-[11px] font-bold truncate">{site.name}</div>
-                        <div className="text-[9px] opacity-60 truncate">{site.domain || "无域名"}</div>
+                        <div className="text-[9px] opacity-60 truncate">{site.slug || "无标识"}</div>
                       </div>
                     </div>
                   ))

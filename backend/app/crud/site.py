@@ -47,9 +47,9 @@ class CRUDSite(CRUDBase[Site, SiteCreate, SiteUpdate]):
         result = await db.execute(select(self.model).where(self.model.name == name))
         return result.scalar_one_or_none()
 
-    async def get_by_domain(self, db: AsyncSession, *, domain: str) -> Site | None:
-        """根据域名获取站点"""
-        result = await db.execute(select(self.model).where(self.model.domain == domain))
+    async def get_by_slug(self, db: AsyncSession, *, slug: str) -> Site | None:
+        """根据标识获取站点"""
+        result = await db.execute(select(self.model).where(self.model.slug == slug))
         return result.scalar_one_or_none()
 
     async def get_by_api_token(self, db: AsyncSession, *, api_token: str) -> Site | None:

@@ -32,7 +32,7 @@ export const siteKeys = {
   list: (filters?: any) => [...siteKeys.lists(), filters] as const,
   details: () => [...siteKeys.all, 'detail'] as const,
   detail: (id: number) => [...siteKeys.details(), id] as const,
-  byDomain: (domain: string) => [...siteKeys.all, 'domain', domain] as const,
+  bySlug: (slug: string) => [...siteKeys.all, 'slug', slug] as const,
 }
 
 // ==================== Hooks ====================
@@ -56,16 +56,16 @@ export function useSitesList(params: { page?: number; size?: number; status?: st
 }
 
 /**
- * 通过 domain 获取站点详情
+ * 通过 slug 获取站点详情
  * 替代 SiteContext 中的 getSite 方法
  */
-export function useSiteByDomain(domain: string | undefined) {
+export function useSiteBySlug(slug: string | undefined) {
   const isAuth = isAuthenticated()
 
   return useQuery({
-    queryKey: siteKeys.byDomain(domain!),
-    queryFn: () => api.site.getByDomain(domain!),
-    enabled: !!domain && isAuth,
+    queryKey: siteKeys.bySlug(slug!),
+    queryFn: () => api.site.getBySlug(slug!),
+    enabled: !!slug && isAuth,
     staleTime: 5 * 60 * 1000, // 5分钟
     retry: 2, // 失败重试2次
   })
@@ -122,13 +122,13 @@ export function useDeleteSite() {
 /**
  * 预加载站点数据
  */
-export function usePrefetchSite(domain: string) {
+export function usePrefetchSite(slug: string) {
   const queryClient = useQueryClient()
 
   return () => {
     queryClient.prefetchQuery({
-      queryKey: siteKeys.byDomain(domain),
-      queryFn: () => api.site.getByDomain(domain).catch(() => null),
+      queryKey: siteKeys.bySlug(slug),
+      queryFn: () => api.site.getBySlug(slug).catch(() => null),
       staleTime: 5 * 60 * 1000,
     })
   }

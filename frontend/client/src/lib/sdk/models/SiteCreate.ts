@@ -12,9 +12,9 @@ export type SiteCreate = {
      */
     name: string;
     /**
-     * 站点域名
+     * 站点标识
      */
-    domain?: (string | null);
+    slug: string;
     /**
      * 站点描述
      */

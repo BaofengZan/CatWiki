@@ -244,7 +244,7 @@ export function CreateUserForm({ onCancel, onSuccess, fixedSiteId, fixedSiteName
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-sm truncate">{site.name}</div>
-                          <div className="text-xs text-slate-500 truncate">{site.domain || "无域名"}</div>
+                          <div className="text-xs text-slate-500 truncate">{site.slug || "无标识"}</div>
                         </div>
                       </div>
                     ))}

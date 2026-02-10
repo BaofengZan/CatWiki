@@ -22,7 +22,7 @@ import { LucideIcon } from "lucide-react"
 export interface Site {
   id: string
   name: string
-  domain: string
+  slug: string
   icon?: LucideIcon
   articleCount?: number
   status?: "active" | "draft"

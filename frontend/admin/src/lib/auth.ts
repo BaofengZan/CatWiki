@@ -45,7 +45,7 @@ interface TokenData {
 const TOKEN_KEY = 'auth_token_data'
 const AUTH_COOKIE_NAME = 'isAuthenticated'
 const USER_INFO_KEY = 'userInfo'
-const LAST_SITE_DOMAIN_KEY = 'lastSiteDomain'
+const LAST_SITE_SLUG_KEY = 'lastSiteSlug'
 
 // Token 默认有效期：7 天
 const TOKEN_EXPIRES_DAYS = 7
@@ -225,22 +225,22 @@ export function clearUserInfo() {
   localStorage.removeItem(USER_INFO_KEY)
 }
 
-// ==================== 站点域名管理 ====================
+// ==================== 站点标识管理 ====================
 
 /**
- * 获取最近访问的站点域名
+ * 获取最近访问的站点标识
  */
-export function getLastSiteDomain(): string | null {
+export function getLastSiteSlug(): string | null {
   if (typeof window === 'undefined') return null
-  return localStorage.getItem(LAST_SITE_DOMAIN_KEY)
+  return localStorage.getItem(LAST_SITE_SLUG_KEY)
 }
 
 /**
- * 设置最近访问的站点域名
+ * 设置最近访问的站点标识
  */
-export function setLastSiteDomain(domain: string) {
+export function setLastSiteSlug(slug: string) {
   if (typeof window === 'undefined') return
-  localStorage.setItem(LAST_SITE_DOMAIN_KEY, domain)
+  localStorage.setItem(LAST_SITE_SLUG_KEY, slug)
 }
 
 // ==================== 认证状态管理 ====================

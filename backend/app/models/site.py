@@ -23,7 +23,7 @@ class Site(BaseModel):
     __tablename__ = "sites"
 
     name = Column(String(100), nullable=False, index=True, comment="站点名称")
-    domain = Column(String(200), nullable=True, unique=True, comment="站点域名")
+    slug = Column(String(200), nullable=False, unique=True, comment="站点标识")
     description = Column(Text, nullable=True, comment="站点描述")
     icon = Column(String(50), nullable=True, comment="图标名称")
     status = Column(

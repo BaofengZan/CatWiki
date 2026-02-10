@@ -131,21 +131,21 @@ export class AdminSitesService {
         });
     }
     /**
-     * Get Site By Domain
-     * 通过 domain 获取站点详情（管理后台）
+     * Get Site By Slug
+     * 通过 slug 获取站点详情（管理后台）
      * @returns ApiResponse_Site_ Successful Response
      * @throws ApiError
      */
-    public getAdminSiteByDomain({
-        domain,
+    public getAdminSiteBySlug({
+        slug,
     }: {
-        domain: string,
+        slug: string,
     }): CancelablePromise<ApiResponse_Site_> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/admin/v1/sites:byDomain/{domain}',
+            url: '/admin/v1/sites:bySlug/{slug}',
             path: {
-                'domain': domain,
+                'slug': slug,
             },
             errors: {
                 422: `Validation Error`,

@@ -79,18 +79,16 @@ async def get_site(
     return ApiResponse.ok(data=site, msg="获取成功")
 
 
-@router.get(
-    ":byDomain/{domain}", response_model=ApiResponse[Site], operation_id="getAdminSiteByDomain"
-)
-async def get_site_by_domain(
-    domain: str,
+@router.get(":bySlug/{slug}", response_model=ApiResponse[Site], operation_id="getAdminSiteBySlug")
+async def get_site_by_slug(
+    slug: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> ApiResponse[Site]:
-    """通过 domain 获取站点详情（管理后台）"""
-    site = await crud_site.get_by_domain(db, domain=domain)
+    """通过 slug 获取站点详情（管理后台）"""
+    site = await crud_site.get_by_slug(db, slug=slug)
     if not site:
-        raise NotFoundException(detail=f"站点 {domain} 不存在")
+        raise NotFoundException(detail=f"站点 {slug} 不存在")
 
     # 演示模式下脱敏 bot_config
     if settings.DEMO_MODE and site.bot_config:
@@ -117,11 +115,11 @@ async def create_site(
     if existing:
         raise ConflictException(detail=f"站点名称 '{site_in.name}' 已存在")
 
-    # 检查域名是否已存在
-    if site_in.domain:
-        existing_domain = await crud_site.get_by_domain(db, domain=site_in.domain)
-        if existing_domain:
-            raise ConflictException(detail=f"域名 '{site_in.domain}' 已存在")
+    # 检查标识是否已存在
+    if site_in.slug:
+        existing_slug = await crud_site.get_by_slug(db, slug=site_in.slug)
+        if existing_slug:
+            raise ConflictException(detail=f"标识 '{site_in.slug}' 已存在")
 
     site = await crud_site.create(db, obj_in=site_in)
 
@@ -185,11 +183,11 @@ async def update_site(
         if existing and existing.id != site_id:
             raise ConflictException(detail=f"站点名称 '{site_in.name}' 已存在")
 
-    # 检查域名冲突
-    if site_in.domain:
-        existing_domain = await crud_site.get_by_domain(db, domain=site_in.domain)
-        if existing_domain and existing_domain.id != site_id:
-            raise ConflictException(detail=f"域名 '{site_in.domain}' 已存在")
+    # 检查标识冲突
+    if site_in.slug:
+        existing_slug = await crud_site.get_by_slug(db, slug=site_in.slug)
+        if existing_slug and existing_slug.id != site_id:
+            raise ConflictException(detail=f"标识 '{site_in.slug}' 已存在")
 
     site = await crud_site.update(db, db_obj=site, obj_in=site_in)
     return ApiResponse.ok(data=site, msg="更新成功")

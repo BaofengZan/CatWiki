@@ -36,7 +36,7 @@ import Link from "next/link"
 import { useRouter, usePathname, useParams, useSearchParams } from "next/navigation"
 import type { Site } from "@/lib/api-client"
 import { UserRole } from "@/lib/api-client"
-import { setLastSiteDomain, getUserInfo } from "@/lib/auth"
+import { setLastSiteSlug, getUserInfo } from "@/lib/auth"
 import { useSite } from "@/contexts/SiteContext"
 
 function SiteSwitcherComponent() {
@@ -61,33 +61,33 @@ function SiteSwitcherComponent() {
       pathname === '/users'
   }, [pathname])
 
-  // 获取当前domain
-  const currentDomain = params.domain as string | undefined
+  // 获取当前slug
+  const currentSlug = params.slug as string | undefined
 
   // 使用 useMemo 优化站点查找
   const selectedSite = useMemo(() => {
     if (isGlobalPage) return null
-    const domainOrId = (params.domain || params.id) as string | undefined
-    if (!domainOrId) return null
-    return sites.find(s => s.domain === domainOrId || s.id.toString() === domainOrId)
-  }, [sites, params.domain, params.id, isGlobalPage])
+    const slugOrId = (params.slug || params.id) as string | undefined
+    if (!slugOrId) return null
+    return sites.find(s => s.slug === slugOrId || s.id.toString() === slugOrId)
+  }, [sites, params.slug, params.id, isGlobalPage])
 
   const handleSiteSelect = (site: Site) => {
-    const domain = site.domain || site.id.toString()
-    setLastSiteDomain(domain)
+    const slug = site.slug || site.id.toString()
+    setLastSiteSlug(slug)
 
     // 如果当前在全局页面，跳转到选定站点的首页
     if (isGlobalPage) {
-      router.push(`/${domain}`)
+      router.push(`/${slug}`)
       return
     }
 
-    // 使用域名路由，保持当前路径结构
-    if (currentDomain) {
-      const pathAfterDomain = pathname.replace(`/${currentDomain}`, '') || '/'
-      router.push(`/${domain}${pathAfterDomain}`)
+    // 使用站点标识路由，保持当前路径结构
+    if (currentSlug) {
+      const pathAfterSlug = pathname.replace(`/${currentSlug}`, '') || '/'
+      router.push(`/${slug}${pathAfterSlug}`)
     } else {
-      router.push(`/${domain}`)
+      router.push(`/${slug}`)
     }
   }
 
@@ -143,7 +143,7 @@ function SiteSwitcherComponent() {
               </div>
               <div className="flex flex-col flex-1 min-w-0">
                 <span className="text-sm font-semibold truncate">{site.name}</span>
-                <span className="text-xs text-slate-500 truncate">/{site.domain || 'default'}</span>
+                <span className="text-xs text-slate-500 truncate">/{site.slug || 'default'}</span>
               </div>
               {canManageSites && (
                 <div
@@ -205,7 +205,7 @@ function SiteSwitcherComponent() {
             </div>
             <div className="flex flex-col flex-1 min-w-0">
               <span className="text-sm font-semibold truncate">{site.name}</span>
-              <span className="text-xs text-slate-500 truncate">/{site.domain || 'default'}</span>
+              <span className="text-xs text-slate-500 truncate">/{site.slug || 'default'}</span>
             </div>
             {canManageSites && (
               <div

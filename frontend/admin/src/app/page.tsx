@@ -16,7 +16,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { getLastSiteDomain, setLastSiteDomain } from "@/lib/auth"
+import { getLastSiteSlug, setLastSiteSlug } from "@/lib/auth"
 import { useSite } from "@/contexts/SiteContext"
 
 export default function AdminHome() {
@@ -36,27 +36,27 @@ export default function AdminHome() {
     const redirectToDefaultSite = () => {
       try {
         // 尝试获取最近访问的站点
-        const lastDomain = getLastSiteDomain()
-        if (lastDomain) {
-          router.replace(`/${lastDomain}`)
+        const lastSlug = getLastSiteSlug()
+        if (lastSlug) {
+          router.replace(`/${lastSlug}`)
           return
         }
 
         // 获取第一个激活的站点
         const activeSite = sites.find(site => site.status === "active")
         if (activeSite) {
-          const domain = activeSite.domain || activeSite.id.toString()
-          setLastSiteDomain(domain)
-          router.replace(`/${domain}`)
+          const slug = activeSite.slug || activeSite.id.toString()
+          setLastSiteSlug(slug)
+          router.replace(`/${slug}`)
           return
         }
 
         // 如果没有激活的站点，尝试获取任意站点
         if (sites.length > 0) {
           const firstSite = sites[0]
-          const domain = firstSite.domain || firstSite.id.toString()
-          setLastSiteDomain(domain)
-          router.replace(`/${domain}`)
+          const slug = firstSite.slug || firstSite.id.toString()
+          setLastSiteSlug(slug)
+          router.replace(`/${slug}`)
           return
         }
 

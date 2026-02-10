@@ -40,13 +40,13 @@ export function MessageSources({ sources, allSites }: MessageSourcesProps) {
         {sources.map((source, index) => {
           const matchedSite = allSites?.find(s => s.id === source.siteId)
           const siteName = source.siteName || matchedSite?.name || "知识库"
-          const siteDomain = source.siteDomain || matchedSite?.domain
+          const siteSlug = source.siteSlug || matchedSite?.slug
           const documentId = source.documentId || source.id
 
           return (
             <a
               key={`${source.id}-${index}`}
-              href={siteDomain && documentId ? `/${siteDomain}?documentId=${documentId}` : "#"}
+              href={siteSlug && documentId ? `/${siteSlug}?documentId=${documentId}` : "#"}
               target="_blank"
               rel="noopener noreferrer"
               className={cn(
@@ -76,12 +76,12 @@ export function MessageSources({ sources, allSites }: MessageSourcesProps) {
                       {siteName}
                     </span>
                   </div>
-                  {siteDomain && (
+                  {siteSlug && (
                     <span className="text-[10px] text-slate-300">•</span>
                   )}
-                  {siteDomain && (
+                  {siteSlug && (
                     <span className="text-[10px] text-slate-400 truncate font-mono">
-                      /{siteDomain}
+                      /{siteSlug}
                     </span>
                   )}
                 </div>

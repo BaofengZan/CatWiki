@@ -23,20 +23,20 @@ import { DocumentDetail } from "@/components/document"
 import { AIChatLanding } from "@/components/ai"
 import { Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useSiteByDomain, useMenuTree, useDocument } from "@/hooks"
+import { useSiteBySlug, useMenuTree, useDocument } from "@/hooks"
 import { PageLoading } from "@/components/ui/loading"
 import type { MenuItem } from "@/types"
 import { ThemeProvider, type ThemeColor } from "@/contexts"
 
-function DomainPageContent() {
+function SlugPageContent() {
   const params = useParams()
   const searchParams = useSearchParams()
   const router = useRouter()
-  const domain = params.domain as string
+  const slug = params.slug as string
   const documentIdFromUrl = searchParams.get("documentId")
 
   // 使用 React Query 获取站点信息（自动缓存）
-  const { data: site, isLoading: siteLoading } = useSiteByDomain(domain)
+  const { data: site, isLoading: siteLoading } = useSiteBySlug(slug)
 
   // 从站点信息中提取配置
   const siteName = site?.name || "知识库"
@@ -75,11 +75,11 @@ function DomainPageContent() {
 
   const handleSelectItem = (item: MenuItem | { id: string, type: 'special' }) => {
     if ('type' in item && item.type === 'special' && item.id === 'ai-home') {
-      router.push(`/${domain}`, { scroll: false })
+      router.push(`/${slug}`, { scroll: false })
     } else {
       const menuItem = item as MenuItem
       if (menuItem.type === "article") {
-        router.push(`/${domain}?documentId=${menuItem.id}`, { scroll: false })
+        router.push(`/${slug}?documentId=${menuItem.id}`, { scroll: false })
       }
     }
     setIsMobileSidebarOpen(false)
@@ -106,7 +106,7 @@ function DomainPageContent() {
       <div className="h-screen flex items-center justify-center text-slate-400">
         <div className="text-center">
           <p className="text-lg mb-2">站点不存在</p>
-          <p className="text-sm">域名: {domain}</p>
+          <p className="text-sm">标识: {slug}</p>
         </div>
       </div>
     )
@@ -193,10 +193,10 @@ function DomainPageContent() {
   )
 }
 
-export default function DomainPage() {
+export default function SlugPage() {
   return (
     <Suspense fallback={<PageLoading text="正在检索知识库..." />}>
-      <DomainPageContent />
+      <SlugPageContent />
     </Suspense>
   )
 }

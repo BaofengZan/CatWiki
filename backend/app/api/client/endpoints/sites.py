@@ -52,18 +52,16 @@ async def list_active_sites(
     )
 
 
-@router.get(
-    ":byDomain/{domain}", response_model=ApiResponse[Site], operation_id="getClientSiteByDomain"
-)
-@cached_response(ttl=10, key_prefix="client:site:domain")  # 降低缓存时间到 10 秒
-async def get_site_by_domain(
-    domain: str,
+@router.get(":bySlug/{slug}", response_model=ApiResponse[Site], operation_id="getClientSiteBySlug")
+@cached_response(ttl=10, key_prefix="client:site:slug")  # 降低缓存时间到 10 秒
+async def get_site_by_slug(
+    slug: str,
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[Site]:
-    """通过 domain 获取站点详情（客户端）"""
-    site = await crud_site.get_by_domain(db, domain=domain)
+    """通过 slug 获取站点详情（客户端）"""
+    site = await crud_site.get_by_slug(db, slug=slug)
     if not site or site.status != "active":
-        raise NotFoundException(detail=f"站点 {domain} 不存在")
+        raise NotFoundException(detail=f"站点 {slug} 不存在")
 
     # [Security] 对客户端站点数据进行脱敏
     filter_client_site_data(site)

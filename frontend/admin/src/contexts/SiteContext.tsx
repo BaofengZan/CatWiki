@@ -18,7 +18,7 @@
  * 简化的 SiteContext
  * 
  * 职责：
- * 1. 提供当前路由的 domain 参数
+ * 1. 提供当前路由的 slug 参数
  * 2. 提供全局站点列表（使用 React Query）
  * 3. 提供当前站点数据（使用 React Query）
  * 
@@ -30,14 +30,14 @@
 
 import { createContext, useContext, ReactNode, useMemo } from "react"
 import { useParams, usePathname } from "next/navigation"
-import { useSitesList, useSiteByDomain } from "@/hooks/useSites"
+import { useSitesList, useSiteBySlug } from "@/hooks/useSites"
 import { getUserInfo } from "@/lib/auth"
 import { type Site, UserRole } from "@/lib/api-client"
 
 interface SiteContextType {
-  // 当前路由的 domain
-  domain: string | undefined
-  // 当前站点数据（通过 domain 获取）
+  // 当前路由的 slug
+  slug: string | undefined
+  // 当前站点数据（通过 slug 获取）
   currentSite: Site | undefined
   // 当前站点加载状态
   isLoadingSite: boolean
@@ -60,7 +60,7 @@ const SiteContext = createContext<SiteContextType | undefined>(undefined)
 export function SiteProvider({ children }: { children: ReactNode }) {
   const params = useParams()
   const pathname = usePathname()
-  const domain = params.domain as string | undefined
+  const slug = params.slug as string | undefined
 
   // 判断是否在登录页（登录页不需要加载站点数据）
   const isLoginPage = pathname === '/login'
@@ -92,16 +92,16 @@ export function SiteProvider({ children }: { children: ReactNode }) {
   }, [allSites, currentUser])
 
   // 使用 React Query 获取当前站点数据
-  // 只在非登录页且有 domain 时才查询
+  // 只在非登录页且有 slug 时才查询
   const {
     data: currentSite,
     isLoading: isLoadingSite,
     error: siteError,
     refetch: refetchSite,
-  } = useSiteByDomain(!isLoginPage ? domain : undefined)
+  } = useSiteBySlug(!isLoginPage ? slug : undefined)
 
   const value: SiteContextType = {
-    domain,
+    slug,
     currentSite,
     isLoadingSite,
     siteError,

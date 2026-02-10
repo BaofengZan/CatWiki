@@ -92,7 +92,7 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
       } : initialConfigs.botConfig
 
       setName(siteData.name)
-      setSlug(siteData.domain || "")
+      setSlug(siteData.slug || "")
       setDescription(siteData.description || "")
       setIsActive(siteData.status === "active")
       setThemeColor(siteData.theme_color || "blue")
@@ -102,7 +102,7 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
 
       initialDataRef.current = {
         name: siteData.name,
-        slug: siteData.domain || "",
+        slug: siteData.slug || "",
         description: siteData.description || "",
         isActive: siteData.status === "active",
         themeColor: siteData.theme_color || "blue",
@@ -140,7 +140,7 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
       siteId,
       data: {
         name: name.trim(),
-        domain: slug.trim() || undefined,
+        slug: slug.trim(),
         description: description.trim() || undefined,
         status: isActive ? "active" : "disabled",
         theme_color: themeColor,

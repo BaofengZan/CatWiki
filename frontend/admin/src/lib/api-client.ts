@@ -159,8 +159,8 @@ const siteApi = {
   get: (id: number) =>
     wrapResponse<Models.Site>(client.adminSites.getAdminSite({ siteId: id })),
 
-  getByDomain: (domain: string) =>
-    wrapResponse<Models.Site>(client.adminSites.getAdminSiteByDomain({ domain })),
+  getBySlug: (slug: string) =>
+    wrapResponse<Models.Site>(client.adminSites.getAdminSiteBySlug({ slug })),
 
   create: (data: Models.SiteCreate) =>
     wrapResponse<Models.Site>(client.adminSites.createAdminSite({ requestBody: data })),

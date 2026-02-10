@@ -16,7 +16,7 @@
  * Hooks 统一导出
  */
 
-export { useSiteByDomain } from "./useSiteByDomain"
+export { useSiteBySlug } from "./useSiteBySlug"
 export { useMenuTree } from "./useMenuTree"
 export { useDocument } from "./useDocument"
 export { useAIChat } from "./useAIChat"

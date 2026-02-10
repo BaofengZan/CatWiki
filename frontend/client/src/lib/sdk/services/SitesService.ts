@@ -34,21 +34,21 @@ export class SitesService {
         });
     }
     /**
-     * Get Site By Domain
-     * 通过 domain 获取站点详情（客户端）
+     * Get Site By Slug
+     * 通过 slug 获取站点详情（客户端）
      * @returns ApiResponse_Site_ Successful Response
      * @throws ApiError
      */
-    public getClientSiteByDomain({
-        domain,
+    public getClientSiteBySlug({
+        slug,
     }: {
-        domain: string,
+        slug: string,
     }): CancelablePromise<ApiResponse_Site_> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/v1/sites:byDomain/{domain}',
+            url: '/v1/sites:bySlug/{slug}',
             path: {
-                'domain': domain,
+                'slug': slug,
             },
             errors: {
                 422: `Validation Error`,

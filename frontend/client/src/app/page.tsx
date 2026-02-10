@@ -36,7 +36,7 @@ export default function HomePage() {
     const loadSites = async () => {
       try {
         const response = await api.site.list({ page: 1, size: 100 })
-        const availableSites = (response.list || []).filter((site) => site.domain)
+        const availableSites = (response.list || []).filter((site) => site.slug)
         setSites(availableSites)
         // 初始状态不选择任何站点，允许跨站点提问
       } catch (error) {
@@ -206,12 +206,12 @@ export default function HomePage() {
                         )}
                         <div className="flex items-center gap-2 mt-2">
                           <a
-                            href={`/${site.domain}`}
+                            href={`/${site.slug}`}
                             onClick={(e) => {
                               e.stopPropagation()
-                              if (site.domain) {
+                              if (site.slug) {
                                 e.preventDefault()
-                                router.push(`/${site.domain}`)
+                                router.push(`/${site.slug}`)
                               }
                             }}
                             className="text-xs text-primary hover:text-primary/80 flex items-center gap-1"

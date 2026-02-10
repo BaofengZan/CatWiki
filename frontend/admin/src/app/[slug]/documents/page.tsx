@@ -742,7 +742,7 @@ export default function DocumentsPage() {
             <span className="hidden sm:inline">导入文档</span>
             <span className="sm:hidden">导入</span>
           </Button>
-          <Link href={getRoutePath("/documents/new", routeContext.domain)}>
+          <Link href={getRoutePath("/documents/new", routeContext.slug)}>
             <Button size="sm" className="flex items-center gap-1.5 md:gap-2 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">发布文档</span>
@@ -764,7 +764,7 @@ export default function DocumentsPage() {
             size="sm"
             onClick={() => {
               const clientUrl = env.NEXT_PUBLIC_CLIENT_URL
-              window.open(`${clientUrl}/${currentSite.domain}`, '_blank')
+              window.open(`${clientUrl}/${currentSite.slug}`, '_blank')
             }}
             className="flex items-center gap-1.5 md:gap-2 border-purple-200 text-purple-600 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300 transition-all shadow-sm"
           >
@@ -1114,8 +1114,8 @@ export default function DocumentsPage() {
                                     className="font-semibold text-slate-900 truncate cursor-pointer hover:text-primary transition-colors text-[13.5px] leading-relaxed"
                                     onClick={() => {
                                       const clientUrl = env.NEXT_PUBLIC_CLIENT_URL
-                                      const domain = routeContext.domain || currentSite.domain || 'demo'
-                                      window.open(`${clientUrl}/${domain}?documentId=${doc.id}`, '_blank')
+                                      const slug = routeContext.slug || currentSite.slug || 'demo'
+                                      window.open(`${clientUrl}/${slug}?documentId=${doc.id}`, '_blank')
                                     }}
                                   >
                                     {doc.title}
@@ -1180,7 +1180,7 @@ export default function DocumentsPage() {
                             </TableCell>
                             <TableCell className="py-3 text-right pr-6 sticky right-0 z-10 bg-white group-hover:bg-slate-50/50">
                               <div className="flex justify-end gap-0.5 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Link href={getRoutePath(`/documents/edit/${doc.id}`, routeContext.domain)}>
+                                <Link href={getRoutePath(`/documents/edit/${doc.id}`, routeContext.slug)}>
                                   <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md text-slate-400 hover:text-slate-900 hover:bg-slate-100" title="编辑">
                                     <Edit2 className="h-3.5 w-3.5" />
                                   </Button>
@@ -1236,8 +1236,8 @@ export default function DocumentsPage() {
                             className="relative w-full aspect-[3/2] overflow-hidden bg-slate-50 cursor-pointer shrink-0"
                             onClick={() => {
                               const clientUrl = process.env.NEXT_PUBLIC_CLIENT_URL || 'http://localhost:8002'
-                              const domain = routeContext.domain || currentSite.domain || 'demo'
-                              window.open(`${clientUrl}/${domain}?documentId=${doc.id}`, '_blank')
+                              const slug = routeContext.slug || currentSite.slug || 'demo'
+                              window.open(`${clientUrl}/${slug}?documentId=${doc.id}`, '_blank')
                             }}
                           >
                             <OptimizedImage
@@ -1271,8 +1271,8 @@ export default function DocumentsPage() {
                               className="text-sm font-bold text-slate-900 mb-1.5 line-clamp-2 leading-snug cursor-pointer hover:text-primary transition-colors shrink-0"
                               onClick={() => {
                                 const clientUrl = process.env.NEXT_PUBLIC_CLIENT_URL || 'http://localhost:8002'
-                                const domain = routeContext.domain || currentSite.domain || 'demo'
-                                window.open(`${clientUrl}/${domain}?documentId=${doc.id}`, '_blank')
+                                const slug = routeContext.slug || currentSite.slug || 'demo'
+                                window.open(`${clientUrl}/${slug}?documentId=${doc.id}`, '_blank')
                               }}
                             >
                               {doc.title}
@@ -1329,7 +1329,7 @@ export default function DocumentsPage() {
 
                             <div className="mt-auto pt-2 border-t border-slate-100 flex gap-2 shrink-0">
                               <Link
-                                href={getRoutePath(`/documents/edit/${doc.id}`, routeContext.domain)}
+                                href={getRoutePath(`/documents/edit/${doc.id}`, routeContext.slug)}
                                 className="flex-1"
                               >
                                 <Button

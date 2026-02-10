@@ -162,11 +162,11 @@ const siteApi = {
 
 
   /**
-   * 通过 domain 获取站点详情
+   * 通过 slug 获取站点详情
    */
-  getByDomain: (domain: string) => {
-    return wrapResponse<Models.Site>(client.sites.getClientSiteByDomain({
-      domain,
+  getBySlug: (slug: string) => {
+    return wrapResponse<Models.Site>(client.sites.getClientSiteBySlug({
+      slug,
     }))
   },
 

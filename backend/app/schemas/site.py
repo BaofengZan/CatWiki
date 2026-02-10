@@ -28,7 +28,7 @@ class SiteBase(BaseModel):
     """站点基础 Schema"""
 
     name: str = Field(..., max_length=100, description="站点名称")
-    domain: str | None = Field(None, max_length=200, description="站点域名")
+    slug: str = Field(..., max_length=200, description="站点标识")
     description: str | None = Field(None, description="站点描述")
     icon: str | None = Field(None, max_length=50, description="图标名称")
     status: str = Field(default="active", description="状态: active, draft")
@@ -65,7 +65,7 @@ class SiteUpdate(BaseModel):
     """更新站点"""
 
     name: str | None = Field(None, max_length=100)
-    domain: str | None = Field(None, max_length=200)
+    slug: str | None = Field(None, max_length=200)
     description: str | None = None
     icon: str | None = None
     status: str | None = None

@@ -252,7 +252,7 @@ export default function AdminHome() {
                 <p className="text-[10px] text-muted-foreground font-medium">累计浏览量最高的活跃内容</p>
               </div>
             </div>
-            <Link href={getRoutePath("/documents", routeContext.domain)}>
+            <Link href={getRoutePath("/documents", routeContext.slug)}>
               <Button variant="ghost" size="sm" className="h-8 px-3 text-xs font-semibold text-primary hover:bg-primary/5">
                 查看全部
                 <ChevronRight className="ml-1 h-3 w-3" />
@@ -270,7 +270,7 @@ export default function AdminHome() {
                 hotDocs.map((doc: Document, i: number) => (
                   <Link
                     key={doc.id}
-                    href={getRoutePath(`/documents/edit/${doc.id}`, routeContext.domain)}
+                    href={getRoutePath(`/documents/edit/${doc.id}`, routeContext.slug)}
                     className="flex items-center gap-4 px-6 py-4 hover:bg-muted/30 transition-all group"
                   >
                     <div className={cn(
@@ -323,7 +323,7 @@ export default function AdminHome() {
                 <p className="text-[10px] text-muted-foreground font-medium">知识库内容的最新动态记录</p>
               </div>
             </div>
-            <Link href={getRoutePath("/documents", routeContext.domain)}>
+            <Link href={getRoutePath("/documents", routeContext.slug)}>
               <Button variant="ghost" size="sm" className="h-8 px-3 text-xs font-semibold text-primary hover:bg-primary/5">
                 查看全部
                 <ChevronRight className="ml-1 h-3 w-3" />
@@ -344,7 +344,7 @@ export default function AdminHome() {
                 recentDocs.map((doc: Document) => (
                   <Link
                     key={doc.id}
-                    href={getRoutePath(`/documents/edit/${doc.id}`, routeContext.domain)}
+                    href={getRoutePath(`/documents/edit/${doc.id}`, routeContext.slug)}
                     className="flex items-start gap-4 group relative z-10"
                   >
                     <div className="w-8 h-8 rounded-xl bg-card border border-border shadow-sm flex items-center justify-center group-hover:border-primary group-hover:bg-primary/5 transition-all">

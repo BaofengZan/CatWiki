@@ -57,29 +57,29 @@ export const queryKeys = {
   // 站点相关
   sites: {
     all: ['sites'] as const,
-    list: (params?: { page?: number; size?: number }) => 
+    list: (params?: { page?: number; size?: number }) =>
       ['sites', 'list', params] as const,
     detail: (id: number) => ['sites', 'detail', id] as const,
-    byDomain: (domain: string) => ['sites', 'byDomain', domain] as const,
+    bySlug: (slug: string) => [...queryKeys.sites.all, 'by-slug', slug] as const,
   },
-  
+
   // 文档相关
   documents: {
     all: ['documents'] as const,
-    list: (params?: { 
-      page?: number; 
-      size?: number; 
+    list: (params?: {
+      page?: number;
+      size?: number;
       siteId?: number;
       collectionId?: number;
       keyword?: string;
     }) => ['documents', 'list', params] as const,
     detail: (id: number) => ['documents', 'detail', id] as const,
   },
-  
+
   // 目录相关
   collections: {
     all: ['collections'] as const,
-    tree: (siteId: number, includeDocuments?: boolean) => 
+    tree: (siteId: number, includeDocuments?: boolean) =>
       ['collections', 'tree', siteId, includeDocuments] as const,
   },
 }

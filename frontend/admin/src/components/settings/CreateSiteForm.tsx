@@ -78,7 +78,7 @@ export function CreateSiteForm({ onCancel, onSuccess }: CreateSiteFormProps) {
 
     createSiteMutation.mutate({
       name: name.trim(),
-      domain: slug.trim() || undefined,
+      slug: slug.trim(),
       description: description.trim() || undefined,
       status: isActive ? "active" : "disabled",
       theme_color: themeColor,

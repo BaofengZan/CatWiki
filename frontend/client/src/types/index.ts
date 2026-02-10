@@ -42,7 +42,7 @@ export interface Source {
   id: string
   title: string
   siteName?: string
-  siteDomain?: string
+  siteSlug?: string
   siteId?: number
   documentId?: number
 }

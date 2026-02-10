@@ -18,10 +18,10 @@ import { ReactNode, useState, useEffect } from "react"
 import { useSite } from "@/contexts/SiteContext"
 
 /**
- * Domain 布局组件
+ * Site 布局组件
  * 在站点数据加载完成前显示加载状态
  */
-export default function DomainLayout({ children }: { children: ReactNode }) {
+export default function SiteLayout({ children }: { children: ReactNode }) {
   const { isLoadingSite, siteError, currentSite } = useSite()
   const [isMounted, setIsMounted] = useState(false)
 
