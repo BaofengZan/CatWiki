@@ -46,7 +46,7 @@ async def stream_graph_events(
 ) -> AsyncGenerator[str, None]:
     """流式响应生成器 - 适配 OpenAI SSE 格式（含 tool_calls 支持）"""
     full_response = ""
-    citations = []
+    sources = []
 
     # 生成唯一的 chunk ID 前缀
     chunk_id_prefix = f"chatcmpl-{uuid.uuid4()}"
@@ -124,12 +124,12 @@ async def stream_graph_events(
         if state_snapshot.values:
             final_messages = state_snapshot.values.get("messages", [])
 
-            citations = extract_citations_from_messages(final_messages, from_last_turn=True)
+            sources = extract_citations_from_messages(final_messages, from_last_turn=True)
 
-        # 发送 Citations (自定义协议，客户端需支持)
-        if citations:
-            citation_chunk = {"citations": citations}
-            yield f"data: {json.dumps(citation_chunk)}\n\n"
+        # 发送 Sources (自定义协议，客户端需支持)
+        if sources:
+            source_chunk = {"sources": sources}
+            yield f"data: {json.dumps(source_chunk)}\n\n"
 
         # 发送 [DONE]
         yield "data: [DONE]\n\n"
@@ -311,7 +311,7 @@ async def _process_chat_request(
                 content = last_message.content if isinstance(last_message, BaseMessage) else ""
 
                 # 提取引用 (仅当前回合)
-                citations = extract_citations_from_messages(messages, from_last_turn=True)
+                sources = extract_citations_from_messages(messages, from_last_turn=True)
 
                 # 更新数据库 (元数据 + 全量历史)
                 async with AsyncSessionLocal() as db:

@@ -384,10 +384,7 @@ class ChatSessionService:
 
             messages.append(msg_dict)
 
-        # 提取全量会话的最后一次引用用于兼容性返回
-        last_turn_citations = extract_citations_from_messages(langchain_msgs, from_last_turn=True)
-
-        return {"messages": messages, "citations": last_turn_citations}
+        return {"thread_id": thread_id, "messages": messages}
 
     @staticmethod
     async def delete_by_thread_id(

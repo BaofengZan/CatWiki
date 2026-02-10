@@ -112,7 +112,6 @@ async def get_session_messages(
         data=ChatSessionMessagesResponse(
             thread_id=thread_id,
             messages=result["messages"],
-            citations=result["citations"],
         )
     )
 

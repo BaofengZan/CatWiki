@@ -77,4 +77,3 @@ class ChatSessionMessagesResponse(BaseModel):
 
     thread_id: str
     messages: list[ChatMessage]
-    citations: list[dict] = Field(default_factory=list, description="引用来源列表")

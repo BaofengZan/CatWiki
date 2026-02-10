@@ -158,12 +158,12 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
           try {
             const data = JSON.parse(dataStr)
 
-            // 1. 处理 citations
-            if (data.citations) {
+            // 1. 处理 sources (从 citations 改名而来)
+            if (data.sources) {
               setMessages(prev =>
                 prev.map(msg =>
                   msg.id === assistantMsgId
-                    ? { ...msg, sources: data.citations }
+                    ? { ...msg, sources: data.sources }
                     : msg
                 )
               )
@@ -335,7 +335,7 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
 
     setIsLoading(true)
     try {
-      const { messages: historyMessages, citations } = await api.chatSession.getMessages(targetThreadId)
+      const { messages: historyMessages } = await api.chatSession.getMessages(targetThreadId)
 
       // 转换后端消息格式到前端格式
       // 需要将工具调用信息合并到最终的 AI 回复消息上
