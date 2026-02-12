@@ -149,7 +149,7 @@ function SiteSwitcherComponent() {
                 <div
                   onClick={(e) => {
                     e.stopPropagation()
-                    router.push(`?modal=settings&context=site&siteId=${site.id}`)
+                    router.push(`?modal=site-settings&siteId=${site.id}`)
                     setOpen(false)
                   }}
                   className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-primary transition-all flex-shrink-0"
@@ -236,7 +236,7 @@ function SiteSwitcherComponent() {
               <div
                 onClick={(e) => {
                   e.stopPropagation()
-                  router.push(`?modal=settings&context=site&siteId=${site.id}`)
+                  router.push(`?modal=site-settings&siteId=${site.id}`)
                   setOpen(false)
                 }}
                 className={cn(
