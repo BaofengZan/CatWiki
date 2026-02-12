@@ -268,6 +268,7 @@ async def update_ai_config(
     # 强制清除配置缓存，确保所有的 Manager 都能读取到最新写入数据库的值
     try:
         from app.core.ai.dynamic_config_manager import dynamic_config_manager
+
         dynamic_config_manager.clear_cache(tenant_id=target_tenant_id)
         logger.info(f"🧹 Cleared AI config cache for tenant: {target_tenant_id}")
     except Exception as e:
@@ -280,10 +281,13 @@ async def update_ai_config(
         # 注意：get_instance() 内部会尝试初始化。
         # 如果当前配置有问题，可能会抛出异常。我们应该捕获它，但这不应阻断配置保存成功。
         manager = await VectorStoreManager.get_instance()
-        await manager.reload_credentials() 
+        await manager.reload_credentials()
     except Exception as e:
         import logging
-        logging.getLogger(__name__).warning(f"⚠️ Vector store reload skipped or failed (safe to ignore if config is incomplete): {e}")
+
+        logging.getLogger(__name__).warning(
+            f"⚠️ Vector store reload skipped or failed (safe to ignore if config is incomplete): {e}"
+        )
 
     # 返回处理
     response_data = SystemConfigResponse.model_validate(config)

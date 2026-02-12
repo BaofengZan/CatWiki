@@ -48,8 +48,9 @@ class VectorService:
             # 2. 决定检索数量与重排序策略
             # 获取当前租户上下文以获取正确的配置指纹
             from app.core.infra.tenant import get_current_tenant
+
             current_tenant_id = get_current_tenant()
-            
+
             # 强制注入租户ID过滤（安全核心）
             if current_tenant_id is not None:
                 filter_dict["tenant_id"] = current_tenant_id
@@ -106,10 +107,10 @@ class VectorService:
             final_list = []
             if should_apply_rerank and candidate_list:
                 final_list = await reranker.rerank(
-                    query=query, 
-                    documents=candidate_list, 
+                    query=query,
+                    documents=candidate_list,
                     top_n=final_top_k,
-                    tenant_id=current_tenant_id
+                    tenant_id=current_tenant_id,
                 )
             else:
                 # 没启用 Rerank 则按分数排序取 top k

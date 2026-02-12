@@ -38,7 +38,7 @@ AI_CONFIG_KEY = "ai_config"
 
 class DynamicConfigManager:
     """动态配置管理器 (单例)
-    
+
     职责：
     1. 缓存管理：基于 TTL (默认 60s) 的本地内存缓存。
     2. 模式路由：根据 mode 分支，定向到租户或平台配置，无隐式回退。
@@ -76,12 +76,13 @@ class DynamicConfigManager:
     def _compute_config_hash(self, config: Dict[str, Any]) -> str:
         """计算配置指纹 (Identity Hash)"""
         import hashlib
+
         # 只选取影响物理连接身份的核心字段
         identity_parts = {
             "model": config.get("model"),
             "apiKey": config.get("apiKey"),
             "baseUrl": str(config.get("baseUrl", "")).rstrip("/"),
-            "dimension": config.get("dimension")  # 只有向量模型会有这个字段
+            "dimension": config.get("dimension"),  # 只有向量模型会有这个字段
         }
         # 排序确保哈希稳定性
         identity_str = json.dumps(identity_parts, sort_keys=True)
@@ -96,18 +97,20 @@ class DynamicConfigManager:
             pretty_json = str(masked)
 
         log_msg = (
-            f"\n{'='*60}\n"
+            f"\n{'=' * 60}\n"
             f"🔍 [AI Config Routing] -> 🔄 从数据库新鲜加载\n"
             f"   - 模块段: {section}\n"
             f"   - 目标租户: {target}\n"
             f"   - 指纹标识: {config.get('_hash', 'N/A')}\n"
             f"   - 命中模式: {mode}\n"
             f"   - 最终配置内容:\n{pretty_json}\n"
-            f"{'='*60}"
+            f"{'=' * 60}"
         )
         logger.info(log_msg)
 
-    async def _get_raw_db_config(self, tenant_id: int | None = None, force: bool = False) -> Tuple[Dict[str, Any], bool]:
+    async def _get_raw_db_config(
+        self, tenant_id: int | None = None, force: bool = False
+    ) -> Tuple[Dict[str, Any], bool]:
         """
         获取原始配置，返回 (配置字典, 是否触发了数据库读取)
         """
@@ -128,13 +131,13 @@ class DynamicConfigManager:
                     config = await crud_system_config.get_by_key(
                         db, config_key=AI_CONFIG_KEY, tenant_id=tenant_id
                     )
-                
+
                 raw_data = config.config_value if config and config.config_value else {}
-                
+
                 # 更新缓存状态
                 self._config_cache[cache_key] = raw_data
                 self._last_update_map[cache_key] = now
-                
+
                 return raw_data, True
             except Exception as e:
                 logger.error(f"❌ [ConfigManager] DB 读取异常 (租户: {tenant_id}): {e}")
@@ -143,9 +146,9 @@ class DynamicConfigManager:
 
     def clear_cache(self, tenant_id: int | None = -1):
         """清除缓存
-        
+
         Args:
-            tenant_id: 
+            tenant_id:
                 - 指定 ID: 清除该租户的缓存
                 - None: 清除平台(全局)缓存
                 - -1 (默认): 清除所有缓存
@@ -160,7 +163,9 @@ class DynamicConfigManager:
             self._last_update_map.pop(cache_key, None)
             logger.info(f"🧹 [ConfigManager] 已清除 {cache_key} 的 AI 配置缓存")
 
-    async def _resolve_config(self, section: str, tenant_id: int | None = None, force: bool = False) -> Dict[str, Any]:
+    async def _resolve_config(
+        self, section: str, tenant_id: int | None = None, force: bool = False
+    ) -> Dict[str, Any]:
         """核心路由逻辑 (严格模式)"""
         from app.core.web.exceptions import CatWikiError
         from app.crud.tenant import crud_tenant
@@ -180,7 +185,9 @@ class DynamicConfigManager:
 
             # 情况 1: 租户完全没有配置该模块
             if tenant_section is None:
-                raise CatWikiError(f"租户 {tenant_id} 尚未配置 '{section}' 模型相关参数，且禁止隐式回退")
+                raise CatWikiError(
+                    f"租户 {tenant_id} 尚未配置 '{section}' 模型相关参数，且禁止隐式回退"
+                )
 
             mode = tenant_section.get("mode")
 
@@ -188,18 +195,24 @@ class DynamicConfigManager:
             if mode == "custom":
                 tenant_section.update({"_mode": "custom", "_source": "tenant"})
                 tenant_section["_hash"] = self._compute_config_hash(tenant_section)
-                
+
                 if fetched_tenant:
-                    self._log_resolved_config(section, f"Tenant {tenant_id}", "Custom (租户锁定)", tenant_section)
+                    self._log_resolved_config(
+                        section, f"Tenant {tenant_id}", "Custom (租户锁定)", tenant_section
+                    )
                 else:
-                    logger.debug(f"⚡ [ConfigManager] Cache hit for '{section}' (Tenant {tenant_id}, Mode: custom)")
+                    logger.debug(
+                        f"⚡ [ConfigManager] Cache hit for '{section}' (Tenant {tenant_id}, Mode: custom)"
+                    )
                 return tenant_section
 
             # 情况 3: Platform 模式 - 校验权限后回退
             if mode == "platform":
                 if "models" not in allowed_resources:
-                    raise CatWikiError(f"租户 {tenant_id} 尝试使用平台模型资源，但未获得 'models' 授权")
-                
+                    raise CatWikiError(
+                        f"租户 {tenant_id} 尝试使用平台模型资源，但未获得 'models' 授权"
+                    )
+
                 # 授权通过，滑向下方的平台加载逻辑
             else:
                 # 既不是 custom 也不是 platform，视为非法配置
@@ -208,35 +221,45 @@ class DynamicConfigManager:
         # 2. 第二阶段：指向平台或默认配置 (仅限 Platform 模式或全局上下文)
         raw_platform, fetched_platform = await self._get_raw_db_config(None, force=force)
         platform_section = copy.deepcopy(raw_platform.get(section))
-        
+
         if platform_section is None:
             raise CatWikiError(f"全局平台配置中缺失 '{section}' 模块定义")
 
         platform_section.update({"_mode": "platform", "_source": "platform"})
         platform_section["_hash"] = self._compute_config_hash(platform_section)
-        
+
         target_name = f"Tenant {tenant_id}" if tenant_id else "Platform GLOBAL"
-        
+
         if fetched_platform:
             self._log_resolved_config(section, target_name, "Platform (平台共享)", platform_section)
         else:
-            logger.debug(f"⚡ [ConfigManager] Cache hit for '{section}' ({target_name}, Mode: platform)")
-            
+            logger.debug(
+                f"⚡ [ConfigManager] Cache hit for '{section}' ({target_name}, Mode: platform)"
+            )
+
         return platform_section
 
-    async def get_chat_config(self, tenant_id: int | None = None, force: bool = False) -> Dict[str, Any]:
+    async def get_chat_config(
+        self, tenant_id: int | None = None, force: bool = False
+    ) -> Dict[str, Any]:
         """获取 Chat 模型配置"""
         return await self._resolve_config("chat", tenant_id, force=force)
 
-    async def get_embedding_config(self, tenant_id: int | None = None, force: bool = False) -> Dict[str, Any]:
+    async def get_embedding_config(
+        self, tenant_id: int | None = None, force: bool = False
+    ) -> Dict[str, Any]:
         """获取 Embedding 模型配置"""
         return await self._resolve_config("embedding", tenant_id, force=force)
 
-    async def get_rerank_config(self, tenant_id: int | None = None, force: bool = False) -> Dict[str, Any]:
+    async def get_rerank_config(
+        self, tenant_id: int | None = None, force: bool = False
+    ) -> Dict[str, Any]:
         """获取 Rerank 模型配置"""
         return await self._resolve_config("rerank", tenant_id, force=force)
 
-    async def get_vl_config(self, tenant_id: int | None = None, force: bool = False) -> Dict[str, Any]:
+    async def get_vl_config(
+        self, tenant_id: int | None = None, force: bool = False
+    ) -> Dict[str, Any]:
         """获取视觉语言模型配置"""
         return await self._resolve_config("vl", tenant_id, force=force)
 

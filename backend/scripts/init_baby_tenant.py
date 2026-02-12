@@ -105,14 +105,42 @@ async def init_baby_model_config(tenant_id: int):
     async with AsyncSessionLocal() as db:
         try:
             from app.crud.system_config import crud_system_config
+
             config_key = "ai_config"
             model_config = {
-                "chat": {"provider": "openai", "model": "", "apiKey": "", "baseUrl": "", "mode": "custom"},
-                "embedding": {"provider": "openai", "model": "", "apiKey": "", "baseUrl": "", "dimension": None, "mode": "custom"},
-                "rerank": {"provider": "openai", "model": "", "apiKey": "", "baseUrl": "", "mode": "custom"},
-                "vl": {"provider": "openai", "model": "", "apiKey": "", "baseUrl": "", "mode": "custom"},
+                "chat": {
+                    "provider": "openai",
+                    "model": "",
+                    "apiKey": "",
+                    "baseUrl": "",
+                    "mode": "custom",
+                },
+                "embedding": {
+                    "provider": "openai",
+                    "model": "",
+                    "apiKey": "",
+                    "baseUrl": "",
+                    "dimension": None,
+                    "mode": "custom",
+                },
+                "rerank": {
+                    "provider": "openai",
+                    "model": "",
+                    "apiKey": "",
+                    "baseUrl": "",
+                    "mode": "custom",
+                },
+                "vl": {
+                    "provider": "openai",
+                    "model": "",
+                    "apiKey": "",
+                    "baseUrl": "",
+                    "mode": "custom",
+                },
             }
-            await crud_system_config.update_by_key(db, config_key=config_key, config_value=model_config, tenant_id=tenant_id)
+            await crud_system_config.update_by_key(
+                db, config_key=config_key, config_value=model_config, tenant_id=tenant_id
+            )
             logger.info(f"✅ 初始化育儿租户 AI 模型配置完成 (Mode: Custom)")
         except Exception as e:
             logger.error(f"❌ 初始化育儿租户 AI 模型配置失败: {e}", exc_info=True)

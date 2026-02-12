@@ -48,15 +48,15 @@ class Reranker:
             api_key = rerank_conf.get("apiKey") or settings.AI_RERANK_API_KEY
             base_url = rerank_conf.get("baseUrl") or settings.AI_RERANK_API_BASE
             model = rerank_conf.get("model") or settings.AI_RERANK_MODEL
-            
+
             self._instances[conf_hash] = {
                 "api_key": api_key,
                 "base_url": base_url,
                 "model": model,
-                "enabled": bool(api_key and base_url)
+                "enabled": bool(api_key and base_url),
             }
             logger.info(f"✨ [Reranker] 已准备新配置实例 (Hash: {conf_hash[:8]}, Model: {model})")
-        
+
         return self._instances[conf_hash]
 
     async def is_enabled(self, tenant_id: int | None = None) -> bool:
@@ -64,13 +64,15 @@ class Reranker:
         inst = await self._get_instance_config(tenant_id=tenant_id)
         return inst["enabled"]
 
-    async def rerank(self, query: str, documents: list[dict], top_n: int = 5, tenant_id: int | None = None) -> list[dict]:
+    async def rerank(
+        self, query: str, documents: list[dict], top_n: int = 5, tenant_id: int | None = None
+    ) -> list[dict]:
         """
         异步执行重排序
         """
         # 1. 获取对应租户/指纹的实例配置
         inst = await self._get_instance_config(tenant_id=tenant_id)
-        
+
         if not inst["enabled"] or not documents:
             return documents[:top_n]
 

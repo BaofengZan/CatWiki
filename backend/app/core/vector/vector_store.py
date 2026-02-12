@@ -52,17 +52,16 @@ class VectorStoreManager:
         self.collection_name = collection_name
         self._sa_engine = None  # 底层 SQLAlchemy 异步引擎 (进程内共享)
         self._engine: PGEngine | None = None  # PGEngine (进程内共享)
-        
+
         # 核心缓存：基于配置哈希，实现多租户/多模型配置的实例隔离
         # key: config_hash, value: PGVectorStore
         self._vector_stores: dict[str, PGVectorStore] = {}
         # key: config_hash, value: Embeddings
         self._embeddings_cache: dict[str, any] = {}
-        
+
         # 当前上下文选中的实例 (由 _ensure_initialized 动态指向)
         self._current_store: PGVectorStore | None = None
         self._current_embeddings = None
-
 
     async def _ensure_initialized(self, tenant_id: int | None = None, force: bool = False):
         """确保向量存储已初始化（懒加载，支持多实例池）"""
@@ -74,7 +73,9 @@ class VectorStoreManager:
             if tenant_id is None:
                 tenant_id = get_current_tenant()
 
-            embedding_conf = await dynamic_config_manager.get_embedding_config(tenant_id, force=force)
+            embedding_conf = await dynamic_config_manager.get_embedding_config(
+                tenant_id, force=force
+            )
 
             # 2. 校验配置
             api_key = embedding_conf.get("apiKey", "")
@@ -87,7 +88,9 @@ class VectorStoreManager:
                     f"❌ [VectorStore] 未找到有效的 Embedding 配置 (租户: {tenant_id}, 模式: {mode}, 来源: {source})。 "
                     f"当前配置包含的键: {available_keys}。请在管理后台检查 AI 模型配置。"
                 )
-                raise ValueError(f"未找到有效的 Embedding 配置 (模式: {mode}, 来源: {source}, 包含键: {available_keys})")
+                raise ValueError(
+                    f"未找到有效的 Embedding 配置 (模式: {mode}, 来源: {source}, 包含键: {available_keys})"
+                )
 
             model = embedding_conf.get("model", "")
             base_url = embedding_conf.get("baseUrl", "")
@@ -111,6 +114,7 @@ class VectorStoreManager:
 
             # 初始化 Embeddings
             from app.core.ai.embeddings import OpenAICompatibleEmbeddings
+
             new_embeddings = OpenAICompatibleEmbeddings(
                 model=model,
                 api_key=api_key,
@@ -152,13 +156,18 @@ class VectorStoreManager:
             # 初始化表 (仅在第一次物理访问时执行，dim 由第一个配置决定)
             try:
                 from sqlalchemy import text
-                check_sql = text("SELECT 1 FROM information_schema.tables WHERE table_name = :table")
+
+                check_sql = text(
+                    "SELECT 1 FROM information_schema.tables WHERE table_name = :table"
+                )
                 async with self._sa_engine.connect() as conn:
                     result = await conn.execute(check_sql, {"table": self.collection_name})
                     exists = result.fetchone() is not None
 
                 if not exists:
-                    logger.info(f"✨ 创建向量存储表: {self.collection_name} (必选维度: {dimension})")
+                    logger.info(
+                        f"✨ 创建向量存储表: {self.collection_name} (必选维度: {dimension})"
+                    )
                     await self._engine.ainit_vectorstore_table(
                         table_name=self.collection_name,
                         vector_size=dimension,
@@ -189,12 +198,14 @@ class VectorStoreManager:
             # 存入实例池
             self._vector_stores[conf_hash] = new_store
             self._embeddings_cache[conf_hash] = new_embeddings
-            
+
             # 指向当前
             self._current_store = new_store
             self._current_embeddings = new_embeddings
 
-            logger.info(f"✅ [VectorStore] 实例初始化完成 (哈希: {conf_hash[:8]}, 租户: {tenant_id}, 来源: {source})")
+            logger.info(
+                f"✅ [VectorStore] 实例初始化完成 (哈希: {conf_hash[:8]}, 租户: {tenant_id}, 来源: {source})"
+            )
 
         except Exception as e:
             logger.error(f"向量存储初始化失败: {e}", exc_info=True)
@@ -207,7 +218,9 @@ class VectorStoreManager:
         try:
             await self._ensure_initialized(force=True)
         except Exception as e:
-             logger.warning(f"⚠️ [VectorStore] Reload credentials failed (possibly due to incomplete config): {e}")
+            logger.warning(
+                f"⚠️ [VectorStore] Reload credentials failed (possibly due to incomplete config): {e}"
+            )
 
         # 如果初始化成功，则更新 Embeddings 实例（如果有必要）
         # _ensure_initialized 内部已经重新指向了 _current_embeddings，这里无需额外操作
@@ -220,15 +233,18 @@ class VectorStoreManager:
             async with cls._lock:
                 if cls._instance is None:
                     cls._instance = cls()
-        
+
         # 由于管理器内部通过 _current_store 代理了多实例，每次获取时需刷新指向
         # 注意：这里我们捕获初始化错误，防止因配置暂不可用导致整个应用崩溃
         try:
             await cls._instance._ensure_initialized()
         except Exception as e:
-            logger.warning(f"⚠️ [VectorStore] get_instance initialized with errors (possibly waiting for config): {e}")
-            
+            logger.warning(
+                f"⚠️ [VectorStore] get_instance initialized with errors (possibly waiting for config): {e}"
+            )
+
         return cls._instance
+
     async def add_documents(
         self, documents: list[LangChainDocument], ids: list[str], storage_batch_size: int = 100
     ) -> list[str]:
@@ -299,7 +315,7 @@ class VectorStoreManager:
 
             where_clause = self._get_metadata_where_clause(key)
             sql = text(f"DELETE FROM {self.collection_name} WHERE {where_clause}")
-            
+
             logger.debug(f"执行删除 SQL: {sql} with value={value}")
 
             async with self._sa_engine.connect() as conn:
@@ -431,61 +447,64 @@ class VectorStoreManager:
         """确保所有优化列在数据库表中存在（Schema Evolution）"""
         try:
             from sqlalchemy import text
-            
+
             # 需要检查的额外列 (id, source, site_id 是基础列，这里主要关注新增的优化列)
             target_columns = ["collection_id", "tenant_id"]
-            
+
             async with self._sa_engine.connect() as conn:
                 # 获取当前所有列名
                 result = await conn.execute(
-                    text(f"SELECT column_name FROM information_schema.columns WHERE table_name = '{self.collection_name}'")
+                    text(
+                        f"SELECT column_name FROM information_schema.columns WHERE table_name = '{self.collection_name}'"
+                    )
                 )
                 existing_columns = [row[0] for row in result.fetchall()]
-                
+
                 for col in target_columns:
                     if col not in existing_columns:
                         logger.info(f"🔄 [Schema] 检测到缺少列 '{col}'，正在添加...")
                         # 添加列
-                        await conn.execute(text(f"ALTER TABLE {self.collection_name} ADD COLUMN {col} INTEGER"))
+                        await conn.execute(
+                            text(f"ALTER TABLE {self.collection_name} ADD COLUMN {col} INTEGER")
+                        )
                         await conn.commit()
                         logger.info(f"✅ [Schema] 成功添加列 '{col}'")
-                        
+
         except Exception as e:
-             logger.error(f"❌ [Schema] 列检查/迁移失败: {e}", exc_info=True)
-             # 不抛出异常，允许应用继续启动（可能只需降级使用 JSON 查询）
+            logger.error(f"❌ [Schema] 列检查/迁移失败: {e}", exc_info=True)
+            # 不抛出异常，允许应用继续启动（可能只需降级使用 JSON 查询）
 
     async def _ensure_indexes(self):
         """确保关键查询字段拥有索引"""
         try:
             from sqlalchemy import text
-            
+
             # 需要索引的字段
             # 注意: langchain_id 是主键，自动有索引
-            target_indexes = [
-                "id", 
-                "site_id", 
-                "collection_id", 
-                "tenant_id"
-            ]
-            
+            target_indexes = ["id", "site_id", "collection_id", "tenant_id"]
+
             async with self._sa_engine.connect() as conn:
                 # 获取当前所有索引
                 result = await conn.execute(
-                    text(f"SELECT indexname FROM pg_indexes WHERE tablename = '{self.collection_name}'")
+                    text(
+                        f"SELECT indexname FROM pg_indexes WHERE tablename = '{self.collection_name}'"
+                    )
                 )
                 existing_indexes = [row[0] for row in result.fetchall()]
-                
+
                 for col in target_indexes:
                     index_name = f"idx_{self.collection_name}_{col}"
                     # 简单的命名约定检查，不严谨但够用
                     if index_name not in existing_indexes:
                         logger.info(f"🔄 [Index] 检测到缺少索引 '{index_name}'，正在创建...")
                         await conn.execute(
-                            text(f"CREATE INDEX CONCURRENTLY IF NOT EXISTS {index_name} ON {self.collection_name} ({col})")
+                            text(
+                                f"CREATE INDEX CONCURRENTLY IF NOT EXISTS {index_name} ON {self.collection_name} ({col})"
+                            )
                         )
                         await conn.commit()
                         logger.info(f"✅ [Index] 成功创建索引 '{index_name}'")
-                        
+
         except Exception as e:
             logger.warning(f"⚠️ [Index] 索引维护失败 (可能是权限不足或已存在): {e}")
 

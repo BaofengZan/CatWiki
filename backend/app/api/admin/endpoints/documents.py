@@ -33,7 +33,12 @@ from app.core.web.deps import (
 )
 from app.core.infra.tenant import get_current_tenant
 from app.core.web.exceptions import BadRequestException, NotFoundException
-from app.core.common.utils import Paginator, build_collection_map, enrich_document_dict, get_vector_id
+from app.core.common.utils import (
+    Paginator,
+    build_collection_map,
+    enrich_document_dict,
+    get_vector_id,
+)
 from app.crud import crud_collection, crud_document, crud_site
 from app.db.database import AsyncSessionLocal
 from app.models.document import Document as DocumentModel
@@ -101,6 +106,7 @@ async def process_vectorization_task(document_id: int):
 
             # 使用租户上下文进行后续操作
             from app.core.infra.tenant import temporary_tenant_context
+
             with temporary_tenant_context(document.tenant_id):
                 # 更新为 processing 状态
                 await crud_document.update_vector_status(
@@ -111,7 +117,10 @@ async def process_vectorization_task(document_id: int):
                 if not document.content:
                     logger.warning(f"⚠️ 文档 {document_id} 内容为空，无法向量化")
                     await crud_document.update_vector_status(
-                        db, document_id=document_id, status=VectorStatus.FAILED, error="文档内容为空"
+                        db,
+                        document_id=document_id,
+                        status=VectorStatus.FAILED,
+                        error="文档内容为空",
                     )
                     return
 
@@ -147,7 +156,9 @@ async def process_vectorization_task(document_id: int):
                     texts=[document.content], metadatas=[base_metadata]
                 )
 
-                logger.info(f"📄 文档 {document_id} (租户: {document.tenant_id}) 已切分为 {len(chunks)} 个片段")
+                logger.info(
+                    f"📄 文档 {document_id} (租户: {document.tenant_id}) 已切分为 {len(chunks)} 个片段"
+                )
 
                 # 3. 生成确定性 ID (uuid5)
                 # 引入 uuid 和 NAMESPACE
@@ -575,7 +586,7 @@ async def vectorize_documents(
             # 获取实例并强制检查初始化状态（这会触发配置验证）
             vector_store = await VectorStoreManager.get_instance()
             await vector_store._ensure_initialized(force=True)
-            
+
         except ValueError as e:
             # Revert status to FAILED if config is missing
             await crud_document.batch_update_vector_status(
@@ -634,7 +645,7 @@ async def vectorize_single_document(
         # 获取实例并强制检查初始化状态（这会触发配置验证）
         vector_store = await VectorStoreManager.get_instance()
         await vector_store._ensure_initialized(force=True)
-        
+
     except ValueError as e:
         # Revert status to FAILED if config is missing
         await crud_document.update_vector_status(

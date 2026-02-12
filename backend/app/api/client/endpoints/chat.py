@@ -20,7 +20,10 @@ from langchain_openai import ChatOpenAI
 
 from app.core.infra.checkpointer import get_checkpointer
 from app.core.ai.graph import create_agent_graph
-from app.core.vector.rag_utils import convert_tool_call_chunk_to_openai, extract_sources_from_messages
+from app.core.vector.rag_utils import (
+    convert_tool_call_chunk_to_openai,
+    extract_sources_from_messages,
+)
 from app.db.database import AsyncSessionLocal
 from app.schemas.chat import (
     ChatCompletionChoice,
@@ -173,7 +176,7 @@ async def stream_graph_events(
     except openai.AuthenticationError:
         logger.error("❌ [Chat] Authentication Error: Missing or invalid API Key")
         error_msg = "AI 服务配置异常：缺少有效的 API Key，请联系管理员检查模型配置。"
-        
+
         error_chunk = ChatCompletionChunk(
             id=f"error-{uuid.uuid4()}",
             model=model_name,
@@ -272,8 +275,7 @@ async def _process_chat_request(
     from app.core.ai.llm_manager import llm_manager
 
     llm = await llm_manager.get_model(
-        tenant_id=site_tenant_id,
-        temperature=request.temperature or 0.7
+        tenant_id=site_tenant_id, temperature=request.temperature or 0.7
     )
     current_model = llm.model_name
 
