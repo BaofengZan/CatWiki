@@ -339,13 +339,7 @@ export function SiteUsers({ siteId, siteName }: SiteUsersProps) {
                                     {user.role === UserRole.SITE_ADMIN && <Check className="h-4 w-4 text-primary" />}
                                   </DropdownMenuItem>
                                 )}
-                                <DropdownMenuItem
-                                  onSelect={() => updateRole(user.id, UserRole.EDITOR)}
-                                  className="flex items-center justify-between"
-                                >
-                                  <span>站点编辑</span>
-                                  {user.role === UserRole.EDITOR && <Check className="h-4 w-4 text-primary" />}
-                                </DropdownMenuItem>
+
                               </DropdownMenuSubContent>
                             </DropdownMenuPortal>
                           </DropdownMenuSub>

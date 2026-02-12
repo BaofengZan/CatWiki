@@ -104,7 +104,7 @@ export default function UsersPage() {
 
   // 邀请表单状态
   const [inviteEmail, setInviteEmail] = useState("")
-  const [inviteRole, setInviteRole] = useState<UserRole>(UserRole.EDITOR)
+  const [inviteRole, setInviteRole] = useState<UserRole>(UserRole.SITE_ADMIN)
   const [selectedSites, setSelectedSites] = useState<number[]>([])
 
   // React Query hooks
@@ -263,7 +263,7 @@ export default function UsersPage() {
 
           // 重置表单
           setInviteEmail("")
-          setInviteRole(UserRole.EDITOR)
+          setInviteRole(UserRole.SITE_ADMIN)
           setSelectedSites([])
         }
       }
@@ -314,13 +314,11 @@ export default function UsersPage() {
                         <SelectItem value={UserRole.SITE_ADMIN}>站点管理员</SelectItem>
                       </>
                     )}
-                    <SelectItem value={UserRole.EDITOR}>站点编辑</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-[10px] text-muted-foreground">
                   {inviteRole === UserRole.ADMIN && "拥有系统最高权限，可管理所有站点和全局设置。"}
                   {inviteRole === UserRole.SITE_ADMIN && "可管理分配站点的所有内容和配置。"}
-                  {inviteRole === UserRole.EDITOR && "仅可编辑和发布分配站点的文档。"}
                 </p>
               </div>
 
@@ -498,15 +496,6 @@ export default function UsersPage() {
                                       {user.role === UserRole.SITE_ADMIN && <Check className="h-4 w-4 text-primary" />}
                                     </DropdownMenuItem>
                                   </>
-                                )}
-                                {(isSystemAdmin || isSiteAdmin) && (
-                                  <DropdownMenuItem
-                                    onSelect={() => updateRole(user.id, UserRole.EDITOR)}
-                                    className="flex items-center justify-between"
-                                  >
-                                    <span>站点编辑</span>
-                                    {user.role === UserRole.EDITOR && <Check className="h-4 w-4 text-primary" />}
-                                  </DropdownMenuItem>
                                 )}
                               </DropdownMenuSubContent>
                             </DropdownMenuPortal>

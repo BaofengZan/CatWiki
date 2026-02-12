@@ -76,9 +76,28 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs"
 
-// ==================== Type Adaptations for Local SDK Compatibility ====================
-// Adapting SaaS types to current main branch SDK generated types
-type Tenant = Models.TenantSchema
+// ==================== Type Definitions ====================
+
+interface Tenant {
+  id: number
+  name: string
+  slug: string
+  domain?: string | null
+  description?: string | null
+  logo_url?: string | null
+  status: string
+  plan: string
+  plan_expires_at?: string | null
+  max_sites: number
+  max_documents: number
+  max_storage_mb: number
+  max_users: number
+  platform_resources_allowed: string[]
+  contact_email?: string | null
+  contact_phone?: string | null
+  created_at: string
+  updated_at: string
+}
 
 // Models.TenantStatus is missing in local SDK, defining it locally to match SaaS enum usage
 enum TenantStatus {
@@ -137,7 +156,8 @@ function PlatformTenants() {
   const router = useRouter()
   const queryClient = useQueryClient() // Initialize queryClient
   const [loading, setLoading] = useState(true)
-  const [tenants, setTenants] = useState<Tenant[]>([]) // Use adapted type
+  const [tenants, setTenants] = useState<Tenant[]>([])
+
   const [searchQuery, setSearchQuery] = useState("")
 
   // Data invalidation helper
@@ -256,7 +276,28 @@ function PlatformTenants() {
     try {
       setLoading(true)
       const res = await api.tenant.list({ size: 100 }) // 获取足够多的租户
-      setTenants(res.list)
+      // Map API response to strict Tenant interface
+      const mappedTenants: Tenant[] = res.list.map(t => ({
+        id: t.id,
+        name: t.name,
+        slug: t.slug,
+        domain: t.domain || null,
+        description: t.description || null,
+        logo_url: t.logo_url || null,
+        status: t.status || 'trial', // Default to trial if undefined
+        plan: t.plan || 'starter',
+        plan_expires_at: t.plan_expires_at ? new Date(t.plan_expires_at).toISOString() : null,
+        max_sites: t.max_sites || 3,
+        max_documents: t.max_documents || 1000,
+        max_storage_mb: t.max_storage_mb || 1024,
+        max_users: t.max_users || 5,
+        platform_resources_allowed: t.platform_resources_allowed || [],
+        contact_email: t.contact_email || null,
+        contact_phone: t.contact_phone || null,
+        created_at: new Date(t.created_at).toISOString(),
+        updated_at: new Date(t.updated_at).toISOString(),
+      }))
+      setTenants(mappedTenants)
     } catch (error: any) {
       toast.error(error.message || "获取租户列表失败")
     } finally {
@@ -278,9 +319,9 @@ function PlatformTenants() {
         logo_url: formData.logo_url || undefined,
         admin_email: formData.admin_email,
         admin_password: formData.admin_password,
-        admin_name: (formData as any).admin_name || undefined,
+        admin_name: (formData as any).admin_name || undefined, // Type assertion needed for extra field not in TenantCreateRequest but handled by backend
         plan: formData.plan,
-        status: formData.status as any, // Cast to any to avoid enum mismatch
+        status: formData.status,
         max_sites: Number(formData.max_sites),
         max_documents: Number(formData.max_documents),
         max_storage_mb: Number(formData.max_storage_mb),
@@ -289,7 +330,7 @@ function PlatformTenants() {
         contact_phone: formData.contact_phone || undefined,
         plan_expires_at: new Date(formData.plan_expires_at).toISOString(),
         platform_resources_allowed: formData.platform_resources_allowed,
-      } as any)
+      })
 
       toast.success("租户创建成功")
       setView('list')
@@ -336,7 +377,7 @@ function PlatformTenants() {
         logo_url: editFormData.logo_url || undefined,
         status: editFormData.status,
         plan: editFormData.plan,
-        plan_expires_at: editFormData.plan_expires_at || undefined,
+        plan_expires_at: editFormData.plan_expires_at ? new Date(editFormData.plan_expires_at).toISOString() : undefined,
         max_sites: Number(editFormData.max_sites),
         max_documents: Number(editFormData.max_documents),
         max_storage_mb: Number(editFormData.max_storage_mb),
@@ -344,7 +385,7 @@ function PlatformTenants() {
         contact_email: editFormData.contact_email || undefined,
         contact_phone: editFormData.contact_phone || undefined,
         platform_resources_allowed: editFormData.platform_resources_allowed,
-      } as any)
+      })
       toast.success("更新成功")
       setView('list')
       fetchTenants()
@@ -356,7 +397,7 @@ function PlatformTenants() {
 
   const handleUpdateStatus = async (id: number, status: string) => {
     try {
-      await api.tenant.update(id, { status } as any)
+      await api.tenant.update(id, { status })
       toast.success("状态已更新")
       fetchTenants()
       invalidateTenants() // 刷新全局租户选择器
@@ -486,9 +527,9 @@ function PlatformTenants() {
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 overflow-hidden relative">
-                        {(tenant as any).logo_url ? (
+                        {tenant.logo_url ? (
                           <Image
-                            src={(tenant as any).logo_url}
+                            src={tenant.logo_url}
                             alt={tenant.name || 'Tenant Logo'}
                             fill
                             className="object-cover"
@@ -502,12 +543,12 @@ function PlatformTenants() {
                           <span className="font-semibold text-sm text-slate-900 truncate max-w-[200px]" title={tenant.name}>
                             {tenant.name}
                           </span>
-                          <Badge variant="outline" className={cn("text-[10px] h-5 px-1.5 font-bold", statusColors[tenant.status || 'inactive'] || "bg-slate-100")}>
+                          <Badge variant="outline" className={cn("text-[10px] h-5 px-1.5 font-bold", statusColors[tenant.status] || "bg-slate-100")}>
                             {tenant.status === 'active' ? '活跃' :
                               tenant.status === 'trial' ? '试用' :
                                 tenant.status === 'suspended' ? '暂停' : '未激活'}
                           </Badge>
-                          <Badge className={cn("text-[10px] h-5 px-1.5 font-bold", planColors[tenant.plan || 'free'] || "bg-slate-100")}>
+                          <Badge className={cn("text-[10px] h-5 px-1.5 font-bold", planColors[tenant.plan] || "bg-slate-100")}>
                             {(tenant.plan || 'free').toUpperCase()}
                           </Badge>
                         </div>
@@ -515,10 +556,10 @@ function PlatformTenants() {
                           <span className="font-mono text-slate-400">{tenant.slug}</span>
                           <span className="w-1 h-1 rounded-full bg-slate-300"></span>
                           <span>开通: {new Date(tenant.created_at).toLocaleDateString('zh-CN')}</span>
-                          {(tenant as any).plan_expires_at && (
+                          {tenant.plan_expires_at && (
                             <>
                               <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                              <span>到期: {new Date((tenant as any).plan_expires_at).toLocaleDateString('zh-CN')}</span>
+                              <span>到期: {new Date(tenant.plan_expires_at).toLocaleDateString('zh-CN')}</span>
                             </>
                           )}
                         </p>
@@ -529,11 +570,19 @@ function PlatformTenants() {
                       <div className="flex items-center gap-4 text-xs text-slate-500">
                         <div className="flex items-center gap-1.5" title="最大站点数">
                           <Globe className="h-3.5 w-3.5 opacity-70" />
-                          <span className="font-mono">{tenant.max_sites}</span>
+                          <span className="font-mono">{tenant.max_sites === -1 ? '∞' : tenant.max_sites}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5" title="最大文档数">
+                          <FileText className="h-3.5 w-3.5 opacity-70" />
+                          <span className="font-mono">{tenant.max_documents === -1 ? '∞' : tenant.max_documents}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5" title="存储空间 (MB)">
+                          <HardDrive className="h-3.5 w-3.5 opacity-70" />
+                          <span className="font-mono">{tenant.max_storage_mb === -1 ? '∞' : Math.round(tenant.max_storage_mb)}MB</span>
                         </div>
                         <div className="flex items-center gap-1.5" title="最大用户数">
                           <Users className="h-3.5 w-3.5 opacity-70" />
-                          <span className="font-mono">{tenant.max_users}</span>
+                          <span className="font-mono">{tenant.max_users === -1 ? '∞' : tenant.max_users}</span>
                         </div>
                       </div>
 
@@ -548,20 +597,20 @@ function PlatformTenants() {
                             setEditingTenant(tenant)
                             setEditFormData({
                               name: tenant.name,
-                              slug: tenant.slug || "",
-                              domain: (tenant as any).domain || "",
-                              description: (tenant as any).description || "",
-                              logo_url: (tenant as any).logo_url || "",
+                              slug: tenant.slug,
+                              domain: tenant.domain || "",
+                              description: tenant.description || "",
+                              logo_url: tenant.logo_url || "",
                               status: (tenant.status as TenantStatus) || TenantStatus.ACTIVE,
-                              plan: tenant.plan || "free",
-                              plan_expires_at: (tenant as any).plan_expires_at ? new Date((tenant as any).plan_expires_at).toISOString().split('T')[0] : "",
-                              max_sites: tenant.max_sites || 0,
-                              max_documents: (tenant as any).max_documents || 1000,
-                              max_storage_mb: tenant.max_storage_mb || 0,
-                              max_users: tenant.max_users || 0,
-                              contact_email: (tenant as any).contact_email || "",
-                              contact_phone: (tenant as any).contact_phone || "",
-                              platform_resources_allowed: (tenant as any).platform_resources_allowed || [],
+                              plan: tenant.plan,
+                              plan_expires_at: tenant.plan_expires_at ? new Date(tenant.plan_expires_at).toISOString().split('T')[0] : "",
+                              max_sites: tenant.max_sites,
+                              max_documents: tenant.max_documents,
+                              max_storage_mb: tenant.max_storage_mb,
+                              max_users: tenant.max_users,
+                              contact_email: tenant.contact_email || "",
+                              contact_phone: tenant.contact_phone || "",
+                              platform_resources_allowed: tenant.platform_resources_allowed,
                             })
                             setView('edit')
                           }}>
@@ -1337,9 +1386,8 @@ function PlatformModalContent() {
                 />
               ) : (
                 <ModelSettingsCard
-                  // @ts-ignore - mismatch in expected types but functional
                   onSelectModel={handleSelectModel}
-                  activeTab={"" as any}
+                  activeTab="models"
                 />
               )}
             </TabsContent>

@@ -76,7 +76,7 @@ function AdminSidebarComponent() {
   // 一次性获取用户角色（不需要 useState + useEffect）
   const [userRole] = useState(() => {
     const user = getUserInfo()
-    return user?.role || 'editor'
+    return user?.role || 'site_admin'
   })
 
   // 获取动态版本号
