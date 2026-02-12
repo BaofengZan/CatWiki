@@ -54,13 +54,13 @@ async def create_health_tenant():
     """创建或获取 health 租户"""
     async with AsyncSessionLocal() as db:
         try:
-            tenant_slug = "catwiki-team"
+            tenant_slug = "health-team"
             tenant = await crud_tenant.get_by_slug(db, slug=tenant_slug)
             if not tenant:
                 tenant_in = TenantCreate(
-                    name="CatWiki Team",
+                    name="Health Team",
                     slug=tenant_slug,
-                    description="CatWiki 官方演示团队",
+                    description="health 官方演示团队",
                     plan="pro",
                     plan_expires_at=datetime.now(timezone.utc) + timedelta(days=365),
                     status="active",
@@ -73,6 +73,57 @@ async def create_health_tenant():
             return tenant
         except Exception as e:
             logger.error(f"❌ 创建 Health 租户失败: {e}", exc_info=True)
+            raise
+
+
+async def init_health_model_config(tenant_id: int):
+    """初始化 Health 租户的 AI 模型配置"""
+    async with AsyncSessionLocal() as db:
+        try:
+            from app.crud.system_config import crud_system_config
+
+            config_key = "ai_config"
+            model_config = {
+                "chat": {
+                    "provider": "openai",
+                    "model": "",
+                    "apiKey": "",
+                    "baseUrl": "",
+                    "dimension": None,
+                    "mode": "platform",
+                },
+                "embedding": {
+                    "provider": "openai",
+                    "model": "",
+                    "apiKey": "",
+                    "baseUrl": "",
+                    "dimension": None,
+                    "mode": "platform",
+                },
+                "rerank": {
+                    "provider": "openai",
+                    "model": "",
+                    "apiKey": "",
+                    "baseUrl": "",
+                    "dimension": None,
+                    "mode": "platform",
+                },
+                "vl": {
+                    "provider": "openai",
+                    "model": "",
+                    "apiKey": "",
+                    "baseUrl": "",
+                    "dimension": None,
+                    "mode": "platform",
+                },
+            }
+
+            await crud_system_config.update_by_key(
+                db, config_key=config_key, config_value=model_config, tenant_id=tenant_id
+            )
+            logger.info(f"✅ 初始化 Health 租户 AI 模型配置完成")
+        except Exception as e:
+            logger.error(f"❌ 初始化 Health 租户 AI 模型配置失败: {e}", exc_info=True)
             raise
 
 
@@ -1369,25 +1420,15 @@ def get_health_data():
     }
 
 
-async def init_health_data():
-    """初始化 Health 数据"""
+async def main():
     logger.info("🚀 开始初始化 Health 数据...")
-
-    # 2. 创建默认租户
     tenant = await create_health_tenant()
-
-    # 4. 创建或获取 health 站点
-    health_site = await create_health_site(tenant.id)
-
-    # 3. 创建租户管理员 (绑定刚才创建的站点)
-    await create_health_tenant_admin(tenant.id, managed_site_ids=[health_site.id])
-
-    # 5. 初始化医学知识文档
-    logger.debug("📚 初始化医学知识文档...")
-    await init_health_documents(tenant.id, health_site.id)
-
-    logger.info("✅ Health 数据初始化完成！")
+    site = await create_health_site(tenant.id)
+    await create_health_tenant_admin(tenant.id, managed_site_ids=[site.id])
+    await init_health_model_config(tenant.id)
+    await init_health_documents(tenant.id, site.id)
+    logger.info("✨ 全部初始化工作已完成！")
 
 
 if __name__ == "__main__":
-    asyncio.run(init_health_data())
+    asyncio.run(main())

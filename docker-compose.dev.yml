@@ -131,11 +131,11 @@ services:
         echo '✅ 平台管理员初始化完成' &&
         echo '' &&
         echo ' 初始化 Health 站点和医学知识文档...' &&
-        uv run python scripts/init_health_data.py &&
+        uv run python scripts/init_health_tenant.py &&
         echo '✅ Health 数据初始化完成' &&
         echo '' &&
         echo ' 初始化 Baby 站点和育儿知识文档...' &&
-        uv run python scripts/init_baby_data.py &&
+        uv run python scripts/init_baby_tenant.py &&
         echo '✅ Baby 数据初始化完成' &&
         echo '' &&
         echo '🗄️  初始化 RustFS 对象存储...' &&
