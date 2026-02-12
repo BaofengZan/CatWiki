@@ -115,7 +115,7 @@ async def create_health_site(tenant_id: int):
                 site_create = SiteCreate(
                     name="健康百科",
                     tenant_id=tenant_id,
-                    slug="medical",
+                    slug="health",
                     description="医学知识科普站点，提供常见疾病、健康生活、急救知识等内容",
                     icon="medical",
                     status="active",
@@ -150,12 +150,12 @@ async def init_health_documents(tenant_id: int, site_id: int):
     async with AsyncSessionLocal() as db:
         try:
             # 医学知识数据（保持原样，这里用简化版本说明结构）
-            medical_data = get_medical_data()
+            health_data = get_health_data()
 
             # 检查是否已有数据
             existing_collections = await crud_collection.list(db, site_id=site_id)
             if existing_collections and len(existing_collections) >= len(
-                medical_data["collections"]
+                health_data["collections"]
             ):
                 logger.warning(f"⚠️  站点已有 {len(existing_collections)} 个合集，跳过初始化")
                 return
@@ -164,7 +164,7 @@ async def init_health_documents(tenant_id: int, site_id: int):
             total_collections = 0
             total_documents = 0
 
-            for collection_data in medical_data["collections"]:
+            for collection_data in health_data["collections"]:
                 # 检查合集是否已存在
                 result = await db.execute(
                     select(Collection).where(
@@ -248,7 +248,7 @@ async def init_health_documents(tenant_id: int, site_id: int):
             raise
 
 
-def get_medical_data():
+def get_health_data():
     """返回医学知识数据"""
     return {
         "collections": [

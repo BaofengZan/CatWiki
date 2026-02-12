@@ -30,7 +30,7 @@ interface ManualModeConfigProps {
 }
 
 export function ManualModeConfig({ onSelectModel, activeTab }: ManualModeConfigProps) {
-  const { configs, isModelConfigured, platformFallback } = useSettings()
+  const { savedConfigs, platformFallback } = useSettings()
 
   const modelCards = [
     {
@@ -88,8 +88,10 @@ export function ManualModeConfig({ onSelectModel, activeTab }: ManualModeConfigP
         <div className="grid grid-cols-2 gap-4">
           {modelCards.map((item) => {
             // @ts-ignore
-            const conf = configs[item.id as "chat" | "embedding" | "rerank" | "vl"]
-            const isConfigured = isModelConfigured(item.id as "chat" | "embedding" | "rerank" | "vl")
+            const conf = savedConfigs[item.id as "chat" | "embedding" | "rerank" | "vl"]
+
+            // 使用 savedConfigs 判断配置状态 (避免未保存的修改影响列表显示)
+            const isConfigured = conf.mode === 'platform' || !!(conf.provider && conf.model && conf.apiKey && conf.baseUrl)
 
             return (
               <button
@@ -111,13 +113,13 @@ export function ManualModeConfig({ onSelectModel, activeTab }: ManualModeConfigP
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="font-bold text-slate-900">{item.title}</h3>
-                        {platformFallback[item.id] && (
+                        {(platformFallback[item.id] || conf?.mode === 'platform') && (
                           <Badge
                             variant="secondary"
-                            className="text-[9px] px-1.5 py-0 h-4 bg-indigo-50 text-indigo-600 border-indigo-100 flex items-center gap-1"
+                            className="text-[10px] px-1.5 py-0.5 h-5 bg-indigo-100 text-indigo-700 border-indigo-200 flex items-center gap-1"
                           >
-                            <Globe className="h-2.5 w-2.5" />
-                            平台
+                            <Globe className="h-3 w-3" />
+                            平台共享
                           </Badge>
                         )}
                         <Badge

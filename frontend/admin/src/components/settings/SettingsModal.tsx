@@ -46,47 +46,50 @@ import {
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
-export function SettingsModal() {
-  return (
-    <SettingsProvider>
-      <SettingsContent />
-    </SettingsProvider>
-  )
-}
-
 function SettingsContent() {
-  const { isAiDirty, handleSave } = useSettings()
   const router = useRouter()
-  const pathname = usePathname()
   const searchParams = useSearchParams()
+  const pathname = usePathname()
+  const { isAiDirty, handleSave, revertToSavedConfig } = useSettings()
 
-  const [mounted, setMounted] = useState(false)
-  const [activeTab, setActiveTab] = useState<string>("models")
-  const [selectedModel, setSelectedModel] = useState<"chat" | "embedding" | "rerank" | "vl" | null>(null)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  const userInfo = mounted ? getUserInfo() : null
-  const isAdmin = userInfo?.role === UserRole.ADMIN
-  const isTenantAdmin = userInfo?.role === UserRole.TENANT_ADMIN
-  const isSiteAdmin = userInfo?.role === UserRole.SITE_ADMIN
-  const canAccessSettings = isAdmin || isTenantAdmin || isSiteAdmin
-
-  // Determine Context
-  const context = searchParams.get("context")
+  // State
+  const [activeTab, setActiveTab] = useState("general")
+  const [selectedModel, setSelectedModel] = useState<ModelType | null>(null)
+  const isSiteSettings = searchParams.get("modal") === "site-settings"
   const siteId = searchParams.get("siteId")
-  const isSiteSettings = context === "site" && siteId
 
-  // Handle Tab State (Internal or optional query param)
+  // Check user role
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [isTenantAdmin, setIsTenantAdmin] = useState(false)
+  const [isSiteAdmin, setIsSiteAdmin] = useState(false)
+
   useEffect(() => {
-    // Optional: allow deep linking to specific settings tab via separate param, e.g. ?tab=
+    const checkRole = async () => {
+      const user = await getUserInfo()
+      if (user) {
+        setIsAdmin(user.role === UserRole.ADMIN)
+        setIsTenantAdmin(user.role === UserRole.TENANT_ADMIN)
+        // Check if user is site admin for current site if in site settings mode
+        if (siteId) {
+          // This would typically involve checking site permissions
+          // For now assuming if they can access site settings they have permission
+          setIsSiteAdmin(true)
+        }
+      }
+    }
+    checkRole()
+  }, [siteId])
+
+  // Sync tab with URL
+  useEffect(() => {
     const tab = searchParams.get("tab")
     if (tab) {
+      if (tab === "sites" && !isSiteAdmin) {
+        // Redirect non-admins away from sites if needed
+      }
       setActiveTab(tab)
-    } else if (isSiteAdmin) {
-      // For Site Admins, default to sites tab
+    } else {
+      // Default to sites if no tab specified
       setActiveTab("sites")
     }
   }, [searchParams, isSiteAdmin])
@@ -114,39 +117,33 @@ function SettingsContent() {
   }
 
   const handleBackToModels = () => {
+    if (selectedModel === "chat" || selectedModel === "embedding" || selectedModel === "rerank" || selectedModel === "vl") {
+      revertToSavedConfig(selectedModel)
+    }
     setSelectedModel(null)
   }
 
   const handleBackToGlobal = () => {
+    // If coming from global settings, go back to global list
     const params = new URLSearchParams(searchParams.toString())
-    params.delete("context")
     params.delete("siteId")
-    // Return to sites tab
-    params.set("tab", "sites")
+    params.set("modal", "settings")
     router.replace(`${pathname}?${params.toString()}`)
   }
 
-  if (!mounted) return null
-  if (!canAccessSettings) return null
-
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 md:p-8 animate-in fade-in duration-300">
-      {/* Central Window Container */}
-      <div className="w-full max-w-6xl h-[85vh] min-h-[600px] bg-white rounded-2xl shadow-2xl shadow-black/20 border border-slate-200/60 overflow-hidden flex flex-col animate-in slide-in-from-bottom-4 zoom-in-95 duration-500">
-
-        {/* Window Header (Inside Card) */}
-        <div className="h-16 border-b border-slate-100 flex items-center justify-between px-6 shrink-0 bg-white">
-          <div className="flex items-center gap-3">
-            {isSiteSettings ? (
-              <Button variant="ghost" size="icon" onClick={handleBackToGlobal} className="h-8 w-8 rounded-lg -ml-2 text-slate-500 hover:text-slate-900">
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
-            ) : (
-              <div className="p-2 bg-slate-100 rounded-lg text-slate-600">
-                <Settings className="h-5 w-5" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm animate-in fade-in duration-200">
+      <div
+        className="bg-white rounded-2xl shadow-xl w-[1240px] h-[820px] max-w-[95vw] max-h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200/60"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Window Header */}
+        <div className="h-14 px-6 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-slate-100 rounded-lg">
+                <Settings className="h-4 w-4 text-slate-600" />
               </div>
-            )}
-            <div>
               <h1 className="text-base font-bold text-slate-900 leading-tight">
                 {isSiteSettings ? "站点设置" : "系统设置"}
               </h1>
@@ -244,9 +241,9 @@ function SettingsContent() {
 
             {/* Content Area */}
             <div className="flex-1 overflow-y-auto bg-white relative">
-              <div className="max-w-4xl mx-auto p-8 h-full">
+              <div className="w-full h-full p-8">
                 <TabsContent value="models" className="mt-0 h-full space-y-6 outline-none">
-                  {selectedModel ? (
+                  {selectedModel && (selectedModel === "chat" || selectedModel === "embedding" || selectedModel === "rerank" || selectedModel === "vl") ? (
                     <div key="detail" className="animate-in fade-in slide-in-from-right-4 duration-300">
                       <ModelDetailCard
                         modelType={selectedModel}
@@ -280,5 +277,13 @@ function SettingsContent() {
         )}
       </div>
     </div>
+  )
+}
+
+export function SettingsModal() {
+  return (
+    <SettingsProvider>
+      <SettingsContent />
+    </SettingsProvider>
   )
 }

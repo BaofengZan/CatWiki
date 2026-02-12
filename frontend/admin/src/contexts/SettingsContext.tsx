@@ -42,6 +42,17 @@ const deepMerge = (target: any, source: any): any => {
   return result
 }
 
+// 统一配置合并逻辑
+const mergeAIConfigs = (backendData: any, initial: AIConfigs): AIConfigs => {
+  return {
+    ...initial,
+    chat: deepMerge(initial.chat, backendData?.chat),
+    embedding: deepMerge(initial.embedding, backendData?.embedding),
+    rerank: deepMerge(initial.rerank, backendData?.rerank),
+    vl: deepMerge(initial.vl, backendData?.vl),
+  }
+}
+
 interface SettingsContextType {
   // 配置状态
   configs: AIConfigs
@@ -53,6 +64,7 @@ interface SettingsContextType {
   // 更新函数
   handleUpdate: (type: string, field: string, value: string | boolean | number) => void
   handleSave: () => Promise<void>
+  revertToSavedConfig: (modelType: "chat" | "embedding" | "rerank" | "vl") => void
 
   // 工具函数
   isModelConfigured: (modelType: "chat" | "embedding" | "rerank" | "vl") => boolean
@@ -81,19 +93,7 @@ export function SettingsProvider({ children, scope = 'tenant' }: { children: Rea
       // aiConfigData is SystemConfigResponse
       if (aiConfigData.config_value) {
         const aiData = aiConfigData.config_value as any
-
-        const chatConfig = aiData.chat
-        const embeddingConfig = aiData.embedding
-        const rerankConfig = aiData.rerank
-        const vlConfig = aiData.vl
-
-        loadedConfigs = {
-          ...loadedConfigs,
-          chat: deepMerge(initialConfigs.chat, chatConfig),
-          embedding: deepMerge(initialConfigs.embedding, embeddingConfig),
-          rerank: deepMerge(initialConfigs.rerank, rerankConfig),
-          vl: deepMerge(initialConfigs.vl, vlConfig),
-        }
+        loadedConfigs = mergeAIConfigs(aiData, initialConfigs)
 
         // 提取元数据
         if (aiData._meta?.is_platform_fallback) {
@@ -146,18 +146,7 @@ export function SettingsProvider({ children, scope = 'tenant' }: { children: Rea
       onSuccess: (data: any) => {
         if (data && data.config_value) {
           const aiData = data.config_value;
-          const chatConfig = aiData.chat
-          const embeddingConfig = aiData.embedding
-          const rerankConfig = aiData.rerank
-          const vlConfig = aiData.vl
-
-          const updated = {
-            ...initialConfigs,
-            chat: deepMerge(initialConfigs.chat, chatConfig),
-            embedding: deepMerge(initialConfigs.embedding, embeddingConfig),
-            rerank: deepMerge(initialConfigs.rerank, rerankConfig),
-            vl: deepMerge(initialConfigs.vl, vlConfig),
-          }
+          const updated = mergeAIConfigs(aiData, initialConfigs)
 
           setSavedConfigs(updated)
           setConfigs(updated)
@@ -181,6 +170,13 @@ export function SettingsProvider({ children, scope = 'tenant' }: { children: Rea
         toast.error("保存失败，请重试")
       }
     })
+  }
+
+  const revertToSavedConfig = (modelType: "chat" | "embedding" | "rerank" | "vl") => {
+    setConfigs(prev => ({
+      ...prev,
+      [modelType]: deepMerge({}, savedConfigs[modelType])
+    }))
   }
 
   const isAiDirty = (() => {
@@ -218,6 +214,7 @@ export function SettingsProvider({ children, scope = 'tenant' }: { children: Rea
     scope,
     handleUpdate,
     handleSave,
+    revertToSavedConfig,
     isModelConfigured,
     platformFallback,
     platformDefaults
