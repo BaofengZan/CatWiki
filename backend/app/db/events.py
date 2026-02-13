@@ -12,26 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-SQLAlchemy 事件监听器
-实现对多租户数据的自动过滤
-"""
-
-import logging
-from sqlalchemy import event
-from sqlalchemy import true, literal
+from sqlalchemy import event, true, literal
 from sqlalchemy.orm import with_loader_criteria, Session
 from app.db.base import Base
 from app.core.infra.tenant import get_current_tenant
 
-logger = logging.getLogger(__name__)
-
-
-def register_tenant_filters(session_factory=None):
+def register_core_db_events():
     """
-    注册租户过滤拦截器。
-    注意：在 SQLAlchemy 2.0 中，直接在 Session 类上注册 do_orm_execute
-    比在 async_sessionmaker 上注册更稳定，可以避开某些环境下的 InvalidRequestError。
+    Register core database events.
+    In Community Edition, this handles basic tenant_id population and filtration (defaulting to 1).
     """
 
     @event.listens_for(Session, "do_orm_execute")
@@ -39,17 +28,9 @@ def register_tenant_filters(session_factory=None):
         """
         在 ORM 执行前拦截并注入 tenant_id 过滤条件
         """
-        # 1. 获取当前上下文中的租户 ID
         tenant_id = get_current_tenant()
-
-        # 2. 如果存在有效租户 ID，则应用过滤
-        # 注意：此处不仅是 select，也包括 update/delete 的 ORM 模式
         if tenant_id is not None:
-            # 提前包装租户 ID，解决 lambda 闭包变量缓存追踪问题
             tid_literal = literal(tenant_id)
-
-            # 使用 with_loader_criteria 实现全局过滤
-            # 逻辑：针对所有继承自 Base 且映射了 tenant_id 的实体注入过滤条件
             execute_state.statement = execute_state.statement.options(
                 with_loader_criteria(
                     Base,
@@ -59,7 +40,6 @@ def register_tenant_filters(session_factory=None):
                     include_aliases=True,
                 )
             )
-            # logger.debug(f"应用多租户过滤: tenant_id={tenant_id}")
         return
 
     @event.listens_for(Base, "before_insert", propagate=True)
@@ -68,7 +48,6 @@ def register_tenant_filters(session_factory=None):
         在数据入库前自动填充 tenant_id
         """
         if hasattr(target, "tenant_id") and getattr(target, "tenant_id") is None:
-            tenant_id = get_current_tenant()
+            tenant_id = get_current_tenant() # In OSS, this returns 1
             if tenant_id is not None:
                 setattr(target, "tenant_id", tenant_id)
-                # logger.debug(f"SQLAlchemy 事件: 自动填充 tenant_id={tenant_id} -> {target.__class__.__name__}")

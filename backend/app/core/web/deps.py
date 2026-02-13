@@ -134,39 +134,14 @@ async def get_effective_tenant_id(
 ) -> int | None:
     """
     获取当前请求的有效租户ID
-
-    逻辑：
-    1. 默认情况下返回用户关联的 tenant_id
-    2. 如果用户是平台管理员 (ADMIN)，则允许通过请求头 X-Selected-Tenant-ID 来切换租户
     """
-    from app.models.user import UserRole
-
-    # 获取基础租户 ID
-    base_tenant_id = current_user.tenant_id
-
-    # 只有平台管理员支持动态切换
-    if current_user.role == UserRole.ADMIN:
-        header_tenant_id = request.headers.get("X-Selected-Tenant-ID")
-        if header_tenant_id:
-            try:
-                # 管理员选择了特定租户
-                target_tenant_id = int(header_tenant_id)
-                logger.warning(
-                    f"🚨 [安全审计] 管理员 {current_user.id} ({current_user.email}) "
-                    f"切换租户上下文至: {target_tenant_id}"
-                )
-                return target_tenant_id
-            except ValueError:
-                # 非法 ID 默认返回全平台视图 (None)
-                logger.warning(
-                    f"⚠️ [安全警告] 管理员 {current_user.id} 提供了无效的租户ID: {header_tenant_id}"
-                )
-                return None
-        # 未选择 Header 默认返回 None (全平台视图)
-        return None
-
-    # 普通租户账户，强制返回其绑定的租户 ID，不可绕过
-    return base_tenant_id
+    # 尝试加载 EE 版逻辑
+    try:
+        from app.ee.loader import get_ee_tenant_id
+        return get_ee_tenant_id(current_user, request)
+    except (ImportError, AttributeError):
+        # 社区版逻辑：始终返回用户关联的租户 ID
+        return current_user.tenant_id
 
 
 async def set_tenant_context(

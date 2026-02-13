@@ -42,10 +42,10 @@ AsyncSessionLocal = async_sessionmaker(
     expire_on_commit=False,  # 提交后不过期对象
 )
 
-# 注册多租户自动过滤拦截器
-from app.db.events import register_tenant_filters
+# 注册核心数据库事件 (跨版本通用)
+from app.db.events import register_core_db_events
 
-register_tenant_filters()
+register_core_db_events()
 
 
 async def get_db() -> AsyncGenerator[AsyncSession]:

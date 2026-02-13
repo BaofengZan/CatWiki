@@ -35,6 +35,16 @@ from app.core.infra.config import settings
 logger = logging.getLogger(__name__)
 
 
+def _get_effective_path(path: str) -> str:
+    """获取生效的存储路径（支持 EE 租户隔离）"""
+    try:
+        from app.ee.loader import get_ee_object_path
+
+        return get_ee_object_path(path)
+    except (ImportError, AttributeError):
+        return path
+
+
 class RustFSService:
     """RustFS 对象存储服务"""
 
@@ -109,15 +119,16 @@ class RustFSService:
             return False
 
         try:
+            effective_path = _get_effective_path(object_name)
             self.client.put_object(
                 bucket_name=self.bucket_name,
-                object_name=object_name,
+                object_name=effective_path,
                 data=file_data,
                 length=file_size,
                 content_type=content_type,
                 metadata=metadata,
             )
-            logger.info(f"文件上传成功: {object_name}")
+            logger.info(f"文件上传成功: {effective_path}")
             return True
         except S3Error as e:
             logger.error(f"文件上传失败: {e}")
@@ -138,7 +149,8 @@ class RustFSService:
             return None
 
         try:
-            response = self.client.get_object(self.bucket_name, object_name)
+            effective_path = _get_effective_path(object_name)
+            response = self.client.get_object(self.bucket_name, effective_path)
             data = response.read()
             response.close()
             response.release_conn()
@@ -162,8 +174,9 @@ class RustFSService:
             return False
 
         try:
-            self.client.remove_object(self.bucket_name, object_name)
-            logger.info(f"文件删除成功: {object_name}")
+            effective_path = _get_effective_path(object_name)
+            self.client.remove_object(self.bucket_name, effective_path)
+            logger.info(f"文件删除成功: {effective_path}")
             return True
         except S3Error as e:
             logger.error(f"文件删除失败: {e}")
@@ -183,7 +196,8 @@ class RustFSService:
             return False
 
         try:
-            self.client.stat_object(self.bucket_name, object_name)
+            effective_path = _get_effective_path(object_name)
+            self.client.stat_object(self.bucket_name, effective_path)
             return True
         except S3Error:
             return False
@@ -202,7 +216,8 @@ class RustFSService:
             return None
 
         try:
-            stat = self.client.stat_object(self.bucket_name, object_name)
+            effective_path = _get_effective_path(object_name)
+            stat = self.client.stat_object(self.bucket_name, effective_path)
             return {
                 "size": stat.size,
                 "content_type": stat.content_type,
@@ -229,9 +244,10 @@ class RustFSService:
             return []
 
         try:
+            effective_prefix = _get_effective_path(prefix)
             objects = self.client.list_objects(
                 self.bucket_name,
-                prefix=prefix,
+                prefix=effective_prefix,
                 recursive=recursive,
             )
 
@@ -271,9 +287,10 @@ class RustFSService:
             return None
 
         try:
+            effective_path = _get_effective_path(object_name)
             url = self.client.presigned_get_object(
                 self.bucket_name,
-                object_name,
+                effective_path,
                 expires=expires,
             )
 
@@ -326,14 +343,15 @@ class RustFSService:
         if use_presigned:
             return self.get_presigned_url(object_name, expires)
 
+        effective_path = _get_effective_path(object_name)
         # 返回直接公共 URL（用于公开存储桶）
         if self.public_url:
             # 使用公共地址构建 URL
-            return f"{self.public_url.rstrip('/')}/{self.bucket_name}/{object_name}"
+            return f"{self.public_url.rstrip('/')}/{self.bucket_name}/{effective_path}"
         else:
             # 回退到内部地址
             protocol = "https" if settings.RUSTFS_USE_SSL else "http"
-            return f"{protocol}://{settings.RUSTFS_ENDPOINT}/{self.bucket_name}/{object_name}"
+            return f"{protocol}://{settings.RUSTFS_ENDPOINT}/{self.bucket_name}/{effective_path}"
 
     def copy_file(self, source_name: str, dest_name: str) -> bool:
         """
@@ -350,10 +368,12 @@ class RustFSService:
             return False
 
         try:
+            effective_source = _get_effective_path(source_name)
+            effective_dest = _get_effective_path(dest_name)
             self.client.copy_object(
                 self.bucket_name,
                 dest_name,
-                CopySource(self.bucket_name, source_name),
+                CopySource(self.bucket_name, effective_source),
             )
             logger.info(f"文件复制成功: {source_name} -> {dest_name}")
             return True

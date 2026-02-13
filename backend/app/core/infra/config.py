@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     # 环境配置
     ENVIRONMENT: str = Field(default="local", pattern="^(local|dev|prod)$")
     DEBUG: bool = Field(default=False)
+    CATWIKI_EDITION: str = Field(default="enterprise", pattern="^(community|enterprise)$")
 
     # 数据库配置
     POSTGRES_SERVER: str = Field(default="localhost")

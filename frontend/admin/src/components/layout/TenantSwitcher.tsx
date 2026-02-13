@@ -38,6 +38,11 @@ import api, { UserRole, Models } from "@/lib/api-client"
 import { toast } from "sonner"
 
 export function TenantSwitcher() {
+  // 如果是社区版构建，完全不包含渲染逻辑和数据请求
+  if (process.env.NEXT_PUBLIC_CATWIKI_EDITION === 'community') {
+    return null;
+  }
+
   const router = useRouter()
   const [open, setOpen] = useState(false)
   // 检查权限

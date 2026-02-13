@@ -37,7 +37,18 @@ def get_current_tenant() -> Optional[int]:
     获取当前请求的租户 ID
     用于数据库拦截器或业务代码
     """
-    return _tenant_context.get()
+    val = _tenant_context.get()
+    if val is not None:
+        return val
+
+    # 尝试加载 EE 版默认值 (例如支持平台全局视角)
+    try:
+        from app.ee.loader import get_ee_default_tenant_id
+
+        return get_ee_default_tenant_id()
+    except (ImportError, AttributeError):
+        # 社区版：默认返回租户 1 (唯一租户)
+        return 1
 
 
 from contextlib import contextmanager

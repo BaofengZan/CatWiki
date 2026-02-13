@@ -112,6 +112,13 @@ def create_application() -> FastAPI:
     # 注册 Admin API 路由（管理后台）
     application.include_router(admin_router, prefix=settings.ADMIN_API_V1_STR)
 
+    # 4. 初始化 EE 功能 (如果存在)
+    try:
+        from app.ee.loader import init_ee_features
+        init_ee_features(application)
+    except ImportError:
+        logger.info("🏠 Running in Community Edition mode (Single-Tenant)")
+
     return application
 
 
