@@ -106,8 +106,8 @@ prod-init:
 	@cp frontend/admin/.env.example deploy/docker/.env.admin
 	@cp frontend/client/.env.example deploy/docker/.env.client
 	@# 自动修正生产环境基础配置
-	@sed -i '' 's/^ENVIRONMENT=.*/ENVIRONMENT=prod/g' deploy/docker/.env.backend
-	@sed -i '' 's/^DEBUG=.*/DEBUG=false/g' deploy/docker/.env.backend
+	@sed -i 's/^ENVIRONMENT=.*/ENVIRONMENT=prod/g' deploy/docker/.env.backend
+	@sed -i 's/^DEBUG=.*/DEBUG=false/g' deploy/docker/.env.backend
 	@echo "✅ 生产环境配置模板已生成在 deploy/docker/ 目录下。"
 	@echo "⚠️  请务必在运行 'make prod-up' 前修改这些 .env.* 文件中的敏感信息！"
 
