@@ -1,7 +1,3 @@
-.PHONY: help \
-	dev-init dev-up dev-down dev-restart dev-logs dev-clean dev-db-migrate dev-db-psql gen-sdk license \
-	prod-init prod-up prod-rebuild prod-down prod-restart prod-logs prod-clean
-
 # ==============================================================================
 # 默认目标 (Default Goal)
 # ==============================================================================
@@ -56,8 +52,8 @@ dev-init:
 	@cp frontend/admin/.env.example frontend/admin/.env
 	@cp frontend/client/.env.example frontend/client/.env
 	@# 自动修正开发环境基础配置
-	@sed -i '' 's/^ENVIRONMENT=.*/ENVIRONMENT=dev/g' backend/.env
-	@sed -i '' 's/^DEBUG=.*/DEBUG=true/g' backend/.env
+	@perl -pi -e 's/^ENVIRONMENT=.*/ENVIRONMENT=dev/g' backend/.env
+	@perl -pi -e 's/^DEBUG=.*/DEBUG=true/g' backend/.env
 	@echo "✅ [CatWiki] 配置文件初始化完成！"
 
 # 启动服务 (前台运行，查看日志)
@@ -106,8 +102,8 @@ prod-init:
 	@cp frontend/admin/.env.example deploy/docker/.env.admin
 	@cp frontend/client/.env.example deploy/docker/.env.client
 	@# 自动修正生产环境基础配置
-	@sed -i 's/^ENVIRONMENT=.*/ENVIRONMENT=prod/g' deploy/docker/.env.backend
-	@sed -i 's/^DEBUG=.*/DEBUG=false/g' deploy/docker/.env.backend
+	@perl -pi -e 's/^ENVIRONMENT=.*/ENVIRONMENT=prod/g' deploy/docker/.env.backend
+	@perl -pi -e 's/^DEBUG=.*/DEBUG=false/g' deploy/docker/.env.backend
 	@echo "✅ 生产环境配置模板已生成在 deploy/docker/ 目录下。"
 	@echo "⚠️  请务必在运行 'make prod-up' 前修改这些 .env.* 文件中的敏感信息！"
 
