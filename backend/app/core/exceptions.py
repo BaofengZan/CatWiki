@@ -114,14 +114,40 @@ def setup_exception_handlers(app: FastAPI):
             },
         )
 
+
+    def _safe_serialize_errors(errors: list) -> list:
+        """安全序列化错误信息，处理不可序列化的对象"""
+        safe_errors = []
+        for err in errors:
+            # 复制错误字典以避免修改原始数据
+            safe_err = err.copy()
+            # 处理 ctx 字段中的异常对象
+            if "ctx" in safe_err and isinstance(safe_err["ctx"], dict):
+                safe_ctx = {}
+                for k, v in safe_err["ctx"].items():
+                    try:
+                        # 尝试转换异常对象为字符串
+                        safe_ctx[k] = str(v)
+                    except Exception:
+                        safe_ctx[k] = "Unserializable object"
+                safe_err["ctx"] = safe_ctx
+            safe_errors.append(safe_err)
+        return safe_errors
+
+
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError):
         """请求验证异常处理器"""
+        errors = exc.errors()
+        if settings.DEBUG:
+            # 在 DEBUG 模式下，确保错误信息可序列化
+            errors = _safe_serialize_errors(errors)
+            
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content={
                 "code": 422,
                 "msg": "请求参数验证失败",
-                "data": {"errors": exc.errors()} if settings.DEBUG else None,
+                "data": {"errors": errors} if settings.DEBUG else None,
             },
         )

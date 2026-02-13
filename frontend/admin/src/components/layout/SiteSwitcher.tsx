@@ -93,7 +93,7 @@ function SiteSwitcherComponent() {
 
   // 计算全局页面的标题
   const globalTitle = useMemo(() => {
-    if (pathname.startsWith('/settings')) return "全平台设置"
+    if (pathname.startsWith('/settings')) return "系统设置"
     if (pathname.startsWith('/users')) return "用户管理"
     if (pathname.startsWith('/sites')) return "站点管理"
     return "全局管理"
