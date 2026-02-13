@@ -157,12 +157,12 @@ services:
       # RustFS 对象存储配置
       RUSTFS_ENDPOINT: ${RUSTFS_ENDPOINT:-rustfs:9000}
     depends_on:
+      backend-init:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       rustfs:
         condition: service_healthy
-      # 注意：首次部署需要先运行 docker compose --profile init up backend-init
-      # 后续部署不需要再运行初始化
     networks:
       - catwiki-network
     restart: unless-stopped
