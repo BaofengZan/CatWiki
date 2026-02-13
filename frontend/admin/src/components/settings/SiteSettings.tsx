@@ -88,7 +88,7 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
         ...siteData.bot_config,
         webWidget: { ...initialConfigs.botConfig.webWidget, ...siteData.bot_config.webWidget },
         apiBot: { ...initialConfigs.botConfig.apiBot, ...siteData.bot_config.apiBot },
-        wechat: { ...initialConfigs.botConfig.wechat, ...siteData.bot_config.wechat },
+        wecomSmartRobot: { ...initialConfigs.botConfig.wecomSmartRobot, ...siteData.bot_config.wecomSmartRobot },
       } : initialConfigs.botConfig
 
       setName(siteData.name)
