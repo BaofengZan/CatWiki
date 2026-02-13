@@ -138,6 +138,7 @@ async def get_effective_tenant_id(
     # 尝试加载 EE 版逻辑
     try:
         from app.ee.loader import get_ee_tenant_id
+
         return get_ee_tenant_id(current_user, request)
     except (ImportError, AttributeError):
         # 社区版逻辑：始终返回用户关联的租户 ID

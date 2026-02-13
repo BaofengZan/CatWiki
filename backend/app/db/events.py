@@ -17,6 +17,7 @@ from sqlalchemy.orm import with_loader_criteria, Session
 from app.db.base import Base
 from app.core.infra.tenant import get_current_tenant
 
+
 def register_core_db_events():
     """
     Register core database events.
@@ -48,6 +49,6 @@ def register_core_db_events():
         在数据入库前自动填充 tenant_id
         """
         if hasattr(target, "tenant_id") and getattr(target, "tenant_id") is None:
-            tenant_id = get_current_tenant() # In OSS, this returns 1
+            tenant_id = get_current_tenant()  # In OSS, this returns 1
             if tenant_id is not None:
                 setattr(target, "tenant_id", tenant_id)

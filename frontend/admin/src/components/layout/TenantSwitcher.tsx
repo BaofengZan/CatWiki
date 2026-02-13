@@ -39,17 +39,13 @@ import api, { UserRole, Models } from "@/lib/api-client"
 import { toast } from "sonner"
 
 export function TenantSwitcher() {
-  // 如果是社区版构建，完全不包含渲染逻辑和数据请求
-  if (env.NEXT_PUBLIC_CATWIKI_EDITION === 'community') {
-    return null;
-  }
-
+  const isEnterprise = env.NEXT_PUBLIC_CATWIKI_EDITION === 'enterprise'
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  
   // 检查权限
   const currentUser = typeof window !== 'undefined' ? getUserInfo() : null
   const isPlatformAdmin = currentUser?.role === UserRole.ADMIN
-
   const selectedTenantId = getSelectedTenantId()
 
   // 加载租户列表
@@ -59,7 +55,8 @@ export function TenantSwitcher() {
       const res = await api.tenant.list({ size: 100 })
       return res.list
     },
-    enabled: isPlatformAdmin,
+    // 只有在企业版且是平台管理员时才启用查询
+    enabled: isEnterprise && isPlatformAdmin,
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
 
@@ -67,6 +64,11 @@ export function TenantSwitcher() {
     if (!selectedTenantId) return null
     return tenants.find(t => t.id === selectedTenantId)
   }, [tenants, selectedTenantId])
+
+  // 如果是社区版，在 Hook 之后返回
+  if (!isEnterprise) {
+    return null;
+  }
 
   const handleTenantSelect = (tenantId: number | null) => {
     setSelectedTenantId(tenantId)

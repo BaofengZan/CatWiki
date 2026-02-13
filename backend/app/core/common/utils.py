@@ -307,7 +307,6 @@ async def enrich_document_dict(
 # ==================== 脱敏工具函数 ====================
 
 
-
 def filter_client_site_data(site: Any) -> Any:
     """过滤客户端站点数据中的敏感信息"""
     if not site:

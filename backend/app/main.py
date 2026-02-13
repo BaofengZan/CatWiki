@@ -64,6 +64,14 @@ async def lifespan(app: FastAPI):
     # 同步系统配置到数据库
     await init_system_configs()
 
+    # 初始化 EE 功能 (如果存在)
+    try:
+        from app.ee.loader import init_ee_features
+
+        await init_ee_features(app)
+    except ImportError:
+        logger.info("🏠 Running in Community Edition mode (Single-Tenant)")
+
     logger.info(f"{settings.PROJECT_NAME} 启动成功!")
     logger.info("API 文档: http://localhost:3000/docs")
 
@@ -111,13 +119,6 @@ def create_application() -> FastAPI:
 
     # 注册 Admin API 路由（管理后台）
     application.include_router(admin_router, prefix=settings.ADMIN_API_V1_STR)
-
-    # 4. 初始化 EE 功能 (如果存在)
-    try:
-        from app.ee.loader import init_ee_features
-        init_ee_features(application)
-    except ImportError:
-        logger.info("🏠 Running in Community Edition mode (Single-Tenant)")
 
     return application
 

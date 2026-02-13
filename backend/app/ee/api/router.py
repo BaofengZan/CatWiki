@@ -15,15 +15,14 @@
 from fastapi import FastAPI
 from app.core.infra.config import settings
 
+
 def init_ee_routes(app: FastAPI):
     """
     Inject Enterprise Edition routes into the FastAPI application.
     """
     from app.ee.api import tenants
-    
+
     # We include the tenants router directly into the app with the admin prefix
     app.include_router(
-        tenants.router, 
-        prefix=f"{settings.ADMIN_API_V1_STR}/tenants", 
-        tags=["admin-tenants"]
+        tenants.router, prefix=f"{settings.ADMIN_API_V1_STR}/tenants", tags=["admin-tenants"]
     )

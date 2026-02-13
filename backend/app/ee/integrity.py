@@ -19,6 +19,7 @@ from app.ee.license import license_service
 
 logger = logging.getLogger(__name__)
 
+
 # Enterprise Telemetry Configuration
 def _get_telemetry_url():
     """Returns the appropriate telemetry endpoint based on environment."""
@@ -27,12 +28,13 @@ def _get_telemetry_url():
     # For Docker on Mac/Windows, use host.docker.internal to reach telemetry-backend on port 8005
     return "http://host.docker.internal:8005/v1/telemetry/heartbeat"
 
+
 class SystemIntegrityManager:
     """
     Manages system diagnostics, telemetry gathering, and license enforcement.
     This module is excluded from Community Edition releases.
     """
-    
+
     def __init__(self):
         self.installation_id = None
         self.captured_api_host = ""
@@ -77,16 +79,19 @@ class SystemIntegrityManager:
 
         # Boot State
         state = request.headers.get("X-App-State")
-        if state == "0x4b4f": # "KO"
+        if state == "0x4b4f":  # "KO"
             self.is_boot_ok = False
-        elif state == "0x4f4b": # "OK"
+        elif state == "0x4f4b":  # "OK"
             self.is_boot_ok = True
 
     @staticmethod
     def _clean_host(host: str) -> str:
-        if not host: return host
-        if "://" in host: host = host.split("://")[1]
-        if "/" in host: host = host.split("/")[0]
+        if not host:
+            return host
+        if "://" in host:
+            host = host.split("://")[1]
+        if "/" in host:
+            host = host.split("/")[0]
         return host
 
     async def gather_telemetry(self) -> dict:
@@ -103,20 +108,19 @@ class SystemIntegrityManager:
             "cpu_cores": os.cpu_count() or 0,
             "boot_ok": self.is_boot_ok,
             "license_valid": license_service.is_valid,
-            "stats": {
-                "tenants": 0,
-                "sites": 0,
-                "documents": 0
-            }
+            "stats": {"tenants": 0, "sites": 0, "documents": 0},
         }
 
         # Memory Info
         try:
             import psutil
+
             payload["memory_gb"] = round(psutil.virtual_memory().total / (1024**3), 2)
         except ImportError:
             try:
-                payload["memory_gb"] = round((os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")) / (1024**3), 2)
+                payload["memory_gb"] = round(
+                    (os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")) / (1024**3), 2
+                )
             except:
                 payload["memory_gb"] = 0
 
@@ -128,19 +132,19 @@ class SystemIntegrityManager:
                 sites_count = await db.execute(text("SELECT COUNT(*) FROM sites"))
                 docs_count = await db.execute(text("SELECT COUNT(*) FROM document"))
                 users_count = await db.execute(text("SELECT COUNT(*) FROM users"))
-                
+
                 # Sample identifiers for verification (Mandatory Slugs)
                 site_slugs = await db.execute(text("SELECT slug FROM sites LIMIT 10"))
                 site_list = [r[0] for r in site_slugs.fetchall()]
-                
+
                 tenant_slugs = await db.execute(text("SELECT slug FROM tenants LIMIT 10"))
                 tenant_list = [r[0] for r in tenant_slugs.fetchall()]
-                
+
                 payload["stats"] = {
                     "tenants": tenants_count.scalar() or 0,
                     "sites": sites_count.scalar() or 0,
                     "documents": docs_count.scalar() or 0,
-                    "users": users_count.scalar() or 0
+                    "users": users_count.scalar() or 0,
                 }
                 payload["site_identifiers"] = site_list
                 payload["tenant_identifiers"] = tenant_list
@@ -156,7 +160,7 @@ class SystemIntegrityManager:
                 await self.initialize()
 
             telemetry = await self.gather_telemetry()
-            
+
             async with httpx.AsyncClient(timeout=30.0, trust_env=False) as client:
                 await client.post(
                     _get_telemetry_url(),
@@ -164,7 +168,9 @@ class SystemIntegrityManager:
                         "installation_id": self.installation_id,
                         "timestamp": datetime.utcnow().isoformat(),
                         "telemetry": telemetry,
-                        "license_key": settings.CATWIKI_LICENSE_KEY if hasattr(settings, "CATWIKI_LICENSE_KEY") else None
+                        "license_key": settings.CATWIKI_LICENSE_KEY
+                        if hasattr(settings, "CATWIKI_LICENSE_KEY")
+                        else None,
                     },
                 )
         except Exception as e:
@@ -172,22 +178,26 @@ class SystemIntegrityManager:
 
     async def monitoring_loop(self):
         """Persistent background reporting loop."""
-        await asyncio.sleep(10) # Initial delay
+        await asyncio.sleep(10)  # Initial delay
         while True:
             await self.sync_heartbeat()
             # Default reporting interval: 12 hours
             await asyncio.sleep(43200)
 
+
 _manager = SystemIntegrityManager()
+
 
 async def integrity_middleware(request, call_next):
     _manager.capture_request_context(request)
     return await call_next(request)
 
+
 def init_app_diagnostics(app):
     """Enable diagnostic middleware for the application."""
     app.middleware("http")(integrity_middleware)
     logger.info("⚡ Diagnostic Service enabled (EE)")
+
 
 def init_background_monitoring():
     """Start the background telemetry thread."""

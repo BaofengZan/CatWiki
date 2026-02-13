@@ -49,7 +49,6 @@ SYSTEM_INTEGRITY_KEY = "system_integrity"
 MODEL_TYPES = ["chat", "embedding", "rerank", "vl"]
 
 
-
 def _format_openai_error(e: Exception) -> str:
     """格式化 OpenAI 错误信息，使其更易读"""
     try:
@@ -77,8 +76,6 @@ def _create_openai_client(api_key: str, base_url: str, timeout: float = 10.0):
     from openai import AsyncOpenAI
 
     return AsyncOpenAI(api_key=api_key, base_url=base_url, timeout=timeout)
-
-
 
 
 @router.get(
@@ -173,7 +170,6 @@ async def update_ai_config(
             db, config_key=AI_CONFIG_KEY, tenant_id=target_tenant_id
         )
 
-
     # 自动探测 Embedding Dimension
     embedding_conf = config_value.get("embedding", {})
     # 如果有配置，且 apiKey/baseUrl 存在
@@ -239,7 +235,7 @@ async def update_ai_config(
 
     # 返回处理
     response_data = SystemConfigResponse.model_validate(config)
-    
+
     return ApiResponse.ok(data=response_data, msg="AI 配置更新成功")
 
 
@@ -373,8 +369,6 @@ async def test_model_connection(
 
 
 # ============ 文档处理服务配置端点 ============
-
-
 
 
 @router.get(

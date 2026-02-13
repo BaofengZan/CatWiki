@@ -19,13 +19,16 @@ _PUBLIC_KEY = """-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvX7K6G5s... (Placeholder)
 -----END PUBLIC KEY-----"""
 
+
 class LicensePayload(BaseModel):
     customer: str
     edition: str = "enterprise"
     expires_at: datetime
+    installation_id: Optional[str] = None  # Hardware Binding
     max_tenants: int = 0  # 0 for unlimited
     max_sites: int = 0
     features: list[str] = []
+
 
 class LicenseService:
     _instance = None
@@ -41,7 +44,7 @@ class LicenseService:
             cls._instance = cls()
         return cls._instance
 
-    def verify_license(self, license_token: str) -> bool:
+    async def verify_license(self, license_token: str) -> bool:
         """
         Verifies the license token using the hardcoded public key.
         The token is expected to be a JWS signed by CatWiki's private key.
@@ -51,31 +54,43 @@ class LicenseService:
             return False
 
         try:
-            # For this simplified implementation, we use jose.jws
-            # In production, we'd use a real public key from _PUBLIC_KEY
-            # For now, we simulate the verification
-            
-            # TODO: Real RSA verification logic here
-            # encoded_payload = jws.verify(license_token, self.public_key, algorithms=['RS256'])
-            # payload = json.loads(encoded_payload)
-            
-            # Simulation for the task:
-            if license_token.startswith("ey"):  # Looks like JWT/JWS
-                # Mocking a valid payload for demonstration if correct prefix
-                self._license_info = LicensePayload(
-                    customer="Trial User",
-                    expires_at=datetime(2026, 12, 31),
-                    max_tenants=10,
-                    max_sites=50
-                )
-                self._is_valid = True
-                return True
-            
+            # Using JWS (JSON Web Signature) for secure offline verification
+            # In production, ensure _PUBLIC_KEY is a valid RSA public key
+            payload_json = jws.verify(license_token, self.public_key, algorithms=["RS256"])
+            data = json.loads(payload_json)
+
+            # 1. Parse Payload
+            payload = LicensePayload(**data)
+
+            # 2. Check Expiration
+            if payload.expires_at < datetime.utcnow():
+                logger.error(f"License expired at {payload.expires_at}")
+                self._is_valid = False
+                return False
+
+            # 3. Check Hardware Binding (Installation ID)
+            if payload.installation_id:
+                from app.ee.integrity import _manager
+
+                target_id = await _manager.initialize()
+                if payload.installation_id != target_id:
+                    logger.error(
+                        f"License bound to {payload.installation_id}, but current system is {target_id}"
+                    )
+                    self._is_valid = False
+                    return False
+
+            # 4. Store info
+            self._license_info = payload
+            self._is_valid = True
+            return True
+
+        except JWTError as e:
+            logger.error(f"License signature verification failed: {e}")
             self._is_valid = False
             return False
-            
-        except (JWTError, Exception) as e:
-            logger.error(f"License verification failed: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error during license verification: {e}")
             self._is_valid = False
             return False
 
@@ -86,5 +101,6 @@ class LicenseService:
     @property
     def info(self) -> Optional[LicensePayload]:
         return self._license_info
+
 
 license_service = LicenseService.get_instance()
