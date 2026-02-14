@@ -39,12 +39,11 @@ export type BotConfig = {
     apiKey: string
     timeout: number
   }
-  wechat: {
+  wecomSmartRobot: {
     enabled: boolean
-    appId: string
-    appSecret: string
+    callbackUrl: string
     token: string
-    encodingAESKey: string
+    encodingAesKey: string
   }
 }
 
@@ -103,12 +102,11 @@ export const initialConfigs: AIConfigs = {
       apiKey: "",
       timeout: 30
     },
-    wechat: {
+    wecomSmartRobot: {
       enabled: false,
-      appId: "",
-      appSecret: "",
+      callbackUrl: "",
       token: "",
-      encodingAESKey: ""
+      encodingAesKey: ""
     }
   }
 }

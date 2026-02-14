@@ -4,7 +4,7 @@
 /* eslint-disable */
 import type { VectorRetrieveFilter } from './VectorRetrieveFilter';
 export type ChatCompletionRequest = {
-    model?: string;
+    model?: (string | null);
     message: string;
     thread_id: string;
     temperature?: (number | null);

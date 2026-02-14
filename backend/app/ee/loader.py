@@ -70,6 +70,7 @@ def get_ee_tenant_id(current_user, request) -> int | None:
     Supports platform administrators switching contexts via headers.
     """
     from app.models.user import UserRole
+
     # 延迟导入，防止循环引用
     from app.ee.license import license_service
 

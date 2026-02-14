@@ -78,22 +78,30 @@ class VectorStoreManager:
             )
 
             # 2. 校验配置
-            api_key = embedding_conf.get("apiKey", "")
-            if not api_key:
-                mode = embedding_conf.get("_mode", "unknown")
-                source = embedding_conf.get("_source", "unknown")
-                # 增强的排错信息：打印配置中存在的所有 Key
-                available_keys = list(embedding_conf.keys())
-                logger.error(
-                    f"❌ [VectorStore] 未找到有效的 Embedding 配置 (租户: {tenant_id}, 模式: {mode}, 来源: {source})。 "
-                    f"当前配置包含的键: {available_keys}。请在管理后台检查 AI 模型配置。"
-                )
-                raise ValueError(
-                    f"未找到有效的 Embedding 配置 (模式: {mode}, 来源: {source}, 包含键: {available_keys})"
-                )
+            api_key = embedding_conf.get("apiKey")
+            base_url = embedding_conf.get("baseUrl")
+            model = embedding_conf.get("model")
+            mode = embedding_conf.get("_mode", "platform")
 
-            model = embedding_conf.get("model", "")
-            base_url = embedding_conf.get("baseUrl", "")
+            if not api_key:
+                source = embedding_conf.get("_source", "unknown")
+                # 增强的排错信息
+                available_keys = list(embedding_conf.keys())
+                error_msg = (
+                    f"❌ [VectorStore] 未找到有效的 Embedding 配置 (租户: {tenant_id}, 模式: {mode})。 "
+                    f"请在管理后台检查 AI 模型配置。"
+                )
+                logger.error(error_msg)
+
+                if mode == "custom":
+                    from app.core.web.exceptions import BadRequestException
+
+                    raise BadRequestException(
+                        f"租户 {tenant_id} 已开启自定义向量化模式，但未配置 API Key。"
+                    )
+
+                raise ValueError(error_msg)
+
             dimension = int(embedding_conf.get("dimension") or 1024)
             source = embedding_conf.get("_source", "platform")
             mode = embedding_conf.get("_mode", "platform")
@@ -113,7 +121,7 @@ class VectorStoreManager:
             )
 
             # 初始化 Embeddings
-            from app.core.ai.embeddings import OpenAICompatibleEmbeddings
+            from app.core.ai.providers.embeddings import OpenAICompatibleEmbeddings
 
             new_embeddings = OpenAICompatibleEmbeddings(
                 model=model,

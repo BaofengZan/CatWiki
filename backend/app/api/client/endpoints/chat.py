@@ -41,5 +41,5 @@ async def create_chat_completion(
     """
     # 统一通过 ChatService 处理，它已包含 Site/Tenant 路由、LLM 池化和流式支持
     from app.services.chat_service import ChatService
-    
+
     return await ChatService.process_chat_request(request, background_tasks)

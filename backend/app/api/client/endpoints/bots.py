@@ -1,15 +1,17 @@
-
-import asyncio
-import base64
-import hashlib
+import json
 import logging
-import struct
 import time
-import xml.etree.ElementTree as ET
 
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.backends import default_backend
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query, Request, Response
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+)
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,10 +21,31 @@ from app.services.chat_service import ChatService
 from app.schemas.chat import ChatCompletionRequest, ChatCompletionResponse
 from app.schemas.document import VectorRetrieveFilter
 from app.core.infra.config import settings
-from app.core.wxcrypt import WXBizMsgCrypt
+from app.core.security.wecom_robot_crypt import WXBizJsonMsgCrypt
+from app.services.wecom_robot_service import WeComRobotService
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+async def get_wecom_robot_context(site_id: int = Query(...), db: AsyncSession = Depends(get_db)):
+    """获取企业微信机器人配置上下文的依赖项"""
+    site = await crud_site.get(db, id=site_id)
+    if not site or not site.bot_config:
+        raise HTTPException(status_code=404, detail="未找到对应的站点或配置")
+
+    config = site.bot_config.get("wecomSmartRobot", {})
+    if not config or not config.get("enabled"):
+        raise HTTPException(status_code=403, detail="该站点未启用企业微信智能机器人")
+
+    token = config.get("token")
+    aes_key = config.get("encodingAesKey")
+    if not token or not aes_key:
+        raise HTTPException(status_code=500, detail="企业微信机器人配置不完整")
+
+    # 智能机器人的 receiveid 是空串
+    crypt = WXBizJsonMsgCrypt(token, aes_key, "")
+    return {"site": site, "config": config, "crypt": crypt}
 
 
 @router.get("/wecom-smart-robot")
@@ -31,32 +54,17 @@ async def verify_url(
     timestamp: str = Query(...),
     nonce: str = Query(...),
     echostr: str = Query(...),
-    site_id: int = Query(...),
-    db: AsyncSession = Depends(get_db)
+    context: dict = Depends(get_wecom_robot_context),
 ):
-    """验证回调 URL (企业微信设置时触发)"""
-    site = await crud_site.get(db, id=site_id)
-    if not site or not site.bot_config:
-        raise HTTPException(status_code=404, detail="Site or config not found")
-        
-    config = site.bot_config.get("wecomSmartRobot", {})
-    if not config or not config.get("enabled"):
-        raise HTTPException(status_code=400, detail="WeCom robot not enabled")
-        
-    token = config.get("token")
-    encoding_aes_key = config.get("encodingAesKey")
-    
-    if not token or not encoding_aes_key:
-        raise HTTPException(status_code=400, detail="WeCom robot token or key missing")
-        
-    crypt = WXBizMsgCrypt(token, encoding_aes_key, "")
-    
-    try:
-        decrypted_echostr = crypt.decrypt(echostr, msg_signature, timestamp, nonce)
-        return Response(content=decrypted_echostr)
-    except Exception as e:
-        logger.error(f"WeCom VerifyURL failed: {e}")
-        raise HTTPException(status_code=400, detail="Verification failed")
+    """验证回调 URL (企业微信智能机器人设置时触发)"""
+    crypt = context["crypt"]
+
+    ret, decrypted_echostr = crypt.VerifyURL(msg_signature, timestamp, nonce, echostr)
+    if ret != 0:
+        logger.error(f"企业微信回调 URL 验证失败: 错误码={ret}")
+        return Response(content="验证失败", media_type="text/plain", status_code=400)
+
+    return Response(content=decrypted_echostr, media_type="text/plain")
 
 
 @router.post("/wecom-smart-robot")
@@ -66,77 +74,59 @@ async def handle_message(
     msg_signature: str = Query(...),
     timestamp: str = Query(...),
     nonce: str = Query(...),
-    site_id: int = Query(...),
-    db: AsyncSession = Depends(get_db)
+    context: dict = Depends(get_wecom_robot_context),
 ):
-    """处理企业微信消息回调"""
-    site = await crud_site.get(db, id=site_id)
-    if not site or not site.bot_config:
-        return Response(status_code=404)
-        
-    config = site.bot_config.get("wecomSmartRobot", {})
-    if not config or not config.get("enabled"):
-        return Response(status_code=403)
-        
-    token = config.get("token")
-    encoding_aes_key = config.get("encodingAesKey")
-    
-    # 读取 XML 消息体
-    body = await request.body()
+    """处理企业微信智能机器人消息回调 (JSON 协议)"""
+    site = context["site"]
+    crypt = context["crypt"]
+    aes_key = context["config"].get("encodingAesKey")
+
+    # 获取并解密消息
+    post_data = await request.body()
+    ret, msg_body = crypt.DecryptMsg(post_data, msg_signature, timestamp, nonce)
+
+    if ret != 0:
+        logger.error(f"企业微信消息解密失败: 错误码={ret}")
+        return Response(status_code=400)
+
     try:
-        root = ET.fromstring(body)
-        encrypt_node = root.find("Encrypt")
-        if encrypt_node is None:
-            return Response(status_code=400)
-        
-        encrypt_text = encrypt_node.text
-        crypt = WXBizMsgCrypt(token, encoding_aes_key, "")
-        xml_content = crypt.decrypt(encrypt_text, msg_signature, timestamp, nonce)
-        
-        msg_root = ET.fromstring(xml_content)
-        msg_type = msg_root.find("MsgType").text
-        from_user = msg_root.find("FromUserName").text
-        to_user = msg_root.find("ToUserName").text
-        
-        if msg_type == "text":
-            content = msg_root.find("Content").text
-            
-            # 构造聊天请求
-            chat_request = ChatCompletionRequest(
-                message=content,
-                thread_id=f"wecom-{from_user}",
-                user=from_user,
-                stream=False,
-                filter=VectorRetrieveFilter(site_id=site.id)
-            )
-            
-            # 直接等待处理结果，移除模拟环境下的硬性超时限制
-            try:
-                logger.info(f"WeCom synchronous AI processed for {from_user}...")
-                response = await ChatService.process_chat_request(chat_request, background_tasks)
-                reply_text = ""
-                if hasattr(response, "choices") and response.choices:
-                    reply_text = response.choices[0].message.content or ""
-            except Exception as e:
-                logger.error(f"WeCom AI error: {e}", exc_info=True)
-                reply_text = "抱歉，处理消息时遇到错误。"
-            
-            # 返回回复消息
-            reply_xml = crypt.build_reply_xml(from_user, to_user, reply_text)
-            encrypted_reply, signature, ts = crypt.encrypt(reply_xml, nonce)
-            
-            response_xml = f"""<xml>
-<Encrypt><![CDATA[{encrypted_reply}]]></Encrypt>
-<MsgSignature><![CDATA[{signature}]]></MsgSignature>
-<TimeStamp>{ts}</TimeStamp>
-<Nonce><![CDATA[{nonce}]]></Nonce>
-</xml>"""
-            return Response(content=response_xml, media_type="application/xml")
-            
-        return Response(content="")
-    except Exception as e:
-        logger.error(f"WeCom Message handling failed: {e}", exc_info=True)
-        return Response(status_code=500)
+        data = json.loads(msg_body)
+    except json.JSONDecodeError:
+        logger.error("解析解密后的企业微信消息 JSON 失败")
+        return Response(status_code=400)
+
+    msg_type = data.get("msgtype")
+    reply_payload = None
+
+    # 根据消息类型分发逻辑
+    if msg_type == "text":
+        content = data.get("text", {}).get("content", "")
+        # 兼容处理发送者标识
+        from_info = data.get("from", {})
+        from_user = from_info.get("alias") or from_info.get("userid", "anonymous")
+        reply_payload = await WeComRobotService.process_text_message(
+            site, from_user, content, background_tasks
+        )
+
+    elif msg_type == "stream":
+        stream_id = data.get("stream", {}).get("id")
+        if stream_id:
+            reply_payload = WeComRobotService.get_stream_response(stream_id)
+
+    elif msg_type == "image":
+        image_url = data.get("image", {}).get("url")
+        if image_url:
+            reply_payload = await WeComRobotService.process_image_message(image_url, aes_key)
+
+    # 如果有回复内容，则加密后返回
+    if reply_payload:
+        reply_json = json.dumps(reply_payload, ensure_ascii=False)
+        ret, encrypted_resp = crypt.EncryptMsg(reply_json, nonce, timestamp)
+        if ret == 0:
+            return Response(content=encrypted_resp, media_type="text/plain")
+        logger.error(f"企业微信消息加密失败: 错误码={ret}")
+
+    return Response(content="success", media_type="text/plain")
 
 
 @router.post(
@@ -153,14 +143,14 @@ async def create_site_chat_completion(
     创建聊天补全 (专用接口，兼容 OpenAI 格式)
     """
     if not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Invalid authorization header format")
+        raise HTTPException(status_code=401, detail="认证头格式无效，须以 'Bearer ' 开头")
 
     token = authorization.replace("Bearer ", "")
 
     async with AsyncSessionLocal() as db:
         site = await crud_site.get_by_api_token(db, api_token=token)
         if not site:
-            raise HTTPException(status_code=401, detail="Invalid API Key")
+            raise HTTPException(status_code=401, detail="无效的 API 密钥")
 
     # 统一将识别出的 site_id 注入 filter
     if not request.filter:
@@ -169,5 +159,3 @@ async def create_site_chat_completion(
         request.filter.site_id = site.id
 
     return await ChatService.process_chat_request(request, background_tasks)
-
-

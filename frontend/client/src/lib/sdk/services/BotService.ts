@@ -10,7 +10,7 @@ export class BotService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
      * Verify Url
-     * 验证回调 URL (企业微信设置时触发)
+     * 验证回调 URL (企业微信智能机器人设置时触发)
      * @returns any Successful Response
      * @throws ApiError
      */
@@ -44,7 +44,7 @@ export class BotService {
     }
     /**
      * Handle Message
-     * 处理企业微信消息回调
+     * 处理企业微信智能机器人消息回调 (JSON 协议)
      * @returns any Successful Response
      * @throws ApiError
      */

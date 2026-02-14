@@ -307,7 +307,6 @@ async def enrich_document_dict(
 # ==================== 脱敏工具函数 ====================
 
 
-
 def mask_bot_config_inplace(config_value: dict) -> None:
     """对机器人配置进行原地脱敏处理"""
     if not config_value:

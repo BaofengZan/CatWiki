@@ -47,7 +47,7 @@ class ChatSessionService:
         _retry_count: int = 0,
     ) -> ChatSession:
         """创建或更新会话记录
-        
+
         Args:
             member_id: 会员ID或访客ID（可选）
             _retry_count: 内部重试计数，防止无限递归
@@ -91,17 +91,25 @@ class ChatSessionService:
                 except IntegrityError as ie:
                     # 并发冲突：可能在查询后被其他请求创建了，也可能是其他约束冲突
                     await db.rollback()
-                    
+
                     if _retry_count >= 1:
                         # 超过重试次数，可能是非并发导致的约束错误（如 tenant_id IS NULL）
-                        logger.error(f"❌ [ChatSession] IntegrityError persisting after retry: {ie}")
+                        logger.error(
+                            f"❌ [ChatSession] IntegrityError persisting after retry: {ie}"
+                        )
                         raise ie
-                        
+
                     logger.warning(
                         f"⚠️ [ChatSession] IntegrityError for {thread_id}, retrying as update. Error: {ie}"
                     )
                     return await ChatSessionService.create_or_update(
-                        db, thread_id, site_id, user_message, member_id, tenant_id, _retry_count=_retry_count + 1
+                        db,
+                        thread_id,
+                        site_id,
+                        user_message,
+                        member_id,
+                        tenant_id,
+                        _retry_count=_retry_count + 1,
                     )
 
             return session
@@ -242,7 +250,7 @@ class ChatSessionService:
 
         new_langchain_messages = messages[last_human_idx + 1 :]
         new_openai_messages = convert_messages_to_openai(new_langchain_messages)
-        
+
         saved_count = 0
         for msg_dict in new_openai_messages:
             await ChatSessionService.save_message(

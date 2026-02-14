@@ -122,12 +122,11 @@ export interface BotConfig {
     apiKey: string
     timeout: number
   }
-  wechat: {
+  wecomSmartRobot: {
     enabled: boolean
-    appId: string
-    appSecret: string
+    callbackUrl: string
     token: string
-    encodingAESKey: string
+    encodingAesKey: string
   }
 }
 

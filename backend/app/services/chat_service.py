@@ -23,9 +23,12 @@ from fastapi.responses import StreamingResponse
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_openai import ChatOpenAI
 
-from app.core.infra.checkpointer import get_checkpointer
+from app.core.ai.graph.checkpointer import get_checkpointer
 from app.core.ai.graph import create_agent_graph
-from app.core.vector.rag_utils import convert_tool_call_chunk_to_openai, extract_sources_from_messages
+from app.core.vector.rag_utils import (
+    convert_tool_call_chunk_to_openai,
+    extract_sources_from_messages,
+)
 from app.db.database import AsyncSessionLocal
 from app.schemas.chat import (
     ChatCompletionChoice,
@@ -38,7 +41,7 @@ from app.schemas.chat import (
 )
 from app.services.chat_session_service import ChatSessionService
 from app.services.configuration_service import configuration_service
-from app.core.ai.llm_manager import llm_manager
+from app.core.ai.providers.llm_manager import llm_manager
 from app.crud.site import crud_site
 
 logger = logging.getLogger(__name__)
@@ -227,11 +230,17 @@ class ChatService:
         try:
             # 7. 执行推理
             if request.stream:
+
                 async def protected_generator():
                     async with get_checkpointer() as cp:
                         graph = create_agent_graph(checkpointer=cp, model=llm)
                         async for chunk in cls.stream_graph_events(
-                            graph, initial_state, config, llm.model_name, request.thread_id, background_tasks
+                            graph,
+                            initial_state,
+                            config,
+                            llm.model_name,
+                            request.thread_id,
+                            background_tasks,
                         ):
                             yield chunk
 
@@ -258,7 +267,7 @@ class ChatService:
                             await ChatSessionService.save_history_from_messages(
                                 db=db, thread_id=request.thread_id, messages=messages
                             )
-                    
+
                     background_tasks.add_task(save_history_bg)
 
                     return ChatCompletionResponse(

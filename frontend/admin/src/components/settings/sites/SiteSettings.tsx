@@ -88,7 +88,6 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
         ...siteData.bot_config,
         webWidget: { ...initialConfigs.botConfig.webWidget, ...siteData.bot_config.webWidget },
         apiBot: { ...initialConfigs.botConfig.apiBot, ...siteData.bot_config.apiBot },
-        wechat: { ...initialConfigs.botConfig.wechat, ...siteData.bot_config.wechat },
       } : initialConfigs.botConfig
 
       setName(siteData.name)
@@ -156,7 +155,6 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
           ...updatedSite.bot_config,
           webWidget: { ...initialConfigs.botConfig.webWidget, ...updatedSite.bot_config.webWidget },
           apiBot: { ...initialConfigs.botConfig.apiBot, ...updatedSite.bot_config.apiBot },
-          wechat: { ...initialConfigs.botConfig.wechat, ...updatedSite.bot_config.wechat },
         } : initialConfigs.botConfig
 
         // 更新本地状态，以便 UI 立即映射新生成的 Key 等

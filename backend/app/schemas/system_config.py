@@ -103,7 +103,6 @@ class TestConnectionRequest(BaseModel):
     config: ModelConfig = Field(..., description="模型配置")
 
 
-
 # ============ 机器人配置相关 Schema ============
 
 

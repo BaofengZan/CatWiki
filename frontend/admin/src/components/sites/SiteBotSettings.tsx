@@ -14,7 +14,7 @@
 
 /**
  * 站点机器人设置组件
- * 配置网页挂件、API 接口和微信公众号
+ * 配置网页挂件、API 接口和企业微信智能机器人
  */
 
 "use client"
@@ -99,7 +99,7 @@ export function SiteBotSettings({ siteId, config, onChange }: SiteBotSettingsPro
       const endpoint = `${env.NEXT_PUBLIC_API_URL}/v1/bot/wecom-smart-robot?site_id=${siteId}`
       onChange("wecomSmartRobot", "callbackUrl", endpoint)
     }
-  }, [config?.apiBot?.enabled, config?.apiBot?.apiEndpoint, config?.wecomSmartRobot?.enabled, config?.wecomSmartRobot?.callbackUrl, onChange])
+  }, [config?.apiBot?.enabled, config?.apiBot?.apiEndpoint, config?.wecomSmartRobot?.enabled, config?.wecomSmartRobot?.callbackUrl, onChange, siteId])
 
   if (!config) return null
 

@@ -48,12 +48,23 @@ class LLMManager:
         force: bool = False,
     ) -> ChatOpenAI:
         """根据租户获取模型实例 (带缓存)"""
+        from app.core.web.exceptions import BadRequestException
 
         # 1. 获取配置
         config = await configuration_service.get_chat_config(tenant_id=tenant_id, force=force)
-        
+
+        # 严格校验：如果处于 custom 模式，必须提供有效的配置，不回退到系统环境变量
+        api_key = config.get("apiKey")
+        mode = config.get("_mode", "platform")
+
+        if mode == "custom" and not api_key:
+            raise BadRequestException(
+                f"租户 {tenant_id} 已开启自定义模型模式，但未在管理后台配置 API Key。"
+            )
+
         # 处理模型覆盖
         effective_model = model_name or config.get("model") or "gpt-3.5-turbo"
+        base_url = config.get("baseUrl")
         conf_hash = config.get("_hash", "default")
 
         # 为了支持不同 Temperature 和 Model Override 的复用，将它们混入索引 Key
@@ -74,8 +85,8 @@ class LLMManager:
 
         new_llm = ChatOpenAI(
             model=effective_model,
-            api_key=config.get("apiKey"),
-            base_url=config.get("baseUrl"),
+            api_key=api_key,
+            base_url=base_url,
             temperature=temperature,
             streaming=True,
         )

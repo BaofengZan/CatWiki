@@ -104,7 +104,9 @@ def convert_tool_call_chunk_to_openai(tc_chunk: dict[str, Any]) -> dict[str, Any
     return cleaned_tc
 
 
-def convert_messages_to_openai(messages: list[BaseMessage], filter_system: bool = False) -> list[dict]:
+def convert_messages_to_openai(
+    messages: list[BaseMessage], filter_system: bool = False
+) -> list[dict]:
     """将 LangChain 格式消息列表统一转换为 OpenAI 格式 (完全兼容 tool calling)"""
     result = []
     for msg in messages:
@@ -145,7 +147,7 @@ def convert_messages_to_openai(messages: list[BaseMessage], filter_system: bool 
                 message_dict["additional_kwargs"] = {
                     k: v for k, v in msg.additional_kwargs.items() if k not in ["tool_calls"]
                 }
-            
+
             # 记录 Token 使用 (LangChain 0.2+)
             if hasattr(msg, "usage_metadata") and msg.usage_metadata:
                 if "additional_kwargs" not in message_dict:

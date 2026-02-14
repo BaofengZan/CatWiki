@@ -26,7 +26,7 @@ from app.core.common.logger import setup_logging
 from app.core.web.middleware import setup_middleware
 from app.core.web.openapi_utils import filter_openapi_by_prefix
 from app.core.infra.rustfs import init_rustfs
-from app.core.infra.system_config_init import init_system_configs
+from app.core.startup.config import init_system_configs
 from app.db.database import engine
 
 # 配置日志
