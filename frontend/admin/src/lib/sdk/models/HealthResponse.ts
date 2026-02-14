@@ -19,6 +19,14 @@ export type HealthResponse = {
      */
     environment: string;
     /**
+     * CatWiki 版本 (community | enterprise)
+     */
+    edition: string;
+    /**
+     * 是否已获得企业级授权
+     */
+    is_licensed: boolean;
+    /**
      * 检查时间戳
      */
     timestamp: string;

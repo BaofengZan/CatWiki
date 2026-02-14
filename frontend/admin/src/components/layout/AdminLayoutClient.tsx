@@ -33,6 +33,7 @@ import { getUserInfo } from '@/lib/auth'
 import { env } from '@/lib/env'
 import { useState, useEffect } from 'react'
 import { StatePersistence } from '@/components/layout/StatePersistence'
+import { useHealth } from '@/hooks/useHealth'
 
 // 动态导入侧边栏和站点切换器，禁用 SSR 以避免 hydration 错误
 const AdminSidebar = dynamic(() => import('@/components/layout/AdminSidebar').then(mod => ({ default: mod.AdminSidebar })), {
@@ -78,6 +79,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
   const [mounted, setMounted] = useState(false)
 
+  const { data: healthData } = useHealth()
+
   /* eslint-disable-next-line react-hooks/exhaustive-deps */
   useEffect(() => {
     setMounted(true)
@@ -113,7 +116,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen overflow-hidden bg-slate-50/50">
       {/* Settings Modal Overlay */}
       {(searchParams.get('modal') === 'settings' || searchParams.get('modal') === 'site-settings') && <SettingsModal />}
-      {env.NEXT_PUBLIC_CATWIKI_EDITION !== 'community' && searchParams.get('modal') === 'platform' && <PlatformModal />}
+      {healthData?.edition !== 'community' && searchParams.get('modal') === 'platform' && <PlatformModal />}
 
       <ErrorBoundary
         fallback={
@@ -148,7 +151,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-3">
 
             {/* 平台管理入口 - 仅 admin 可见 (仅 EE 版) */}
-            {env.NEXT_PUBLIC_CATWIKI_EDITION !== 'community' && userInfo?.role === 'admin' && (
+            {healthData?.edition !== 'community' && userInfo?.role === 'admin' && (
               <button
                 onClick={() => {
                   router.push('?modal=platform')
@@ -202,7 +205,9 @@ export function AdminLayoutClient({ children }: { children: React.ReactNode }) {
       <ReactQueryProvider>
         <SiteProvider>
           <Toaster position="top-center" richColors />
-          <AdminLayoutContent>{children}</AdminLayoutContent>
+          <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
+            <AdminLayoutContent>{children}</AdminLayoutContent>
+          </Suspense>
         </SiteProvider>
       </ReactQueryProvider>
     </ErrorBoundary>

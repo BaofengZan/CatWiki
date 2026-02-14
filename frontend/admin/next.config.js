@@ -16,16 +16,33 @@
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone', // 支持 Docker 部署
-  
+
   // 编译器优化
   compiler: {
     // 生产环境自动移除 console.log, console.info, console.debug
     // 保留 console.error 和 console.warn（重要的错误信息）
-    removeConsole: process.env.NODE_ENV === 'production' ? {
-      exclude: ['error', 'warn']
-    } : false
+    // removeConsole 使用 Turbopack 时暂不支持，需禁用或使用 swcMinify
+    // removeConsole: process.env.NODE_ENV === 'production' ? {
+    //   exclude: ['error', 'warn']
+    // } : false
   },
-  
+
+  // 实验性优化配置
+  experimental: {
+    optimizePackageImports: [
+      'lucide-react',
+      'date-fns',
+      'lodash',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-select',
+      '@radix-ui/react-switch',
+      '@radix-ui/react-tabs',
+    ],
+  },
+
+
   // 图片优化配置
   images: {
     // 允许的外部图片域名

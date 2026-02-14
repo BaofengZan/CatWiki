@@ -102,8 +102,8 @@ function AdminSidebarComponent() {
               <Settings className="text-primary-foreground h-5 w-5" />
             </div>
             <span className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/70 truncate">
-              {env.NEXT_PUBLIC_CATWIKI_EDITION === 'community' 
-                ? '系统设置' 
+              {healthData?.edition === 'community'
+                ? '系统设置'
                 : (userRole === 'admin' ? '系统管理' : '租户设置')}
             </span>
           </div>
@@ -195,14 +195,33 @@ function AdminSidebarComponent() {
         </div>
 
         <div className="mt-auto px-6 py-6 space-y-4">
-          <div className="px-2 pt-2 border-t border-border/40">
+          <div className="px-2 pt-4 border-t border-border/40 space-y-4">
             <Link
               href="/"
-              className="flex items-center gap-2 text-xs font-medium text-slate-500 hover:text-primary transition-colors"
+              className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-primary transition-colors px-2 py-1.5 rounded-md hover:bg-muted/50"
             >
               <ChevronRight className="h-3 w-3 rotate-180" />
-              返回控制台
+              <span>返回控制台</span>
             </Link>
+            <div className="flex items-center justify-between px-0.5">
+              <div className="flex items-center gap-2 text-[10px] font-bold tracking-wider text-muted-foreground/60">
+                <ShieldCheck className="h-3.5 w-3.5 opacity-70" />
+                <span>CATWIKI</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={cn(
+                  "px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide border shadow-sm",
+                  healthData?.edition === 'enterprise'
+                    ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                    : "bg-muted text-muted-foreground border-border"
+                )}>
+                  {healthData?.edition === 'enterprise' ? 'EE' : 'CE'}
+                </span>
+                <span className="px-2 py-0.5 bg-primary/5 text-primary/80 rounded-full text-[10px] font-bold border border-primary/10 shadow-sm">
+                  v{version}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -242,34 +261,47 @@ function AdminSidebarComponent() {
           </nav>
         </div>
 
-        <div className="mt-auto px-6 py-6 space-y-4">
+        <div className="mt-auto px-6 py-6 space-y-6">
           <div className="space-y-1">
             <Link
               href="https://github.com/bulolo/catwiki"
               target="_blank"
-              className="flex items-center gap-3 px-2 py-1.5 rounded-lg text-xs text-slate-400 hover:text-primary transition-all group"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-primary hover:bg-muted/50 transition-all group"
             >
-              <Github className="h-3.5 w-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
+              <Github className="h-4 w-4 opacity-60 group-hover:opacity-100 transition-opacity" />
               <span className="font-medium">GitHub</span>
             </Link>
             <Link
               href="https://docs.catwiki.ai"
               target="_blank"
-              className="flex items-center gap-3 px-2 py-1.5 rounded-lg text-xs text-slate-400 hover:text-primary transition-all group"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-primary hover:bg-muted/50 transition-all group"
             >
-              <BookOpen className="h-3.5 w-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
-              <span className="font-medium">Documentation</span>
+              <BookOpen className="h-4 w-4 opacity-60 group-hover:opacity-100 transition-opacity" />
+              <span className="font-medium">文档中心</span>
             </Link>
           </div>
-          <div className="px-2 pt-2 border-t border-border/40 flex flex-col gap-1">
-            <div className="flex items-center justify-between text-[10px] text-slate-400/60 font-bold uppercase tracking-widest">
-              <span className="flex items-center gap-1" id="cw-sys-mount">
-                <ShieldCheck className="h-2.5 w-2.5" />
-                OFFICIAL CatWiki
-              </span>
-              <span className="px-1.5 py-0.5 bg-slate-100 rounded text-[9px] border border-slate-200/50">V{version}</span>
+
+          <div className="space-y-4 pt-2 border-t border-border/40">
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2 text-[10px] font-bold tracking-wider text-muted-foreground/60">
+                <ShieldCheck className="h-3.5 w-3.5 opacity-70" />
+                <span>CATWIKI</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={cn(
+                  "px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide border shadow-sm",
+                  healthData?.edition === 'enterprise'
+                    ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                    : "bg-muted text-muted-foreground border-border"
+                )}>
+                  {healthData?.edition === 'enterprise' ? 'EE' : 'CE'}
+                </span>
+                <span className="px-2 py-0.5 bg-primary/5 text-primary/80 rounded-full text-[10px] font-bold border border-primary/10 shadow-sm">
+                  v{version}
+                </span>
+              </div>
             </div>
-            <div className="text-[9px] text-slate-400/40 text-center mt-1">© 2026 CatWiki Team</div>
+            <div className="text-[10px] text-muted-foreground/40 text-center font-medium">© 2026 CatWiki Team</div>
           </div>
         </div>
       </div>
@@ -360,15 +392,15 @@ function AdminSidebarComponent() {
         </nav>
       </div>
 
-      <div className="mt-auto px-6 py-6 space-y-4">
+      <div className="mt-auto px-6 py-6 space-y-6">
         <div className="space-y-1">
           {routeContext.slug && (
             <Link
               href={`${env.NEXT_PUBLIC_CLIENT_URL}/${routeContext.slug}`}
               target="_blank"
-              className="flex items-center gap-3 px-2 py-1.5 rounded-lg text-xs text-primary/80 hover:text-primary hover:bg-primary/5 transition-all group mb-2 font-medium"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-primary hover:text-primary hover:bg-primary/10 transition-all group mb-2"
             >
-              <ExternalLink className="h-3.5 w-3.5" />
+              <ExternalLink className="h-4 w-4" />
               <span>进入站点</span>
             </Link>
           )}
@@ -376,34 +408,46 @@ function AdminSidebarComponent() {
           <Link
             href="https://github.com/bulolo/catwiki"
             target="_blank"
-            className="flex items-center gap-3 px-2 py-1.5 rounded-lg text-xs text-slate-400 hover:text-primary transition-all group"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-primary hover:bg-muted/50 transition-all group"
           >
-            <Github className="h-3.5 w-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
+            <Github className="h-4 w-4 opacity-60 group-hover:opacity-100 transition-opacity" />
             <span className="font-medium">GitHub</span>
           </Link>
           <Link
             href="https://docs.catwiki.ai"
             target="_blank"
-            className="flex items-center gap-3 px-2 py-1.5 rounded-lg text-xs text-slate-400 hover:text-primary transition-all group"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-primary hover:bg-muted/50 transition-all group"
           >
-            <BookOpen className="h-3.5 w-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
-            <span className="font-medium">Documentation</span>
+            <BookOpen className="h-4 w-4 opacity-60 group-hover:opacity-100 transition-opacity" />
+            <span className="font-medium">文档中心</span>
           </Link>
         </div>
-        <div className="px-2 pt-3 border-t border-slate-200/60 flex flex-col gap-1 mt-4">
-          <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-widest text-[#3b82f6]">
+
+        <div className="space-y-4 pt-2 border-t border-border/40">
+          <div className="flex items-center justify-between px-1">
             <Link
               href="https://catwiki.ai"
               target="_blank"
-              className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
-              id="cw-sys-mount"
+              className="flex items-center gap-2 text-[10px] font-bold tracking-wider text-muted-foreground/60 hover:text-primary transition-colors"
             >
-              <ShieldCheck className="h-3 w-3" />
-              CatWiki Official
+              <ShieldCheck className="h-3.5 w-3.5 opacity-70" />
+              <span>CATWIKI</span>
             </Link>
-            <span className="px-1.5 py-0.5 bg-[#3b82f6]/10 text-[#3b82f6] rounded text-[9px] border border-[#3b82f6]/20 font-medium">V{version}</span>
+            <div className="flex items-center gap-2">
+              <span className={cn(
+                "px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide border shadow-sm",
+                healthData?.edition === 'enterprise'
+                  ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                  : "bg-muted text-muted-foreground border-border"
+              )}>
+                {healthData?.edition === 'enterprise' ? 'EE' : 'CE'}
+              </span>
+              <span className="px-2 py-0.5 bg-primary/5 text-primary/80 rounded-full text-[10px] font-bold border border-primary/10 shadow-sm">
+                v{version}
+              </span>
+            </div>
           </div>
-          <div className="text-[9px] text-slate-400/50 text-center mt-1">© 2026 CatWiki Team</div>
+          <div className="text-[10px] text-muted-foreground/40 text-center font-medium">© 2026 CatWiki Team</div>
         </div>
       </div>
     </div>

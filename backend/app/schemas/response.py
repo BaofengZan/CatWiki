@@ -94,6 +94,8 @@ class HealthResponse(BaseModel):
     status: str = Field(description="服务总体状态: healthy, degraded, unhealthy")
     version: str = Field(description="API 版本")
     environment: str = Field(description="运行环境")
+    edition: str = Field(description="CatWiki 版本 (community | enterprise)")
+    is_licensed: bool = Field(description="是否已获得企业级授权")
     timestamp: str = Field(description="检查时间戳")
     checks: dict[str, str] = Field(description="各组件检查状态")
 
