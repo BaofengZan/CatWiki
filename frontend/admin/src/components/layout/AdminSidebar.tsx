@@ -102,8 +102,8 @@ function AdminSidebarComponent() {
               <Settings className="text-primary-foreground h-5 w-5" />
             </div>
             <span className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/70 truncate">
-              {env.NEXT_PUBLIC_CATWIKI_EDITION === 'community' 
-                ? '系统设置' 
+              {healthData?.edition === 'community'
+                ? '系统设置'
                 : (userRole === 'admin' ? '系统管理' : '租户设置')}
             </span>
           </div>
@@ -195,7 +195,7 @@ function AdminSidebarComponent() {
         </div>
 
         <div className="mt-auto px-6 py-6 space-y-4">
-          <div className="px-2 pt-2 border-t border-border/40">
+          <div className="px-2 pt-2 border-t border-border/40 space-y-3">
             <Link
               href="/"
               className="flex items-center gap-2 text-xs font-medium text-slate-500 hover:text-primary transition-colors"
@@ -203,6 +203,23 @@ function AdminSidebarComponent() {
               <ChevronRight className="h-3 w-3 rotate-180" />
               返回控制台
             </Link>
+            <div className="flex items-center justify-between pt-1 px-0.5">
+              <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-wider text-slate-400">
+                <ShieldCheck className="h-3 w-3 opacity-70" />
+                <span>CATWIKI</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className={cn(
+                  "px-1.5 py-0.5 rounded-full text-[9px] font-bold tracking-wide border",
+                  healthData?.edition === 'enterprise'
+                    ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                    : "bg-slate-100 text-slate-500 border-slate-200"
+                )}>
+                  {healthData?.edition === 'enterprise' ? 'EE' : 'CE'}
+                </span>
+                <span className="px-1.5 py-0.5 bg-[#3b82f6]/5 text-[#3b82f6]/70 rounded-full text-[9px] font-bold border border-[#3b82f6]/10">V{version}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -261,16 +278,24 @@ function AdminSidebarComponent() {
               <span className="font-medium">Documentation</span>
             </Link>
           </div>
-          <div className="px-2 pt-2 border-t border-border/40 flex flex-col gap-1">
-            <div className="flex items-center justify-between text-[10px] text-slate-400/60 font-bold uppercase tracking-widest">
-              <span className="flex items-center gap-1" id="cw-sys-mount">
-                <ShieldCheck className="h-2.5 w-2.5" />
-                OFFICIAL CatWiki
-              </span>
-              <span className="px-1.5 py-0.5 bg-slate-100 rounded text-[9px] border border-slate-200/50">V{version}</span>
+          <div className="flex items-center justify-between pt-1 px-0.5">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-wider text-slate-400">
+              <ShieldCheck className="h-3 w-3 opacity-70" />
+              <span>CATWIKI</span>
             </div>
-            <div className="text-[9px] text-slate-400/40 text-center mt-1">© 2026 CatWiki Team</div>
+            <div className="flex items-center gap-1.5">
+              <span className={cn(
+                "px-1.5 py-0.5 rounded-full text-[9px] font-bold tracking-wide border",
+                healthData?.edition === 'enterprise'
+                  ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                  : "bg-slate-100 text-slate-500 border-slate-200"
+              )}>
+                {healthData?.edition === 'enterprise' ? 'EE' : 'COMM'}
+              </span>
+              <span className="px-1.5 py-0.5 bg-slate-100 text-slate-400 rounded-full text-[9px] font-bold border border-slate-200">V{version}</span>
+            </div>
           </div>
+          <div className="text-[9px] text-slate-400/40 text-center mt-1">© 2026 CatWiki Team</div>
         </div>
       </div>
     )
@@ -390,21 +415,28 @@ function AdminSidebarComponent() {
             <span className="font-medium">Documentation</span>
           </Link>
         </div>
-        <div className="px-2 pt-3 border-t border-slate-200/60 flex flex-col gap-1 mt-4">
-          <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-widest text-[#3b82f6]">
-            <Link
-              href="https://catwiki.ai"
-              target="_blank"
-              className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
-              id="cw-sys-mount"
-            >
-              <ShieldCheck className="h-3 w-3" />
-              CatWiki Official
-            </Link>
-            <span className="px-1.5 py-0.5 bg-[#3b82f6]/10 text-[#3b82f6] rounded text-[9px] border border-[#3b82f6]/20 font-medium">V{version}</span>
+        <div className="flex items-center justify-between pt-2 px-0.5">
+          <Link
+            href="https://catwiki.ai"
+            target="_blank"
+            className="flex items-center gap-1.5 text-[10px] font-bold tracking-wider text-slate-400 hover:text-primary transition-colors"
+          >
+            <ShieldCheck className="h-3 w-3 opacity-70" />
+            <span>CATWIKI</span>
+          </Link>
+          <div className="flex items-center gap-1.5">
+            <span className={cn(
+              "px-1.5 py-0.5 rounded-full text-[9px] font-bold tracking-wide border",
+              healthData?.edition === 'enterprise'
+                ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]/20"
+                : "bg-slate-100 text-slate-500 border-slate-200"
+            )}>
+              {healthData?.edition === 'enterprise' ? 'EE' : 'COMM'}
+            </span>
+            <span className="px-1.5 py-0.5 bg-[#3b82f6]/5 text-[#3b82f6]/70 rounded-full text-[9px] font-bold border border-[#3b82f6]/10">V{version}</span>
           </div>
-          <div className="text-[9px] text-slate-400/50 text-center mt-1">© 2026 CatWiki Team</div>
         </div>
+        <div className="text-[9px] text-slate-400/50 text-center mt-1">© 2026 CatWiki Team</div>
       </div>
     </div>
   )

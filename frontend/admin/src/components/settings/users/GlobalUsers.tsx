@@ -80,11 +80,14 @@ import {
 } from "@/hooks"
 import { getUserInfo } from "@/lib/auth"
 import { env } from "@/lib/env"
+import { useHealth } from "@/hooks/useHealth"
 
 export function GlobalUsers() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const { data: healthData } = useHealth()
+  const isCommunity = healthData?.edition === 'community'
 
   const [page, setPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState("")
@@ -244,7 +247,7 @@ export function GlobalUsers() {
         {user.role === UserRole.ADMIN || user.role === UserRole.TENANT_ADMIN ? (
           <div className="w-full h-full px-4 py-3 min-h-[50px] flex flex-wrap gap-1 items-center relative pr-8">
             <span className="text-xs text-muted-foreground">
-              {user.role === UserRole.ADMIN ? "全平台" : (env.NEXT_PUBLIC_CATWIKI_EDITION === 'community' ? "全部站点" : "全租户")}
+              {user.role === UserRole.ADMIN ? "全平台" : (isCommunity ? "全部站点" : "全租户")}
             </span>
           </div>
         ) : (
@@ -422,7 +425,7 @@ export function GlobalUsers() {
                           )}
                         >
                           {user.role === UserRole.ADMIN ? "系统管理员" :
-                            user.role === UserRole.TENANT_ADMIN ? (env.NEXT_PUBLIC_CATWIKI_EDITION === 'community' ? "超级管理员" : "租户管理员") :
+                            user.role === UserRole.TENANT_ADMIN ? (isCommunity ? "超级管理员" : "租户管理员") :
                               user.role === UserRole.SITE_ADMIN ? "站点管理员" : "未知角色"}
                         </Badge>
                       </TableCell>
@@ -468,7 +471,7 @@ export function GlobalUsers() {
                                 </DropdownMenuSubTrigger>
                                 <DropdownMenuPortal>
                                   <DropdownMenuSubContent className="w-48 z-[200]">
-                                    {isSystemAdmin && env.NEXT_PUBLIC_CATWIKI_EDITION !== 'community' && (
+                                    {isSystemAdmin && !isCommunity && (
                                       <DropdownMenuItem
                                         onSelect={() => updateRole(user.id, UserRole.ADMIN)}
                                         className="flex items-center justify-between"
@@ -480,7 +483,7 @@ export function GlobalUsers() {
                                       onSelect={() => updateRole(user.id, UserRole.TENANT_ADMIN)}
                                       className="flex items-center justify-between"
                                     >
-                                      <span>{env.NEXT_PUBLIC_CATWIKI_EDITION === 'community' ? '超级管理员' : '租户管理员'}</span>
+                                      <span>{isCommunity ? '超级管理员' : '租户管理员'}</span>
                                       {user.role === UserRole.TENANT_ADMIN && <Check className="h-4 w-4 text-primary" />}
                                     </DropdownMenuItem>
                                     <DropdownMenuItem

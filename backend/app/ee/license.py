@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 from pydantic import BaseModel
 from jose import jws, JWTError
+from jose.exceptions import JWSError
 from app.core.infra.config import settings
 
 logger = logging.getLogger(__name__)
@@ -94,6 +95,10 @@ class LicenseService:
             self._is_valid = True
             return True
 
+        except JWSError as e:
+            logger.warning(f"Invalid license key format: {e}")
+            self._is_valid = False
+            return False
         except JWTError as e:
             logger.error(f"License signature verification failed: {e}")
             self._is_valid = False

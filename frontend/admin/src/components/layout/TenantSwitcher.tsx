@@ -34,15 +34,16 @@ import {
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { getSelectedTenantId, setSelectedTenantId, getUserInfo } from "@/lib/auth"
-import { env } from "@/lib/env"
 import api, { UserRole, Models } from "@/lib/api-client"
 import { toast } from "sonner"
+import { useHealth } from "@/hooks/useHealth"
 
 export function TenantSwitcher() {
-  const isEnterprise = env.NEXT_PUBLIC_CATWIKI_EDITION === 'enterprise'
+  const { data: healthData } = useHealth()
+  const isEnterprise = healthData?.edition === 'enterprise'
   const router = useRouter()
   const [open, setOpen] = useState(false)
-  
+
   // 检查权限
   const currentUser = typeof window !== 'undefined' ? getUserInfo() : null
   const isPlatformAdmin = currentUser?.role === UserRole.ADMIN

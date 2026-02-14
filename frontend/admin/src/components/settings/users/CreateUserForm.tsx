@@ -30,6 +30,7 @@ import { toast } from "sonner"
 import { useInviteUser, useSitesList } from "@/hooks"
 import { getUserInfo } from "@/lib/auth"
 import { env } from "@/lib/env"
+import { useHealth } from "@/hooks/useHealth"
 import {
   UserRole,
   type Site
@@ -57,7 +58,8 @@ export function CreateUserForm({ onCancel, onSuccess, fixedSiteId, fixedSiteName
   const userInfo = typeof window !== 'undefined' ? getUserInfo() : null
   const isPlatformAdmin = userInfo?.role === UserRole.ADMIN
   const isTenantAdmin = userInfo?.role === UserRole.TENANT_ADMIN
-  const edition = env.NEXT_PUBLIC_CATWIKI_EDITION
+  const { data: healthData } = useHealth()
+  const edition = healthData?.edition || 'community'
 
   const { data: sites } = useSitesList({ page: 1, size: 100 })
   const inviteUserMutation = useInviteUser()
