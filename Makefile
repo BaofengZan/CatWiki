@@ -1,6 +1,7 @@
 .PHONY: help \
 	dev-init dev-up dev-down dev-restart dev-logs dev-clean dev-db-migrate dev-db-psql gen-sdk license \
-	prod-init prod-up prod-rebuild prod-down prod-restart prod-logs prod-clean
+	prod-init prod-up prod-rebuild prod-down prod-restart prod-logs prod-clean \
+	sync-ce publish-ce
 
 # ==============================================================================
 # 跨平台配置 (Cross-Platform Config)
@@ -49,6 +50,11 @@ help:
 	@echo "  make license            - 为所有源文件自动注入 License Header"
 	@echo "  make format             - 运行代码格式化 (后端+前端)"
 	@echo "  make help               - 显示此帮助信息"
+	@echo ""
+
+	@echo " 📦  [CE 发布] (CE Release)"
+	@echo "  make sync-ce            - 从 ee 生成 CE 并推送到 origin/ce"
+	@echo "  make publish-ce         - 将 origin/ce 推送到 GitHub"
 	@echo ""
 	@echo " ⚠️  Windows 用户注意: 请使用 WSL2 或 Git Bash 运行 make 命令"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -188,3 +194,15 @@ license:
 	@echo "🔏 [CatWiki] 正在为源文件注入 License Header..."
 	@python3 scripts/add_license_header.py
 	@echo "✅ License Header 注入完成！"
+
+# ==============================================================================
+# [CE 发布] CE Release Targets
+# ==============================================================================
+
+# 从 ee 生成 CE 并推送到 origin/ce
+sync-ce:
+	@bash scripts/sync_ce.sh
+
+# 将 origin/ce 推送到 GitHub
+publish-ce:
+	@bash scripts/publish_ce.sh
