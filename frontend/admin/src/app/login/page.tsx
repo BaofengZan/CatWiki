@@ -175,8 +175,8 @@ export default function LoginPage() {
                   <LogIn className="h-4 w-4" />
                 </div>
                 <div className="text-xs">
-                  <p className="text-muted-foreground font-medium">默认测试账户</p>
-                  <p className="text-foreground font-mono mt-0.5">admin@example.com / admin123</p>
+                  <p className="text-muted-foreground font-medium">默认演示账户</p>
+                  <p className="text-foreground font-mono mt-0.5">health_admin@example.com / admin123</p>
                 </div>
               </div>
             </div>
