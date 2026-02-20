@@ -93,6 +93,20 @@ if [ -f "backend/scripts/data/baby_care.json" ]; then
     echo "  [DELETED] baby_care.json"
 fi
 
+# 删除平台级管理员初始化数据（CE 单租户下不需要）
+if [ -f "backend/scripts/init_admin_data.py" ]; then
+    rm -f "backend/scripts/init_admin_data.py"
+    echo "  [DELETED] init_admin_data.py"
+fi
+if [ -f "backend/scripts/data/admin.json" ]; then
+    rm -f "backend/scripts/data/admin.json"
+    echo "  [DELETED] admin.json"
+fi
+if [ -f "backend/scripts/seeders/admin_seeder.py" ]; then
+    rm -f "backend/scripts/seeders/admin_seeder.py"
+    echo "  [DELETED] admin_seeder.py"
+fi
+
 # 修改 health_care.json 为单租户默认值
 if [ -f "backend/scripts/data/health_care.json" ]; then
     python3 -c "
@@ -117,7 +131,12 @@ if [ -f "docker-compose.dev.yml" ]; then
     sed -i '' '/Baby 数据初始化完成/d' "docker-compose.dev.yml"
     sed -i '' '/Baby 站点/d' "docker-compose.dev.yml"
     sed -i '' '/baby-guide/d' "docker-compose.dev.yml"
-    echo "  [UPDATED] docker-compose.dev.yml → 移除 baby init"
+    
+    # 移除平台管理员初始化（CE 不包含）
+    sed -i '' '/init_admin_data/d' "docker-compose.dev.yml"
+    sed -i '' '/初始化系统平台默认管理员/d' "docker-compose.dev.yml"
+    
+    echo "  [UPDATED] docker-compose.dev.yml → 移除 baby init 和 admin init"
 fi
 
 # 从 docker-compose.prod.yml 移除 baby init 并修复默认值
@@ -126,9 +145,14 @@ if [ -f "deploy/docker/docker-compose.prod.yml" ]; then
     sed -i '' '/Baby 数据初始化完成/d' "deploy/docker/docker-compose.prod.yml"
     sed -i '' '/Baby 站点/d' "deploy/docker/docker-compose.prod.yml"
     sed -i '' '/baby-guide/d' "deploy/docker/docker-compose.prod.yml"
+    
+    # 移除平台管理员初始化（CE 不包含）
+    sed -i '' '/init_admin_data/d' "deploy/docker/docker-compose.prod.yml"
+    sed -i '' '/初始化系统平台默认管理员/d' "deploy/docker/docker-compose.prod.yml"
+    
     # 修复 docker-compose 中的默认值
     sed -i '' 's/NEXT_PUBLIC_CATWIKI_EDITION:-enterprise/NEXT_PUBLIC_CATWIKI_EDITION:-community/g' "deploy/docker/docker-compose.prod.yml"
-    echo "  [UPDATED] docker-compose.prod.yml → 移除 baby init, 修复默认值"
+    echo "  [UPDATED] docker-compose.prod.yml → 移除 baby init, admin init, 修复默认值"
 fi
 
 # ---- 修改 env 配置 ----
