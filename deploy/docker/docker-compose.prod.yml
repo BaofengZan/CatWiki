@@ -100,7 +100,7 @@ services:
         uv run alembic upgrade head &&
         echo '✅ 数据库迁移完成' &&
         echo '' &&
-        echo '🔧 执行系统资源初始化 (多租户 / 知识库 / 对象存储)...' &&
+        echo '🔧 执行系统资源初始化 (知识库 / 对象存储)...' &&
         uv run python scripts/init.py &&
         echo '' &&
         echo '==========================================' &&

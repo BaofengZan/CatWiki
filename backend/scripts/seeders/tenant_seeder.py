@@ -91,9 +91,9 @@ class TenantSeeder(BaseSeeder):
                 status=t_data["status"],
             )
             tenant = await crud_tenant.create(self.db, obj_in=tenant_in)
-            await self.log(f"✅ 创建租户：{tenant.name}")
+            await self.log(f"✅ 创建组织空间：{tenant.name}")
         else:
-            await self.log(f"✅ 租户已存在：{tenant.name}")
+            await self.log(f"✅ 组织空间已存在：{tenant.name}")
         return tenant
 
     async def create_admin(self, tenant_id: int, managed_site_ids: list[int]):

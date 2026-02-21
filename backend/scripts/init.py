@@ -75,10 +75,10 @@ async def init_database():
             # 社区版 (CE) 初始化
             # ========================
             logger.info("🌍 开始执行社区版 (CE) 初始化...")
-            logger.info("  👉 社区版为单租户模式，仅加载基础默认租户数据")
+            logger.info("  👉 社区版仅加载基础默认数据")
 
-            # CE 版本仅需加载一个最基础的租户 (使用 health_care.json 的结构作为默认结构)
-            # 在 CE 分支打包时，sync_ce.sh 会自动将 health_care.json 替换为单租户默认内容
+            # CE 版本仅需加载一个最基础的默认组织 (使用 health_care.json 的结构作为默认结构)
+            # 在 CE 分支打包时，sync_ce.sh 会自动将 health_care.json 替换为单组织默认内容
             try:
                 await TenantSeeder(db, "health_care.json").run()
             except Exception as e:

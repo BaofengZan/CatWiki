@@ -174,7 +174,6 @@ def upgrade() -> None:
     except:
         pass
 
-    print("✅ 多租户支持迁移完成 (仅结构变更)")
 
 
 def downgrade() -> None:
@@ -219,5 +218,3 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_tenants_slug"), table_name="tenants")
     op.drop_index(op.f("ix_tenants_id"), table_name="tenants")
     op.drop_table("tenants")
-
-    print("✅ 多租户支持迁移已回滚")
