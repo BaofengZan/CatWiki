@@ -69,38 +69,33 @@ class CRUDSystemConfig(CRUDBase[SystemConfig, SystemConfigCreate, SystemConfigUp
     async def update_by_key(
         self, db: AsyncSession, *, config_key: str, config_value: dict, tenant_id: int | None = None
     ) -> SystemConfig:
-        """根据配置键更新配置（如果不存在则创建）"""
-        # 注意: 避免并发或跨 Session 缓存导致的幻读
-        db_config = await self.get_by_key(db, config_key=config_key, tenant_id=tenant_id)
-
+        """根据配置键更新配置（使用 PostgreSQL 原生 Upsert 解决并发）"""
+        from sqlalchemy.dialects.postgresql import insert
+        
+        stmt = insert(SystemConfig).values(
+            tenant_id=tenant_id,
+            config_key=config_key,
+            config_value=config_value,
+            is_active=True,
+        )
+        # 如果存在冲突 (uq_tenant_config_key: tenant_id + config_key)，则自动覆盖 config_value
+        upsert_stmt = stmt.on_conflict_do_update(
+            # PostgreSQL 约束索引可能会因为 tenant_id 允许为空而略有不同，但我们表结构里恰好有明确的复合理性约束
+            # 如果 tenant_id 唯一约束不是标准的 null 兼容，我们使用 constraint="uq_tenant_config_key" 更好
+            constraint="uq_tenant_config_key",
+            set_=dict(config_value=stmt.excluded.config_value, updated_at=func.now())
+        ).returning(SystemConfig)
+        
+        result = await db.execute(upsert_stmt)
+        await db.commit()
+        db_config = result.scalar_one_or_none()
+        
         if db_config:
-            # 更新已有配置
-            db_config.config_value = config_value
-            await db.commit()
-            await db.refresh(db_config)
             return db_config
-        else:
-            # 创建新配置之前再次尝试通过原生 insert on conflict 或 try except 解决并发冲突
-            from sqlalchemy.exc import IntegrityError
-            try:
-                db_config = SystemConfig(
-                    tenant_id=tenant_id,
-                    config_key=config_key,
-                    config_value=config_value,
-                    is_active=True,
-                )
-                db.add(db_config)
-                await db.commit()
-                await db.refresh(db_config)
-                return db_config
-            except IntegrityError:
-                await db.rollback()
-                # 说明存在并发冲突，回滚后使用更新逻辑
-                db_config = await self.get_by_key(db, config_key=config_key, tenant_id=tenant_id)
-                db_config.config_value = config_value
-                await db.commit()
-                await db.refresh(db_config)
-                return db_config
+            
+        # fallback: 保证一定能够返回内容
+        db_config = await self.get_by_key(db, config_key=config_key, tenant_id=tenant_id)
+        return db_config
 
     async def delete_by_key(self, db: AsyncSession, *, config_key: str) -> bool:
         """根据配置键删除配置"""
