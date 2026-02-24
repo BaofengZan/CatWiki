@@ -30,7 +30,7 @@ from app.core.infra.config import (
     DOC_PROCESSOR_CONFIG_KEY,
 )
 from app.core.infra.tenant import get_current_tenant, temporary_tenant_context
-from app.core.web.deps import get_current_user_with_tenant, is_demo_tenant
+from app.core.web.deps import get_current_user_with_tenant
 from app.core.web.exceptions import BadRequestException, NotFoundException
 from app.crud.system_config import crud_system_config
 from app.db.database import get_db
@@ -100,7 +100,6 @@ async def get_ai_config(
     scope: Literal["platform", "tenant"] = "tenant",
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_with_tenant),
-    is_demo: bool = Depends(is_demo_tenant),
 ) -> ApiResponse[SystemConfigResponse | None]:
     """
     获取 AI 模型配置
@@ -161,14 +160,16 @@ async def get_ai_config(
     # config_value 使用租户配置
     config_response.config_value = tenant_config_value
 
-    # 如果是演示模式，则进行强制脱敏
-    if is_demo:
-        config_response.config_value = mask_sensitive_data(config_response.config_value)
+    # 对租户视角下的配置进行脱敏处理
+    if scope == "tenant":
+        # 强制对平台默认配置进行脱敏 (不向租户暴露平台私有地址)
         if config_response.platform_defaults:
             config_response.platform_defaults = mask_sensitive_data(
                 config_response.platform_defaults
             )
-        logger.info("🔒 [SystemConfig] Demo Mode active, sensitive data masked in AI config")
+    else:
+        # scope == "platform" 时返回原始数据以便运维
+        logger.info("📡 [SystemConfig] Platform scope view, displaying raw configuration")
 
     return ApiResponse.ok(data=config_response, msg="获取成功")
 
@@ -399,7 +400,6 @@ async def get_doc_processor_config(
     scope: Literal["platform", "tenant"] = "tenant",
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_with_tenant),
-    is_demo: bool = Depends(is_demo_tenant),
 ) -> ApiResponse[dict | None]:
     """
     获取文档处理服务配置
@@ -446,16 +446,18 @@ async def get_doc_processor_config(
             p["origin"] = "tenant"
 
     # 如果两边都没有，返回空
-    if not tenant_processors and not platform_processors:
-        return ApiResponse.ok(data={"processors": []}, msg="暂无配置")
+    # 对租户视角下的配置项进行脱敏
+    if scope == "tenant":
+        # 强制对平台来源的解析器进行全脱敏
+        if platform_processors:
+            platform_processors = mask_sensitive_data(platform_processors)
 
-    # 合并配置 (租户在前，平台在后)
-    merged_processors = tenant_processors + platform_processors
-
-    # 检查是否为演示模式并脱敏
-    if is_demo:
-        merged_processors = mask_sensitive_data(merged_processors)
-        logger.info("🔒 [SystemConfig] Demo Mode active, sensitive data masked in doc processors")
+        # 合并
+        merged_processors = tenant_processors + platform_processors
+    else:
+        # scope == "platform" 时返回原始数据
+        merged_processors = tenant_processors + platform_processors
+        logger.info("📡 [SystemConfig] Platform scope view, displaying raw doc processor configuration")
 
     return ApiResponse.ok(data={"processors": merged_processors}, msg="获取成功")
 

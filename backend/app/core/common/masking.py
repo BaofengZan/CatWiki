@@ -132,10 +132,17 @@ def mask_sensitive_data(config: dict[str, Any]) -> dict[str, Any]:
                         "client_id",
                         "app_secret",
                         "client_secret",
+                        "url",
+                        "endpoint",
+                        "baseurl",
                     ]
                 ):
                     if isinstance(value, str):
-                        data[key] = mask_variable(value)
+                        # 对于 URL 和 Endpoint，通常用户希望完全隐藏而不是部分脱敏
+                        if any(x in key.lower() for x in ["url", "endpoint"]):
+                            data[key] = "****"
+                        else:
+                            data[key] = mask_variable(value)
                 else:
                     _recursive_mask(value)
         elif isinstance(data, list):
