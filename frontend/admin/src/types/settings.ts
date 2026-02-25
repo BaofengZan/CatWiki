@@ -45,7 +45,6 @@ export type BotConfig = {
   }
   apiBot: {
     enabled: boolean
-    apiEndpoint: string
     apiKey: string
     timeout: number
   }
@@ -92,7 +91,8 @@ export const initialConfigs: AIConfigs = {
     model: "",
     apiKey: "",
     baseUrl: "",
-    mode: ModelConfigEnum.mode.CUSTOM
+    mode: ModelConfigEnum.mode.CUSTOM,
+    extra_body: {}
   },
   embedding: {
     provider: "openai",
@@ -125,7 +125,6 @@ export const initialConfigs: AIConfigs = {
     },
     apiBot: {
       enabled: false,
-      apiEndpoint: "",
       apiKey: "",
       timeout: 30
     },

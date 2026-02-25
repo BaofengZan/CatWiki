@@ -101,9 +101,9 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
       onSuccess: (response: unknown) => {
         const status =
           response &&
-          typeof response === "object" &&
-          "status" in response &&
-          typeof (response as { status?: unknown }).status === "string"
+            typeof response === "object" &&
+            "status" in response &&
+            typeof (response as { status?: unknown }).status === "string"
             ? (response as { status: string }).status
             : undefined
         if (status === "healthy") {
@@ -397,8 +397,8 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
           </div>
           {!isAdding && editingIndex === null && (
             <Button
-                onClick={handleStartAdd}
-                className="gap-2"
+              onClick={handleStartAdd}
+              className="gap-2"
             >
               <Plus className="h-4 w-4" />
               添加解析器
@@ -468,8 +468,12 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
                           </div>
                           <CardDescription>
                             {DOC_PROCESSOR_TYPES.find(t => t.value === processor.type)?.label || processor.type}
-                            {" · "}
-                            {processor.baseUrl}
+                            {processor.baseUrl !== "****" && (
+                              <>
+                                {" · "}
+                                {processor.baseUrl}
+                              </>
+                            )}
                           </CardDescription>
                         </div>
                       </div>
@@ -484,7 +488,8 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
                           variant="ghost"
                           size="icon"
                           onClick={() => handleTest(processor)}
-                          disabled={testing === processor.name}
+                          disabled={testing === processor.name || processor.origin === 'platform'}
+                          title={processor.origin === 'platform' ? "平台级资源，无需测试连接" : "测试连接性"}
                         >
                           {testing === processor.name ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
