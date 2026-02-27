@@ -218,6 +218,7 @@ function CopyableInput({
           readOnly={readOnly}
           placeholder={placeholder}
           disabled={disabled}
+          autoComplete="new-password"
           className={cn(
             "rounded-lg h-9 text-[13px] pr-16 placeholder:text-slate-400/80",
             readOnly ? "bg-slate-50 font-mono text-[11px]" : "bg-white",
@@ -373,8 +374,9 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
           <Input
             value={web_widget.title}
             onChange={(e) => onChange("web_widget", "title", e.target.value)}
-            placeholder="AI 客服助手"
+            placeholder="请输入挂件标题"
             disabled={!web_widget.enabled}
+            autoComplete="off"
             className="bg-white rounded-lg h-9 text-[13px] placeholder:text-slate-400/80"
           />
         </SettingItem>
@@ -383,8 +385,9 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
           <Input
             value={web_widget.welcome_message}
             onChange={(e) => onChange("web_widget", "welcome_message", e.target.value)}
-            placeholder="您好！我是 AI 助手，有什么可以帮您？"
+            placeholder="请输入欢迎语"
             disabled={!web_widget.enabled}
+            autoComplete="off"
             className="bg-white rounded-lg h-9 text-[13px] placeholder:text-slate-400/80"
           />
         </SettingItem>
@@ -402,7 +405,8 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
               value={web_widget.primary_color}
               onChange={(e) => onChange("web_widget", "primary_color", e.target.value)}
               disabled={!web_widget.enabled}
-              placeholder="#3b82f6"
+              placeholder="请输入十六进制颜色值"
+              autoComplete="off"
               className="flex-1 bg-white font-mono rounded-lg h-9 text-[13px] placeholder:text-slate-400/80"
             />
           </div>
@@ -496,7 +500,7 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
           <CopyableInput
             value={api_bot.api_key}
             onChange={(val) => onChange("api_bot", "api_key", val)}
-            placeholder="在此设置访问该接口的密钥"
+            placeholder="请输入 API Key"
             disabled={!api_bot.enabled}
             showPasswordToggle
             isPasswordVisible={showKey}
@@ -533,6 +537,7 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
             value={api_bot.timeout}
             onChange={(e) => onChange("api_bot", "timeout", parseInt(e.target.value))}
             disabled={!api_bot.enabled || isCommunity}
+            autoComplete="off"
             className="bg-white rounded-lg h-9 max-w-[200px] text-[13px] placeholder:text-slate-400/80"
             min={1}
             max={300}
@@ -619,7 +624,7 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
           <CopyableInput
             value={feishu_app?.app_id || ""}
             onChange={(val) => onChange("feishu_app", "app_id", val)}
-            placeholder="cli_xxxxxxxxxxxxxxxxxx"
+            placeholder="请输入 App ID"
             disabled={!feishu_app?.enabled}
           />
         </SettingItem>
@@ -628,7 +633,7 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
           <CopyableInput
             value={feishu_app?.app_secret || ""}
             onChange={(val) => onChange("feishu_app", "app_secret", val)}
-            placeholder="飞书应用 App Secret"
+            placeholder="请输入 App Secret"
             disabled={!feishu_app?.enabled}
             showPasswordToggle
             isPasswordVisible={showFeishuAppSecret}
@@ -679,7 +684,7 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
           <CopyableInput
             value={dingtalk_app?.client_id || ""}
             onChange={(val) => onChange("dingtalk_app", "client_id", val)}
-            placeholder="dingxxxxxxxxxx"
+            placeholder="请输入 Client ID"
             disabled={!dingtalk_app?.enabled}
           />
         </SettingItem>
@@ -688,7 +693,7 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
           <CopyableInput
             value={dingtalk_app?.client_secret || ""}
             onChange={(val) => onChange("dingtalk_app", "client_secret", val)}
-            placeholder="钉钉应用 Client Secret"
+            placeholder="请输入 Client Secret"
             disabled={!dingtalk_app?.enabled}
             showPasswordToggle
             isPasswordVisible={showDingtalkClientSecret}
@@ -700,7 +705,7 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
           <CopyableInput
             value={dingtalk_app?.template_id || ""}
             onChange={(val) => onChange("dingtalk_app", "template_id", val)}
-            placeholder="钉钉机器人模板 ID"
+            placeholder="请输入 Template ID"
             disabled={!dingtalk_app?.enabled}
           />
         </SettingItem>
@@ -755,7 +760,7 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
           <CopyableInput
             value={wecom_app?.corp_id || ""}
             onChange={(val) => onChange("wecom_app", "corp_id", val)}
-            placeholder="企业微信 CorpID"
+            placeholder="请输入企业 ID (CorpID)"
             disabled={!wecom_app?.enabled}
           />
         </SettingItem>
@@ -764,7 +769,7 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
           <CopyableInput
             value={wecom_app?.agent_id || ""}
             onChange={(val) => onChange("wecom_app", "agent_id", val)}
-            placeholder="自建应用 AgentId"
+            placeholder="请输入 AgentId"
             disabled={!wecom_app?.enabled}
           />
         </SettingItem>
@@ -773,7 +778,7 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
           <CopyableInput
             value={wecom_app?.secret || ""}
             onChange={(val) => onChange("wecom_app", "secret", val)}
-            placeholder="自建应用 Secret"
+            placeholder="请输入 Secret"
             disabled={!wecom_app?.enabled}
             showPasswordToggle
             isPasswordVisible={showWecomAppSecret}
@@ -785,7 +790,7 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
           <CopyableInput
             value={wecom_app?.token || ""}
             onChange={(val) => onChange("wecom_app", "token", val)}
-            placeholder="接收消息 Token"
+            placeholder="请输入 Token"
             disabled={!wecom_app?.enabled}
             showPasswordToggle
             isPasswordVisible={showWecomAppToken}
@@ -797,7 +802,7 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
           <CopyableInput
             value={wecom_app?.encoding_aes_key || ""}
             onChange={(val) => onChange("wecom_app", "encoding_aes_key", val)}
-            placeholder="EncodingAESKey"
+            placeholder="请输入 EncodingAESKey"
             disabled={!wecom_app?.enabled}
             showPasswordToggle
             isPasswordVisible={showWecomAppAESKey}
@@ -854,7 +859,7 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
           <CopyableInput
             value={wecom_kefu?.corp_id || ""}
             onChange={(val) => onChange("wecom_kefu", "corp_id", val)}
-            placeholder="企业微信 CorpID"
+            placeholder="请输入企业 ID (CorpID)"
             disabled={!wecom_kefu?.enabled}
           />
         </SettingItem>
@@ -863,7 +868,7 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
           <CopyableInput
             value={wecom_kefu?.secret || ""}
             onChange={(val) => onChange("wecom_kefu", "secret", val)}
-            placeholder="微信客服 Secret"
+            placeholder="请输入 Secret"
             disabled={!wecom_kefu?.enabled}
             showPasswordToggle
             isPasswordVisible={showWecomKefuSecret}
@@ -875,7 +880,7 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
           <CopyableInput
             value={wecom_kefu?.token || ""}
             onChange={(val) => onChange("wecom_kefu", "token", val)}
-            placeholder="WeCom Kefu Token"
+            placeholder="请输入 Token"
             disabled={!wecom_kefu?.enabled}
             showPasswordToggle
             isPasswordVisible={showWecomKefuToken}
@@ -887,7 +892,7 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
           <CopyableInput
             value={wecom_kefu?.encoding_aes_key || ""}
             onChange={(val) => onChange("wecom_kefu", "encoding_aes_key", val)}
-            placeholder="EncodingAESKey"
+            placeholder="请输入 EncodingAESKey"
             disabled={!wecom_kefu?.enabled}
             showPasswordToggle
             isPasswordVisible={showWecomKefuAESKey}
@@ -943,7 +948,7 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
           <CopyableInput
             value={wecom_smart?.token || ""}
             onChange={(val) => onChange("wecom_smart", "token", val)}
-            placeholder="WeCom Robot Token"
+            placeholder="请输入 Token"
             disabled={!wecom_smart?.enabled}
             showPasswordToggle
             isPasswordVisible={showWecomToken}
@@ -955,7 +960,7 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
           <CopyableInput
             value={wecom_smart?.encoding_aes_key || ""}
             onChange={(val) => onChange("wecom_smart", "encoding_aes_key", val)}
-            placeholder="EncodingAESKey"
+            placeholder="请输入 EncodingAESKey"
             disabled={!wecom_smart?.enabled}
             showPasswordToggle
             isPasswordVisible={showWecomAESKey}
@@ -970,9 +975,9 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
             borderColor="border-sky-100"
             textColor="text-sky-700"
             items={[
-              "登录企业微信管理后台并进入 <b>「应用管理」-「机器人」</b> (或管理工具-智能机器人)",
-              "点击 <b>「添加机器人」</b> 并选择 <b>「开启 API 模式」</b>",
-              "将本卡片提供的回调参数填入企业微信后台，并保存"
+              "在企业微信管理后台进入 <b>「安全与管理」-「管理工具」-「智能机器人」</b>",
+              "点击 <b>「添加机器人」</b>，选择使用 <b>「API 模式」</b> 进行创建",
+              "获取 <b>Token</b> 和 <b>AES Key</b> 填入本卡片，并将上方 <b>回调地址</b> 填入企微后台"
             ]}
             footer={
               <p className="text-[11px] text-sky-800/80">

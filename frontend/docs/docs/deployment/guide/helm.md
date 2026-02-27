@@ -1,7 +1,0 @@
-# Helm 部署
-
-::: tip 🚧 即将上线
-Helm Chart 部署方式正在开发中，敬请期待！
-:::
-
-目前推荐使用 [Docker 部署](/deployment/guide/docker)。
