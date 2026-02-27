@@ -1,0 +1,18 @@
+{{- if .Values.postgres.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "catwiki.fullname" . }}-postgres
+  labels:
+    {{- include "catwiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+  selector:
+    app.kubernetes.io/component: postgres
+    {{- include "catwiki.selectorLabels" . | nindent 4 }}
+{{- end }}

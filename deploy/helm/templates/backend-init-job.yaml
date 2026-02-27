@@ -1,0 +1,54 @@
+{{- if .Values.backendInit.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "catwiki.fullname" . }}-init
+  labels:
+    {{- include "catwiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend-init
+  annotations:
+    # Helm Hook: 在 install/upgrade 前运行
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: backend-init
+        {{- include "catwiki.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: OnFailure
+      containers:
+        - name: backend-init
+          image: {{ include "catwiki.image" (dict "global" .Values.global "image" .Values.backend.image) }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              echo '=========================================='
+              echo '🚀 开始初始化 CatWiki 生产环境...'
+              echo '=========================================='
+              echo ''
+              echo '📦 运行数据库迁移...'
+              uv run alembic upgrade head
+              echo '✅ 数据库迁移完成'
+              echo ''
+              echo '🔧 执行系统资源初始化 (知识库 / 对象存储)...'
+              uv run python scripts/init.py
+              echo ''
+              echo '=========================================='
+              echo '🎉 CatWiki 生产环境初始化完成！'
+              echo '=========================================='
+          envFrom:
+            - configMapRef:
+                name: {{ include "catwiki.fullname" . }}-config
+            - secretRef:
+                name: {{ include "catwiki.fullname" . }}-secret
+{{- end }}

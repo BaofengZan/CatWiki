@@ -1,0 +1,13 @@
+apiVersion: v2
+name: catwiki
+description: CatWiki - 智能知识库管理平台 Helm Chart
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - catwiki
+  - knowledge-base
+  - ai
+home: https://github.com/bulolo/CatWiki
+maintainers:
+  - name: CatWiki Team
