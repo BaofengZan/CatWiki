@@ -1,7 +1,7 @@
 .PHONY: help \
 	dev-init dev-up dev-down dev-restart dev-logs dev-clean dev-db-migrate dev-db-psql gen-sdk license \
 	prod-init prod-up prod-rebuild prod-down prod-restart prod-logs prod-clean clean-cache \
-	
+	 setup-hooks
 
 # ==============================================================================
 # 跨平台配置 (Cross-Platform Config)
@@ -53,6 +53,7 @@ help:
 	@echo "  make gen-sdk            - 生成前端 TypeScript SDK"
 	@echo "  make license            - 为所有源文件自动注入 License Header"
 	@echo "  make format             - 运行代码格式化 (后端+前端)"
+	@echo "  make setup-hooks        - 配置 Git hooksPath 到 scripts/git-hooks"
 	@echo "  make help               - 显示此帮助信息"
 	@echo ""
 
@@ -217,6 +218,11 @@ format:
 	@echo "🎨 [Frontend] 正在格式化 TypeScript 代码 (Client)..."
 	cd frontend/client && pnpm run lint:fix
 	@echo "✅ 代码格式化完成"
+
+# 配置仓库级 Git hooks 路径
+setup-hooks:
+	@git config core.hooksPath scripts/git-hooks
+	@echo "✅ 已配置 hooksPath: scripts/git-hooks"
 
 # 注入 License Header
 license:

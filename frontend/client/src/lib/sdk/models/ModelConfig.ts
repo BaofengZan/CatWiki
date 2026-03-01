@@ -31,7 +31,11 @@ export type ModelConfig = {
      */
     mode?: ModelConfig.mode;
     /**
-     * 额外请求体参数 (例如: {"chat_template_kwargs": {"enable_thinking": false}})
+     * 是否支持视觉/多模态
+     */
+    is_vision?: boolean;
+    /**
+     * 额外请求体参数 (例如: {"chat_template_kwargs": {"enable_thinking": true}})
      */
     extra_body?: (Record<string, any> | null);
 };

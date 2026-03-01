@@ -47,8 +47,6 @@ redis:
   image:
     repository: redis
     tag: "8.4.2"
-  # -- Redis 密码 (⚠️ 生产环境必须修改!)
-  password: catwiki-redis-password
   persistence:
     enabled: true
     size: 2Gi

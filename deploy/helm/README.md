@@ -48,8 +48,7 @@ helm uninstall catwiki -n catwiki
 postgres:
   password: "your-secure-db-password"       # 数据库密码
 
-redis:
-  password: "your-secure-redis-password"    # Redis 密码
+redis: {}
 
 rustfs:
   accessKey: "your-rustfs-access-key"       # 对象存储访问密钥
@@ -80,7 +79,6 @@ backend:
 | **Redis** | | |
 | `redis.enabled` | `true` | 是否部署内置 Redis |
 | `redis.image.tag` | `8.4.2` | Redis 版本 |
-| `redis.password` | `catwiki-redis-password` | Redis 密码 |
 | `redis.persistence.size` | `2Gi` | 存储大小 |
 | **RustFS** | | |
 | `rustfs.enabled` | `true` | 是否部署内置 RustFS |

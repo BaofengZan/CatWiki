@@ -33,7 +33,9 @@ class Settings(BaseSettings):
     # 环境配置
     ENVIRONMENT: str = Field(default="local", pattern="^(local|dev|prod)$")
     DEBUG: bool = Field(default=False)
-    CATWIKI_EDITION: str = Field(default="community", validation_alias="CATWIKI_EDITION_DISABLE_ENV_OVERRIDE")  # CE: hardcoded
+    CATWIKI_EDITION: str = Field(
+        default="community", validation_alias="CATWIKI_EDITION_DISABLE_ENV_OVERRIDE"
+    )  # CE: hardcoded
     CATWIKI_LICENSE_KEY: str | None = Field(default=None)
 
     # 数据库配置
@@ -48,6 +50,12 @@ class Settings(BaseSettings):
     DB_MAX_OVERFLOW: int = Field(default=20, ge=0, le=200)
     DB_POOL_TIMEOUT: int = Field(default=30, ge=1)
     DB_POOL_RECYCLE: int = Field(default=3600, ge=300)
+
+    # Redis 配置（缓存/分布式锁）
+    REDIS_ENABLED: bool = Field(default=False)
+    REDIS_URL: str | None = Field(default=None)
+    REDIS_PREFIX: str = Field(default="catwiki:")
+    CACHE_DEFAULT_TTL: int = Field(default=300, ge=1)
 
     @computed_field
     @property
@@ -112,6 +120,9 @@ class Settings(BaseSettings):
 
     # 日志配置
     LOG_LEVEL: str = Field(default="INFO", pattern="^(DEBUG|INFO|WARNING|ERROR|CRITICAL)$")
+
+    # 机器人插件配置
+    ROBOT_PLUGIN_ALLOWLIST: list[str] = Field(default_factory=list)
     DB_ECHO: bool = Field(default=False, description="是否输出 SQL 日志")
 
     # RustFS 对象存储配置

@@ -18,12 +18,10 @@ export class ChatService {
         requestBody,
         origin,
         referer,
-        xTenantSlug,
     }: {
         requestBody: ChatCompletionRequest,
         origin?: (string | null),
         referer?: (string | null),
-        xTenantSlug?: (string | null),
     }): CancelablePromise<ChatCompletionResponse> {
         return this.httpRequest.request({
             method: 'POST',
@@ -31,7 +29,6 @@ export class ChatService {
             headers: {
                 'origin': origin,
                 'referer': referer,
-                'X-Tenant-Slug': xTenantSlug,
             },
             body: requestBody,
             mediaType: 'application/json',

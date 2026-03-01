@@ -1,9 +1,9 @@
+from app.core.integration.robot.adapters.dingtalk_app import DingTalkAdapter
+from app.core.integration.robot.adapters.feishu_app import FeishuAdapter
+from app.core.integration.robot.adapters.wecom_app import WeComAppAdapter
+from app.core.integration.robot.adapters.wecom_kefu import WeComKefuAdapter
+from app.core.integration.robot.adapters.wecom_smart import WeComAdapter
 from app.core.integration.robot.base import BaseRobotAdapter
-from app.core.integration.robot.dingtalk_app.adapter import DingTalkAdapter
-from app.core.integration.robot.feishu_app.adapter import FeishuAdapter
-from app.core.integration.robot.wecom_smart.adapter import WeComAdapter
-from app.core.integration.robot.wecom_app.adapter import WeComAppAdapter
-from app.core.integration.robot.wecom_kefu.adapter import WeComKefuAdapter
 
 
 class RobotFactory:

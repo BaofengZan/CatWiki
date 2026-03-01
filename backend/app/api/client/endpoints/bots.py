@@ -4,50 +4,25 @@ from fastapi import (
     APIRouter,
     BackgroundTasks,
     Depends,
-    HTTPException,
     Query,
     Request,
     Response,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.integration.robot.wecom_smart.adapter import WeComBufferManager
-from app.core.integration.robot.wecom_smart.crypt import WXBizJsonMsgCrypt
-from app.core.integration.robot.wecom_smart.service import WeComSmartService
-from app.core.integration.robot.wecom_kefu.service import WeComKefuService
-from app.core.integration.robot.wecom_app.service import WeComAppService
-from app.core.integration.robot.wecom_kefu.xml_crypt import WXBizXmlMsgCrypt
-from app.crud.site import crud_site
+from app.core.integration.robot.registry.context_registry import get_robot_context
+from app.core.integration.robot.services.wecom_app import WeComAppService
+from app.core.integration.robot.services.wecom_kefu import WeComKefuService
+from app.core.integration.robot.services.wecom_smart import WeComSmartService
 from app.db.database import get_db
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-async def get_wecom_smart_bot_context(
-    request: Request, site_id: int = Query(...), db: AsyncSession = Depends(get_db)
-):
+async def get_wecom_smart_context(site_id: int = Query(...), db: AsyncSession = Depends(get_db)):
     """获取企业微信智能机器人配置上下文的依赖项"""
-    # 优先使用 set_client_tenant_context 已经查出来的 site 对象，避免二次查询
-    site = getattr(request.state, "site", None)
-    if not site:
-        site = await crud_site.get(db, id=site_id)
-
-    if not site or not site.bot_config:
-        raise HTTPException(status_code=404, detail="未找到对应的站点或配置")
-
-    config = site.bot_config.get("wecom_smart", {})
-    if not config or not config.get("enabled"):
-        raise HTTPException(status_code=403, detail="该站点未启用企业微信智能机器人")
-
-    token = config.get("token")
-    aes_key = config.get("encoding_aes_key")
-    if not token or not aes_key:
-        raise HTTPException(status_code=500, detail="企业微信机器人配置不完整")
-
-    # 智能机器人的 receiveid 是空串
-    crypt = WXBizJsonMsgCrypt(token, aes_key, "")
-    return {"site": site, "config": config, "crypt": crypt}
+    return await get_robot_context("wecom_smart", "smart", site_id, db)
 
 
 @router.get("/wecom-smart-robot")
@@ -56,7 +31,7 @@ async def verify_url(
     timestamp: str = Query(...),
     nonce: str = Query(...),
     echostr: str = Query(...),
-    context: dict = Depends(get_wecom_smart_bot_context),
+    context: dict = Depends(get_wecom_smart_context),
 ):
     """验证回调 URL (企业微信智能机器人设置时触发)"""
     try:
@@ -75,7 +50,7 @@ async def handle_wecom_message(
     msg_signature: str = Query(...),
     timestamp: str = Query(...),
     nonce: str = Query(...),
-    context: dict = Depends(get_wecom_smart_bot_context),
+    context: dict = Depends(get_wecom_smart_context),
 ):
     """处理企业微信智能机器人消息回调 (JSON 协议)"""
     try:
@@ -110,23 +85,7 @@ async def handle_wecom_message(
 
 async def get_wecom_kefu_context(site_id: int = Query(...), db: AsyncSession = Depends(get_db)):
     """获取企业微信客服配置上下文的依赖项"""
-    site = await crud_site.get(db, id=site_id)
-    if not site or not site.bot_config:
-        raise HTTPException(status_code=404, detail="未找到对应的站点或配置")
-
-    config = site.bot_config.get("wecom_kefu", {})
-    if not config or not config.get("enabled"):
-        raise HTTPException(status_code=403, detail="该站点未启用企业微信客服")
-
-    corp_id = config.get("corp_id")
-    token = config.get("token")
-    aes_key = config.get("encoding_aes_key")
-    if not corp_id or not token or not aes_key:
-        raise HTTPException(status_code=500, detail="企业微信客服配置不完整")
-
-    # 客服机器人的 receiveid 是企业 CorpID
-    crypt = WXBizXmlMsgCrypt(token, aes_key, corp_id)
-    return {"site": site, "config": config, "crypt": crypt}
+    return await get_robot_context("wecom_kefu", "kefu", site_id, db)
 
 
 @router.get("/wecom-kefu")
@@ -175,23 +134,7 @@ async def handle_kefu_message(
 
 async def get_wecom_app_context(site_id: int = Query(...), db: AsyncSession = Depends(get_db)):
     """获取企业微信应用(机器人)配置上下文的依赖项"""
-    site = await crud_site.get(db, id=site_id)
-    if not site or not site.bot_config:
-        raise HTTPException(status_code=404, detail="未找到对应的站点或配置")
-
-    config = site.bot_config.get("wecom_app", {})
-    if not config or not config.get("enabled"):
-        raise HTTPException(status_code=403, detail="该站点未启用企业微信机器人")
-
-    corp_id = config.get("corp_id")
-    token = config.get("token")
-    aes_key = config.get("encoding_aes_key")
-    if not corp_id or not token or not aes_key:
-        raise HTTPException(status_code=500, detail="企业微信应用配置不完整")
-
-    # 应用机器人的 receiveid 是企业 CorpID
-    crypt = WXBizXmlMsgCrypt(token, aes_key, corp_id)
-    return {"site": site, "config": config, "crypt": crypt}
+    return await get_robot_context("wecom_app", "app", site_id, db)
 
 
 @router.get("/wecom-app")

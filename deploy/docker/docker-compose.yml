@@ -35,9 +35,9 @@ services:
   redis:
     image: redis:8.4.2
     container_name: catwiki-redis
-    command: redis-server --requirepass ${REDIS_PASSWORD:-catwiki-redis-password-dev}
+    command: redis-server
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-catwiki-redis-password-dev}", "ping"]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -301,4 +301,3 @@ volumes:
     driver: local
   redis_data:
     driver: local
-

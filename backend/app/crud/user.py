@@ -18,10 +18,11 @@
 
 from __future__ import annotations
 
-import hashlib
 import secrets
 import string
 
+from argon2 import PasswordHasher
+from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
 from sqlalchemy import asc, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,21 +30,19 @@ from app.crud.base import CRUDBase
 from app.models.user import User, UserRole, UserStatus
 from app.schemas.user import UserCreate, UserInvite, UserUpdate
 
+_password_hasher = PasswordHasher()
+
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     验证密码
-    使用 SHA256 + salt 的简单加密方案
-    格式: salt$hash
+    仅使用 Argon2
     """
     try:
-        if "$" not in hashed_password:
-            # 旧格式密码无法验证
-            return False
-
-        salt, hash_value = hashed_password.split("$", 1)
-        computed_hash = hashlib.sha256((salt + plain_password).encode()).hexdigest()
-        return computed_hash == hash_value
+        _password_hasher.verify(hashed_password, plain_password)
+        return True
+    except (VerifyMismatchError, VerificationError, InvalidHashError):
+        return False
     except Exception:
         return False
 
@@ -51,14 +50,20 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def get_password_hash(password: str) -> str:
     """
     获取密码哈希
-    使用 SHA256 + salt
+    使用 Argon2
     """
-    salt = secrets.token_hex(16)
-    hash_value = hashlib.sha256((salt + password).encode()).hexdigest()
-    return f"{salt}${hash_value}"
+    return _password_hasher.hash(password)
 
 
-def generate_random_password(length: int = 8) -> str:
+def needs_password_rehash(hashed_password: str) -> bool:
+    """判断 Argon2 哈希参数是否需要升级。"""
+    try:
+        return _password_hasher.check_needs_rehash(hashed_password)
+    except Exception:
+        return False
+
+
+def generate_random_password(length: int = 12) -> str:
     """生成随机密码（字母数字组合）"""
     alphabet = string.ascii_letters + string.digits
     return "".join(secrets.choice(alphabet) for _ in range(length))
@@ -179,7 +184,9 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         result = await db.execute(query)
         return result.scalar_one()
 
-    async def create(self, db: AsyncSession, *, obj_in: UserCreate) -> User:
+    async def create(
+        self, db: AsyncSession, *, obj_in: UserCreate, auto_commit: bool = True
+    ) -> User:
         """创建用户（自动处理密码哈希与租户 ID）"""
         from app.core.infra.tenant import get_current_tenant
 
@@ -202,7 +209,10 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             db_user.set_managed_sites(obj_in.managed_site_ids)
 
         db.add(db_user)
-        await db.commit()
+        if auto_commit:
+            await db.commit()
+        else:
+            await db.flush()
         await db.refresh(db_user)
 
         return db_user
@@ -237,7 +247,9 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
 
         return db_user, generated_password
 
-    async def update(self, db: AsyncSession, *, db_obj: User, obj_in: UserUpdate) -> User:
+    async def update(
+        self, db: AsyncSession, *, db_obj: User, obj_in: UserUpdate, auto_commit: bool = True
+    ) -> User:
         """更新用户信息"""
         update_data = obj_in.model_dump(exclude_unset=True)
 
@@ -252,7 +264,10 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             setattr(db_obj, field, value)
 
         db.add(db_obj)
-        await db.commit()
+        if auto_commit:
+            await db.commit()
+        else:
+            await db.flush()
         await db.refresh(db_obj)
 
         return db_obj
@@ -290,6 +305,12 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
 
         if user.status != UserStatus.ACTIVE:
             return None
+
+        # 登录成功后，如果 Argon2 参数过期则自动重哈希
+        if needs_password_rehash(user.password_hash):
+            user.password_hash = get_password_hash(password)
+            db.add(user)
+            await db.commit()
 
         return user
 

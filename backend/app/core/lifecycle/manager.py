@@ -18,8 +18,9 @@ from typing import Any
 
 from app.core.ai.providers.llm_manager import llm_manager
 from app.core.infra.rustfs import init_rustfs
-from app.core.integration.robot.dingtalk_app.service import DingTalkRobotService
-from app.core.integration.robot.feishu_app.service import FeishuRobotService
+from app.core.integration.robot.plugins import load_plugins
+from app.core.integration.robot.services.dingtalk_app import DingTalkRobotService
+from app.core.integration.robot.services.feishu_app import FeishuRobotService
 from app.core.lifecycle.config import init_system_configs
 from app.core.vector.vector_store import VectorStoreManager
 
@@ -56,7 +57,10 @@ class LifecycleManager:
         # VectorStore 现在采用懒加载策略，首次检索时自动初始化
         pass
 
-        # 5. 启动集成服务
+        # 5. 加载机器人插件
+        load_plugins()
+
+        # 6. 启动集成服务
         try:
             await FeishuRobotService.get_instance().startup(asyncio.get_running_loop())
         except Exception as e:

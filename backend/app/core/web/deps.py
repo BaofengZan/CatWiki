@@ -18,7 +18,7 @@
 
 import logging
 
-from fastapi import Depends, Header, Request, HTTPException, status
+from fastapi import Depends, Header, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -203,7 +203,7 @@ async def set_client_tenant_context(
             if site:
                 tenant_id = site.tenant_id
                 request.state.site = (
-                    site  # 缓存此站点对象供后续依赖（如 get_wecom_smart_bot_context）复用
+                    site  # 缓存此站点对象供后续依赖（如 get_wecom_smart_context）复用
                 )
                 logger.debug(
                     f"🔍 [TenantResolve] Resolved tenant_id={tenant_id} from site_id={site_id_str}"

@@ -33,7 +33,9 @@ class CRUDSite(CRUDBase[Site, SiteCreate, SiteUpdate]):
             query = query.where(self.model.status == status)
         return query
 
-    async def create(self, db: AsyncSession, *, obj_in: SiteCreate) -> Site:
+    async def create(
+        self, db: AsyncSession, *, obj_in: SiteCreate, auto_commit: bool = True
+    ) -> Site:
         """创建站点（过滤掉非模型字段，并支持租户 ID 自动填充）"""
         from app.core.infra.tenant import get_current_tenant
 
@@ -47,7 +49,10 @@ class CRUDSite(CRUDBase[Site, SiteCreate, SiteUpdate]):
 
         db_obj = self.model(**obj_in_data)
         db.add(db_obj)
-        await db.commit()
+        if auto_commit:
+            await db.commit()
+        else:
+            await db.flush()
         await db.refresh(db_obj)
         return db_obj
 

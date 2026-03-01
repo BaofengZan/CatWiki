@@ -31,17 +31,16 @@ api_router = APIRouter()
 # 注册客户端路由（Client API），并自动读取 X-Tenant-Slug 确定当前租户
 client_deps = [Depends(set_client_tenant_context)]
 
-api_router.include_router(sites.router, prefix="/sites", tags=["sites"], dependencies=client_deps)
-api_router.include_router(
-    documents.router, prefix="/documents", tags=["documents"], dependencies=client_deps
-)
+api_router.include_router(sites.router, prefix="/sites", tags=["sites"])
 api_router.include_router(
     collections.router, prefix="/collections", tags=["collections"], dependencies=client_deps
 )
-api_router.include_router(files.router, prefix="/files", tags=["files"], dependencies=client_deps)
-api_router.include_router(chat.router, prefix="/chat", tags=["chat"], dependencies=client_deps)
+api_router.include_router(documents.router, prefix="/documents", tags=["documents"])
+api_router.include_router(files.router, prefix="/files", tags=["files"])
 api_router.include_router(
     chat_sessions.router, prefix="/chat", tags=["chat-sessions"], dependencies=client_deps
 )
+api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
+
 api_router.include_router(health.router, prefix="/health", tags=["health"])
-api_router.include_router(bots.router, prefix="/bot", tags=["bot"], dependencies=client_deps)
+api_router.include_router(bots.router, prefix="/bot", tags=["bot"])

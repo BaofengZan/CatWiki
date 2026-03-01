@@ -50,7 +50,7 @@ class SiteCreate(SiteBase):
 
     admin_email: str | None = Field(None, description="管理员邮箱")
     admin_name: str | None = Field(None, description="管理员姓名")
-    admin_password: str | None = Field(None, description="管理员密码")
+    admin_password: str | None = Field(None, min_length=8, max_length=100, description="管理员密码")
 
 
 class SiteUpdate(BaseModel):

@@ -17,18 +17,13 @@ export class SitesService {
     public listClientSites({
         page = 1,
         size = 10,
-        xTenantSlug,
     }: {
         page?: number,
         size?: number,
-        xTenantSlug?: (string | null),
     }): CancelablePromise<ApiResponse_PaginatedResponse_Site__> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/v1/sites',
-            headers: {
-                'X-Tenant-Slug': xTenantSlug,
-            },
             query: {
                 'page': page,
                 'size': size,
@@ -46,19 +41,14 @@ export class SitesService {
      */
     public getClientSiteBySlug({
         slug,
-        xTenantSlug,
     }: {
         slug: string,
-        xTenantSlug?: (string | null),
     }): CancelablePromise<ApiResponse_Site_> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/v1/sites:bySlug/{slug}',
             path: {
                 'slug': slug,
-            },
-            headers: {
-                'X-Tenant-Slug': xTenantSlug,
             },
             errors: {
                 422: `Validation Error`,
@@ -73,19 +63,14 @@ export class SitesService {
      */
     public getClientSite({
         siteId,
-        xTenantSlug,
     }: {
         siteId: number,
-        xTenantSlug?: (string | null),
     }): CancelablePromise<ApiResponse_Site_> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/v1/sites/{site_id}',
             path: {
                 'site_id': siteId,
-            },
-            headers: {
-                'X-Tenant-Slug': xTenantSlug,
             },
             errors: {
                 422: `Validation Error`,

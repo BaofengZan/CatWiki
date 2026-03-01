@@ -26,8 +26,8 @@ from sqlalchemy.orm import joinedload
 from app.core.common.masking import mask_bot_config_inplace
 from app.core.common.utils import Paginator, generate_token
 from app.core.infra.config import settings
-from app.core.integration.robot.dingtalk_app.service import DingTalkRobotService
-from app.core.integration.robot.feishu_app.service import FeishuRobotService
+from app.core.integration.robot.services.dingtalk_app import DingTalkRobotService
+from app.core.integration.robot.services.feishu_app import FeishuRobotService
 from app.core.web.deps import get_current_user_with_tenant, is_demo_tenant
 from app.core.web.exceptions import BadRequestException, ConflictException, NotFoundException
 from app.crud import crud_site, crud_user
@@ -231,44 +231,59 @@ async def create_site(
         elif api_bot and api_bot.get("enabled") and not api_bot.get("api_key"):
             api_bot["api_key"] = f"sk-{generate_token(24)}"
 
-    site = await crud_site.create(db, obj_in=site_in)
-    # 预加载租户信息以填充 tenant_slug
-    await db.refresh(site, ["tenant"])
-
-    # 如果提供了管理员信息，初始化站点管理员
+    # 先完成管理员参数与用户状态校验，避免后续报错时站点已创建
+    admin_email: str | None = None
+    admin_password: str | None = None
+    existing_user: User | None = None
     if site_in.admin_email:
         admin_email = site_in.admin_email.lower().strip()
         existing_user = await crud_user.get_by_email(db, email=admin_email)
-
-        if existing_user:
-            # 用户已存在，追加站点管理权限
-            current_managed_sites = existing_user.managed_sites
-            if site.id not in current_managed_sites:
-                new_managed_sites = current_managed_sites + [site.id]
-
-                # 用户已存在，追加站点管理权限
-
-                await crud_user.update(
-                    db,
-                    db_obj=existing_user,
-                    obj_in=UserUpdate(managed_site_ids=new_managed_sites, role=existing_user.role),
+        if not existing_user:
+            admin_password = (site_in.admin_password or "").strip()
+            if not admin_password:
+                raise BadRequestException(
+                    detail="提供管理员邮箱时，必须同时提供管理员密码（至少 8 位）。"
                 )
-        else:
-            # 用户不存在，创建新用户
-            # 如果没有提供密码，生成默认密码（这里选择生成一个随机密码，但为了体验最好前端必填或生成）
-            # 不过 SiteCreate schema 里没强制 admin_password，如果没填就用默认 "123456" 或这里生成
-            password = site_in.admin_password or "123456"
 
-            await crud_user.create(
-                db,
-                obj_in=UserCreate(
-                    email=admin_email,
-                    password=password,
-                    name=site_in.admin_name or admin_email.split("@")[0],
-                    role=UserRole.SITE_ADMIN,
-                    managed_site_ids=[site.id],
-                ),
-            )
+    try:
+        site = await crud_site.create(db, obj_in=site_in, auto_commit=False)
+
+        # 如果提供了管理员信息，初始化站点管理员
+        if admin_email:
+            if existing_user:
+                # 用户已存在，追加站点管理权限
+                current_managed_sites = existing_user.managed_sites
+                if site.id not in current_managed_sites:
+                    new_managed_sites = current_managed_sites + [site.id]
+                    await crud_user.update(
+                        db,
+                        db_obj=existing_user,
+                        obj_in=UserUpdate(
+                            managed_site_ids=new_managed_sites, role=existing_user.role
+                        ),
+                        auto_commit=False,
+                    )
+            else:
+                # 用户不存在，创建新用户
+                await crud_user.create(
+                    db,
+                    obj_in=UserCreate(
+                        email=admin_email,
+                        password=admin_password or "",
+                        name=site_in.admin_name or admin_email.split("@")[0],
+                        role=UserRole.SITE_ADMIN,
+                        managed_site_ids=[site.id],
+                    ),
+                    auto_commit=False,
+                )
+
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
+
+    # 预加载租户信息以填充 tenant_slug
+    await db.refresh(site, ["tenant"])
 
     await _refresh_bot_stream_services()
     return ApiResponse.ok(data=site, msg="创建成功")

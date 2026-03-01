@@ -33,8 +33,7 @@ helm install catwiki deploy/helm -n catwiki --create-namespace -f my-values.yaml
 postgres:
   password: "your-secure-db-password"
 
-redis:
-  password: "your-secure-redis-password"
+redis: {}
 
 rustfs:
   accessKey: "your-rustfs-access-key"
