@@ -1,6 +1,6 @@
 .PHONY: help \
 	dev-init dev-up dev-down dev-rebuild dev-restart dev-logs dev-clean dev-db-migrate dev-db-upgrade dev-db-psql gen-sdk license format \
-	prod-init prod-up prod-rebuild prod-down prod-restart prod-logs prod-clean prod-website prod-docs clean-cache \
+	prod-init prod-up prod-up-build prod-rebuild prod-down prod-restart prod-logs prod-clean prod-website prod-docs clean-cache \
 	 setup-hooks check-changed check-all
 
 # ==============================================================================
@@ -39,7 +39,8 @@ help:
 
 	@echo " 🚀  [生产环境] (Production Environment)"
 	@echo "  make prod-init          - 初始化生产环境配置"
-	@echo "  make prod-up            - 启动生产环境 (后台运行)"
+	@echo "  make prod-up            - 启动生产环境 (后台运行, 拉取远端镜像)"
+	@echo "  make prod-up-build      - 启动生产环境并在本地构建最新镜像 (后台运行)"
 	@echo "  make prod-rebuild       - 无缓存重新构建生产环境"
 	@echo "  make prod-down          - 停止生产环境"
 	@echo "  make prod-restart       - 重启生产环境后端服务"
@@ -47,6 +48,7 @@ help:
 	@echo "  make prod-clean         - 停止容器并删除数据卷 (❗危险：清空生产数据)"
 	@echo "  make prod-website       - 仅启动官网服务 (需在 prod-up 之后)"
 	@echo "  make prod-docs          - 仅启动文档服务 (需在 prod-up 之后)"
+	@echo "  make prod-publish-images- 构建所有生产镜像并推送到镜像仓库(如腾讯云TCR)"
 	@echo ""
 
 	@echo " 🧩  [通用命令] (Common Commands)"
@@ -143,6 +145,11 @@ prod-init:
 	@echo "⚠️  请务必在运行 'make prod-up' 前修改这些 .env.* 文件中的敏感信息！"
 
 prod-up:
+	docker compose -f deploy/docker/docker-compose.yml pull
+	docker compose -f deploy/docker/docker-compose.yml up -d
+
+# 生产环境本地构建并启动
+prod-up-build:
 	docker compose -f deploy/docker/docker-compose.yml up -d --build
 
 # 生产环境无缓存重新构建
@@ -176,11 +183,19 @@ prod-clean:
 
 # 启动官网服务
 prod-website:
-	docker compose -f deploy/docker/docker-compose.static.yml up -d --build website
+	docker compose -f deploy/docker/docker-compose.static.yml pull website
+	docker compose -f deploy/docker/docker-compose.static.yml up -d website
 
 # 启动文档服务
 prod-docs:
-	docker compose -f deploy/docker/docker-compose.static.yml up -d --build docs-frontend
+	docker compose -f deploy/docker/docker-compose.static.yml pull docs-frontend
+	docker compose -f deploy/docker/docker-compose.static.yml up -d docs-frontend
+
+# 构建并推送生产镜像到目标仓库（默认腾讯云TCR）
+# 支持指定服务: make prod-publish-images s=client
+# 支持指定版本: make prod-publish-images v=v1.0.0
+prod-publish-images:
+	@VERSION=$(v) bash scripts/publish_images.sh $(s)
 
 # ==============================================================================
 # [通用命令] Common Targets
