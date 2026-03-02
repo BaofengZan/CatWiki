@@ -80,7 +80,7 @@ dev-init:
 	@rm -f backend/.env
 	@echo "📥 [CatWiki] 从 .env.example 复制配置文件..."
 	@cp backend/.env.example backend/.env
-	@# 自动修正开发环境基础配置
+	@# 自动修正开发环境基础配置 (适配 Docker)
 	@$(SED_I) 's/^ENVIRONMENT=.*/ENVIRONMENT=dev/g' backend/.env
 	@$(SED_I) 's/^DEBUG=.*/DEBUG=true/g' backend/.env
 	@echo "✅ [CatWiki] 配置文件初始化完成！"
@@ -136,7 +136,7 @@ prod-init:
 	@echo "🚀 开始初始化生产环境配置..."
 	@mkdir -p deploy/docker
 	@cp backend/.env.example deploy/docker/.env.backend
-	@# 自动修正生产环境基础配置
+	@# 自动修正生产环境基础配置 (适配 Docker)
 	@$(SED_I) 's/^ENVIRONMENT=.*/ENVIRONMENT=prod/g' deploy/docker/.env.backend
 	@$(SED_I) 's/^DEBUG=.*/DEBUG=false/g' deploy/docker/.env.backend
 	@echo "✅ 生产环境配置模板已生成在 deploy/docker/ 目录下。"

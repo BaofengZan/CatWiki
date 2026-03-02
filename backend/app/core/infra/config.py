@@ -266,7 +266,7 @@ class Settings(BaseSettings):
 
 def get_env_files() -> list[str]:
     """获取环境文件列表，按顺序加载（后面的覆盖前面的）"""
-    env = os.getenv("ENV", "local")
+    env = os.getenv("ENVIRONMENT", "local")
     env_files = [".env"]  # 基础配置
 
     specific_file = {
