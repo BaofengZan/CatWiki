@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils"
 import { AIChatLanding } from "@/components/ai"
 import { NotFoundState } from "@/components/ui/not-found"
 import type { Site } from "@/lib/api-client"
+import { env } from "@/lib/env"
 
 export default function TenantPortalPage() {
   const router = useRouter()
@@ -129,7 +130,7 @@ export default function TenantPortalPage() {
               </div>
             </a>
             <a
-              href={process.env.NEXT_PUBLIC_DOCS_URL || "https://docs.catwiki.cn"}
+              href={env.NEXT_PUBLIC_DOCS_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 px-3 py-1.5 text-slate-600 hover:text-primary hover:bg-slate-50 rounded-lg transition-all text-xs md:text-sm font-medium"

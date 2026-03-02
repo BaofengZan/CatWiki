@@ -41,16 +41,13 @@ const envSchema = z.object({
   /**
    * API 基础 URL
    */
-  NEXT_PUBLIC_API_URL: z.preprocess(
-    (val) => (isPlaceholder(val) ? '/api-proxy' : val), // 构建时占位符设为默认相对路径
-    z.string()
-      .min(1, { message: 'NEXT_PUBLIC_API_URL 不能为空' })
-      .refine(
-        (val) => val.startsWith('/') || z.string().url().safeParse(val).success,
-        { message: 'NEXT_PUBLIC_API_URL 必须是有效的 URL 或以 / 开头的路径' }
-      )
-      .default('http://localhost:3000')
-  ),
+  NEXT_PUBLIC_API_URL: z.string()
+    .min(1, { message: 'NEXT_PUBLIC_API_URL 不能为空' })
+    .refine(
+      (val) => isPlaceholder(val) || val.startsWith('/') || z.string().url().safeParse(val).success,
+      { message: 'NEXT_PUBLIC_API_URL 必须是有效的 URL 或以 / 开头的路径' }
+    )
+    .default('http://localhost:3000'),
 
   /**
    * 应用环境
@@ -60,49 +57,51 @@ const envSchema = z.object({
   /**
    * 是否启用调试模式
    */
-  NEXT_PUBLIC_DEBUG: z.preprocess(
-    (val) => (isPlaceholder(val) ? 'false' : val),
-    z.enum(['true', 'false'])
-      .optional()
-      .default('false')
-      .transform(val => val === 'true')
-  ),
+  NEXT_PUBLIC_DEBUG: z.string()
+    .optional()
+    .default('false')
+    .transform(val => {
+      if (isPlaceholder(val)) return false;
+      return val === 'true';
+    }),
 
   /**
    * Sentry DSN（可选）
    */
-  NEXT_PUBLIC_SENTRY_DSN: z.preprocess(
-    (val) => (isPlaceholder(val) ? undefined : val),
-    z.string().url().optional()
-  ),
+  NEXT_PUBLIC_SENTRY_DSN: z.string()
+    .refine(val => isPlaceholder(val) || z.string().url().safeParse(val).success)
+    .optional(),
 
   /**
    * 客户端站点 URL
    */
-  NEXT_PUBLIC_CLIENT_URL: z.preprocess(
-    (val) => (isPlaceholder(val) ? 'http://localhost:8002' : val),
-    z.string().url({
-      message: 'NEXT_PUBLIC_CLIENT_URL 必须是有效的 URL'
-    }).default('http://localhost:8002')
-  ),
+  NEXT_PUBLIC_CLIENT_URL: z.string()
+    .refine(val => isPlaceholder(val) || z.string().url().safeParse(val).success)
+    .default('http://localhost:8002'),
 
   /**
    * 文档站点 URL
    */
-  NEXT_PUBLIC_DOCS_URL: z.preprocess(
-    (val) => (isPlaceholder(val) ? 'http://localhost:8003' : val),
-    z.string().url({
-      message: 'NEXT_PUBLIC_DOCS_URL 必须是有效的 URL'
-    }).default('http://localhost:8003')
-  ),
+  NEXT_PUBLIC_DOCS_URL: z.string()
+    .refine(val => isPlaceholder(val) || z.string().url().safeParse(val).success)
+    .default('http://localhost:8003'),
 
   /**
    * CatWiki 版本
    */
-  NEXT_PUBLIC_CATWIKI_EDITION: z.preprocess(
-    (val) => (isPlaceholder(val) ? 'community' : val),
-    z.string().optional().transform(() => 'community' as const)
-  ),
+  NEXT_PUBLIC_CATWIKI_EDITION: z.string()
+    .transform(val => {
+      if (isPlaceholder(val)) return 'community';
+      return val;
+    })
+    .pipe(z.enum(['community', 'enterprise']))
+    .default('community'),
+  /**
+   * 管理后台 URL
+   */
+  NEXT_PUBLIC_ADMIN_URL: z.string()
+    .refine(val => isPlaceholder(val) || z.string().url().safeParse(val).success)
+    .default('https://admin.catwiki.cn'),
 })
 
 /**
@@ -125,6 +124,7 @@ function validateEnv(): Env {
       NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
       NEXT_PUBLIC_CLIENT_URL: process.env.NEXT_PUBLIC_CLIENT_URL,
       NEXT_PUBLIC_DOCS_URL: process.env.NEXT_PUBLIC_DOCS_URL,
+      NEXT_PUBLIC_ADMIN_URL: process.env.NEXT_PUBLIC_ADMIN_URL,
       NEXT_PUBLIC_CATWIKI_EDITION: process.env.NEXT_PUBLIC_CATWIKI_EDITION,
     })
 

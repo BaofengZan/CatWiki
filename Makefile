@@ -171,6 +171,9 @@ prod-rebuild: check-prod-env
 # 生产环境停止
 prod-down: check-prod-env
 	docker compose -f $(PROD_DIR)/docker-compose.yml down
+	@if [ -f "$(PROD_DIR)/docker-compose.static.yml" ]; then \
+		docker compose -f $(PROD_DIR)/docker-compose.static.yml down; \
+	fi
 	@docker rm -f catwiki-backend-init-prod >/dev/null 2>&1 || true
 
 # 生产环境日志
@@ -181,12 +184,15 @@ prod-logs: check-prod-env
 prod-restart: check-prod-env
 	docker compose -f $(PROD_DIR)/docker-compose.yml restart backend
 
-# 深度清理生产环境 (警告：将删除所有生产数据卷！)
+# 深度清理生产环境
 prod-clean: check-prod-env
 	@echo "🛑 [危险] 正在尝试深度清理生产环境..."
 	@echo "⚠️  警告：此操作将删除所有生产容器相关的数据卷 and 数据！"
 	@read -p "您确定要继续吗？[y/N] " ans && [ $${ans:-N} = y ] || (echo "❌ 操作已取消"; exit 1)
 	docker compose -f $(PROD_DIR)/docker-compose.yml down -v
+	@if [ -f "$(PROD_DIR)/docker-compose.static.yml" ]; then \
+		docker compose -f $(PROD_DIR)/docker-compose.static.yml down -v; \
+	fi
 	@docker rm -f catwiki-backend-init-prod >/dev/null 2>&1 || true
 	@echo "✅ 生产环境深度清理完成"
 	@echo ""

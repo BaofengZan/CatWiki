@@ -4,8 +4,7 @@
 echo "Injecting runtime environment variables..."
 
 # Define the list of variables to replace based on src/lib/env.ts
-# Corrected: Include navigation URLs and fix potential typo
-VARS="NEXT_PUBLIC_API_URL NEXT_PUBLIC_DEBUG NEXT_PUBLIC_ADMIN_URL NEXT_PUBLIC_DOCS_URL"
+VARS="NEXT_PUBLIC_API_URL NEXT_PUBLIC_CLIENT_URL NEXT_PUBLIC_ADMIN_URL NEXT_PUBLIC_DOCS_URL NEXT_PUBLIC_DEBUG NEXT_PUBLIC_SENTRY_DSN"
 
 for varname in $VARS; do
     # Get the value from the environment

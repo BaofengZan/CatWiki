@@ -36,16 +36,13 @@ const envSchema = z.object({
   /**
    * API 基础 URL
    */
-  NEXT_PUBLIC_API_URL: z.preprocess(
-    (val) => (isPlaceholder(val) ? '/api-proxy' : val),
-    z.string()
-      .min(1, { message: 'NEXT_PUBLIC_API_URL 不能为空' })
-      .refine(
-        (val) => val.startsWith('/') || z.string().url().safeParse(val).success,
-        { message: 'NEXT_PUBLIC_API_URL 必须是有效的 URL 或以 / 开头的路径' }
-      )
-      .default('http://localhost:3000')
-  ),
+  NEXT_PUBLIC_API_URL: z.string()
+    .min(1, { message: 'NEXT_PUBLIC_API_URL 不能为空' })
+    .refine(
+      (val) => isPlaceholder(val) || val.startsWith('/') || z.string().url().safeParse(val).success,
+      { message: 'NEXT_PUBLIC_API_URL 必须是有效的 URL 或以 / 开头的路径' }
+    )
+    .default('http://localhost:3000'),
 
   /**
    * 应用环境
@@ -55,29 +52,33 @@ const envSchema = z.object({
   /**
    * 是否启用调试模式
    */
-  NEXT_PUBLIC_DEBUG: z.preprocess(
-    (val) => (isPlaceholder(val) ? 'false' : val),
-    z.enum(['true', 'false'])
-      .optional()
-      .default('false')
-      .transform((val) => val === 'true')
-  ),
+  NEXT_PUBLIC_DEBUG: z.string()
+    .optional()
+    .default('false')
+    .transform((val) => {
+      if (isPlaceholder(val)) return false;
+      return val === 'true';
+    }),
 
   /**
    * 管理后台地址
    */
-  NEXT_PUBLIC_ADMIN_URL: z.preprocess(
-    (val) => (isPlaceholder(val) ? 'http://localhost:8001' : val),
-    z.string().url().optional().default('http://localhost:8001')
-  ),
+  NEXT_PUBLIC_ADMIN_URL: z.string()
+    .refine(val => isPlaceholder(val) || z.string().url().safeParse(val).success)
+    .optional().default('http://localhost:8001'),
 
   /**
    * 文档站点地址
    */
-  NEXT_PUBLIC_DOCS_URL: z.preprocess(
-    (val) => (isPlaceholder(val) ? 'http://localhost:8003' : val),
-    z.string().url().optional().default('http://localhost:8003')
-  ),
+  NEXT_PUBLIC_DOCS_URL: z.string()
+    .refine(val => isPlaceholder(val) || z.string().url().safeParse(val).success)
+    .optional().default('http://localhost:8003'),
+  /**
+   * 客户端站点 URL
+   */
+  NEXT_PUBLIC_CLIENT_URL: z.string()
+    .refine(val => isPlaceholder(val) || z.string().url().safeParse(val).success)
+    .default('https://catwiki.cn'),
 })
 
 /**
@@ -95,6 +96,7 @@ function validateEnv(): Env {
       NODE_ENV: process.env.NODE_ENV,
       NEXT_PUBLIC_DEBUG: process.env.NEXT_PUBLIC_DEBUG,
       NEXT_PUBLIC_ADMIN_URL: process.env.NEXT_PUBLIC_ADMIN_URL,
+      NEXT_PUBLIC_CLIENT_URL: process.env.NEXT_PUBLIC_CLIENT_URL,
       NEXT_PUBLIC_DOCS_URL: process.env.NEXT_PUBLIC_DOCS_URL,
     })
   } catch (error: unknown) {

@@ -23,6 +23,7 @@ import { BookOpen, ChevronDown, ExternalLink, Github, LayoutDashboard, Star } fr
 import { cn } from "@/lib/utils"
 import { AIChatLanding } from "@/components/ai"
 import type { Site } from "@/lib/api-client"
+import { env } from "@/lib/env"
 
 export default function HomePage() {
   const router = useRouter()
@@ -107,7 +108,7 @@ export default function HomePage() {
               </div>
             </a>
             <a
-              href={process.env.NEXT_PUBLIC_ADMIN_URL || "http://localhost:8001"}
+              href={env.NEXT_PUBLIC_ADMIN_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 text-primary border border-primary/20 hover:bg-primary/10 hover:border-primary/30 rounded-lg transition-all text-xs md:text-sm font-semibold shadow-sm"
@@ -116,7 +117,7 @@ export default function HomePage() {
               <span className="hidden sm:inline">管理中心</span>
             </a>
             <a
-              href={process.env.NEXT_PUBLIC_DOCS_URL || "http://localhost:8003"}
+              href={env.NEXT_PUBLIC_DOCS_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 px-3 py-1.5 text-slate-600 hover:text-primary hover:bg-slate-50 rounded-lg transition-all text-xs md:text-sm font-medium"

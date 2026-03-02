@@ -1,7 +1,5 @@
 # 环境变量文件
-.env
-.env.local
-.env.production
+.env*
 
 # SSL 证书
 ssl/
@@ -13,6 +11,3 @@ ssl/
 *.sql
 *.sql.gz
 *.dump
-
-
-
