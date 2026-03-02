@@ -92,7 +92,7 @@ rustfs:
 # ============================================
 backend:
   image:
-    repository: catwiki-backend
+    repository: bulolo/catwiki-backend
     tag: latest
   # -- 副本数
   replicaCount: 1
@@ -129,7 +129,7 @@ backendInit:
 # ============================================
 admin:
   image:
-    repository: catwiki-admin
+    repository: bulolo/catwiki-admin
     tag: latest
   replicaCount: 1
   # -- 构建时环境变量
@@ -137,7 +137,8 @@ admin:
     NEXT_PUBLIC_API_URL: https://api.catwiki.cn
     NEXT_PUBLIC_CLIENT_URL: https://catwiki.cn
     NEXT_PUBLIC_DOCS_URL: https://docs.catwiki.cn
-    NEXT_PUBLIC_CATWIKI_EDITION: enterprise
+    NEXT_PUBLIC_DEBUG: "false"
+    NEXT_PUBLIC_SENTRY_DSN: ""
   resources:
     limits:
       cpu: 500m
@@ -153,14 +154,14 @@ admin:
 # ============================================
 client:
   image:
-    repository: catwiki-client
+    repository: bulolo/catwiki-client
     tag: latest
   replicaCount: 1
   env:
     NEXT_PUBLIC_API_URL: https://api.catwiki.cn
     NEXT_PUBLIC_DOCS_URL: https://docs.catwiki.cn
     NEXT_PUBLIC_ADMIN_URL: https://admin.catwiki.cn
-    NEXT_PUBLIC_CATWIKI_EDITION: enterprise
+    NEXT_PUBLIC_DEBUG: "false"
   resources:
     limits:
       cpu: 500m

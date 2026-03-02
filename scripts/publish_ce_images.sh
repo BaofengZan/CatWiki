@@ -10,7 +10,7 @@ set -e
 # 环境变量 (可选，未设置时会交互式输入):
 #   DOCKERHUB_USERNAME  - Docker Hub 用户名
 #   DOCKERHUB_TOKEN     - Docker Hub Access Token
-#   DOCKERHUB_NAMESPACE - Docker Hub 组织/用户名空间 (默认: catwiki)
+#   DOCKERHUB_NAMESPACE - Docker Hub 组织/用户名空间 (默认: bulolo)
 #   VERSION             - 镜像版本标签 (默认: latest)
 #
 # Usage:

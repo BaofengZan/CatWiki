@@ -1,6 +1,6 @@
 .PHONY: help \
 	dev-init dev-up dev-down dev-rebuild dev-restart dev-logs dev-clean dev-db-migrate dev-db-upgrade dev-db-psql gen-sdk license format \
-	prod-init prod-up prod-up-build prod-rebuild prod-down prod-restart prod-logs prod-clean prod-website prod-docs clean-cache \
+	prod-init prod-up prod-up-build prod-rebuild prod-down prod-restart prod-logs prod-clean clean-cache \
 	 publish-ce-images setup-hooks check-changed check-all
 
 # ==============================================================================
@@ -46,8 +46,6 @@ help:
 	@echo "  make prod-restart       - 重启生产环境后端服务"
 	@echo "  make prod-logs          - 查看生产环境日志"
 	@echo "  make prod-clean         - 停止容器并删除数据卷 (❗危险：清空生产数据)"
-	@echo "  make prod-website       - 仅启动官网服务 (需在 prod-up 之后)"
-	@echo "  make prod-docs          - 仅启动文档服务 (需在 prod-up 之后)"
 	@echo "  make  - 构建 EE 镜像并推送到腾讯云TCR (私有仓库)"
 	@echo ""
 
@@ -181,15 +179,7 @@ prod-clean:
 	@echo ""
 
 # 启动官网服务
-prod-website:
-	docker compose -f deploy/docker/docker-compose.static.yml pull website
-	docker compose -f deploy/docker/docker-compose.static.yml up -d website
-
 # 启动文档服务
-prod-docs:
-	docker compose -f deploy/docker/docker-compose.static.yml pull docs-frontend
-	docker compose -f deploy/docker/docker-compose.static.yml up -d docs-frontend
-
 # ==============================================================================
 # [通用命令] Common Targets
 # ==============================================================================
