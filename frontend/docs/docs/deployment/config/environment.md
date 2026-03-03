@@ -148,7 +148,7 @@
 
 ### 8.3 部署控制与端口映射 (Infrastructure Only)
 > [!IMPORTANT]
-> 以下变量仅用于 Docker Compose 容器端口到宿主机的映射，**后端及前端项目代码并不读取这些变量**。它们允许您在不修改 `docker-compose.yml` 的情况下更改对外暴露的端口。
+> 以下变量仅用于 Docker Compose 容器端口到宿主机的映射。**前端项目不再使用 `.env` 文件，其所有环境变量均通过 `docker-compose.yml` 中的 `environment` 块直接注入**。修改配置后请重启容器生效。
 
 | 变量名 | 描述 | 默认宿主机端口 | 参考作用服务 |
 | :--- | :--- | :--- | :--- |
@@ -164,6 +164,6 @@
 ## 🎯 变量覆盖机制
 CatWiki 的配置加载顺序遵循 **“高优先覆盖”** 原则：
 1. **Docker environment** (在 Compose 文件的 `environment` 或 `args` 中定义)
-2. **环境专有 `.env` 文件** (如 `.env.prod`)
-3. **基础 `.env` 文件** (`backend/.env`)
+2. **生产环境 `.env` 文件** (`deploy/docker/.env`, 仅限后端应用)
+3. **开发环境 `.env` 文件** (`backend/.env`, 仅限后端应用)
 4. **代码硬编码默认值** (最后的退路)

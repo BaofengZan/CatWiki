@@ -74,7 +74,7 @@ cd catWiki
 # 1. 初始化配置
 make dev-init
 
-# 2. 启动服务 (需先修改 .env 配置)
+# 2. 启动服务 (需先修改 backend/.env 配置)
 make dev-up
 ```
 
@@ -85,8 +85,8 @@ cd catWiki
 # 1. 初始化生产配置
 make prod-init
 
-# 2. 修改配置 (deploy/docker/.env.*)
-# vim deploy/docker/.env.backend
+# 2. 修改配置 (deploy/docker/.env)
+# vim deploy/docker/.env
 
 # 3. 后台启动
 make prod-up

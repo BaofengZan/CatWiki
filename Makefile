@@ -125,10 +125,10 @@ dev-db-psql:
 # ------------------------------------------------------------------------------
 # 生产部署目录 (EE: docker-ee, CE 经 sync 后会被替换为 docker)
 
-# 前置检查: 确保 .env.backend 存在
+# 前置检查: 确保 .env 存在
 check-prod-env:
-	@if [ ! -f "$(PROD_DIR)/.env.backend" ]; then \
-		echo "❌ 未找到 $(PROD_DIR)/.env.backend, 请先执行: make prod-init"; \
+	@if [ ! -f "$(PROD_DIR)/.env" ]; then \
+		echo "❌ 未找到 $(PROD_DIR)/.env, 请先执行: make prod-init"; \
 		exit 1; \
 	fi
 
@@ -136,9 +136,9 @@ check-prod-env:
 prod-init:
 	@echo "🚀 开始初始化生产环境配置..."
 	@mkdir -p $(PROD_DIR)
-	@cp backend/.env.example $(PROD_DIR)/.env.backend
-	@$(SED_I) 's/^ENVIRONMENT=.*/ENVIRONMENT=prod/g' $(PROD_DIR)/.env.backend
-	@$(SED_I) 's/^DEBUG=.*/DEBUG=false/g' $(PROD_DIR)/.env.backend
+	@cp backend/.env.example $(PROD_DIR)/.env
+	@$(SED_I) 's/^ENVIRONMENT=.*/ENVIRONMENT=prod/g' $(PROD_DIR)/.env
+	@$(SED_I) 's/^DEBUG=.*/DEBUG=false/g' $(PROD_DIR)/.env
 	@echo "✅ 生产环境配置模板已生成在 $(PROD_DIR)/ 目录下。"
 	@echo "⚠️  请务必在运行 'make prod-up' 前修改敏感信息！"
 

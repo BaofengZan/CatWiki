@@ -5,7 +5,7 @@ services:
     image: pgvector/pgvector:pg18
     container_name: catwiki-postgres
     env_file:
-      - .env.backend
+      - .env
     environment:
       PGDATA: /var/lib/postgresql/data/pgdata
       LANG: C.UTF-8
@@ -68,7 +68,7 @@ services:
     image: rustfs/rustfs:1.0.0-alpha.76
     container_name: catwiki-rustfs
     env_file:
-      - .env.backend
+      - .env
     environment:
       TZ: Asia/Shanghai
     volumes:
@@ -105,7 +105,7 @@ services:
     image: bulolo/catwiki-backend-init:latest
     container_name: catwiki-backend-init
     env_file:
-      - .env.backend
+      - .env
     depends_on:
       postgres:
         condition: service_healthy

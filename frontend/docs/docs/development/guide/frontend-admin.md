@@ -58,6 +58,7 @@ make dev-up
 ```bash
 cd frontend/admin
 pnpm install
+# 注意：独立运行时需确保系统环境变量已设置，或手动创建临时 .env 文件
 pnpm dev
 ```
 

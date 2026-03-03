@@ -32,9 +32,9 @@ make prod-init
 ```
 
 ### 2. 修改生产配置 (⚠️ 关键)
-进入 `deploy/docker/` 目录，编辑生成的 `.env.*` 文件。
+进入 `deploy/docker/` 目录，编辑生成的 `.env` 文件。
 
-#### 后端核心配置 (`.env.backend`)
+#### 核心配置 (`.env`)
 | 配置项 | 说明 | 建议 |
 | :--- | :--- | :--- |
 | `POSTGRES_PASSWORD` | 数据库密码 | **务必修改** |
@@ -43,8 +43,8 @@ make prod-init
 | `BACKEND_CORS_ORIGINS=["https://admin.catwiki.cn","https://catwiki.cn","https://docs.catwiki.cn","https://catwiki.ai"]
 | `RUSTFS_PUBLIC_URL` | 文件对外访问链接 | 指向您的 OSS 域名 (如 https://files.catwiki.cn) |
 
-#### 前端配置 (`.env.admin` / `.env.client`)
-确保 `NEXT_PUBLIC_API_URL` 指向您的生产 API 域名。
+#### 前端配置
+前端环境变量直接在 `docker-compose.yml` 的 `environment` 块中定义，不再使用 `.env` 文件。
 
 ### 3. 一键启动
 ```bash

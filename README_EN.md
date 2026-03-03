@@ -244,7 +244,7 @@ make dev-up
 ```
 
 > [!WARNING]
-> **About `make dev-init`**: It will recopy `.env` files from templates, which will overwrite your existing configuration. For subsequent starts, skip this step and use `make dev-up` directly.
+> **About `make dev-init`**: It will recopy `backend/.env` file from template, which will overwrite your existing configuration. For subsequent starts, skip this step and use `make dev-up` directly.
 Visit:
 - 🎯 **Admin Dashboard**: http://localhost:8001 (admin@example.com / admin123)
 - 💬 **Client Side**: http://localhost:8002/default/health
@@ -257,7 +257,7 @@ Suitable for formal deployment. All services run in the background with performa
 # 1. Generate production configuration templates (in deploy/docker/)
 make prod-init
 
-# 2. Modify sensitive information: Edit deploy/docker/.env.backend/admin/client
+# 2. Modify sensitive information: Edit deploy/docker/.env
 # Fill in domain names, database passwords, JWT keys, etc.
 
 # 3. Start in background
@@ -266,7 +266,7 @@ make prod-up
 
 > [!IMPORTANT]
 > For detailed security recommendations (SSL, S3, etc.), please refer to:
-> **[👉 Full Production Deployment Guide (deploy/docker/README.md)](./deploy/docker/README.md)**
+> **[👉 Production Deployment Directory (deploy/docker/)](./deploy/docker/)**
 
 ---
 

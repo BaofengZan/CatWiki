@@ -249,7 +249,7 @@ make dev-up
 ```
 
 > [!WARNING]
-> **关于 `make dev-init`**: 它会重新从模板复制 `.env` 文件，这会覆盖您已有的配置。如果是后续启动，请直接跳过此步使用 `make dev-up`。
+> **关于 `make dev-init`**: 它会重新从模板复制 `backend/.env` 文件，这会覆盖您已有的配置。如果是后续启动，请直接跳过此步使用 `make dev-up`。
 访问：
 - 🎯 **管理后台**: http://localhost:8001 (admin@example.com / admin123)
 - 💬 **客户端**: http://localhost:8002/default/health
@@ -262,7 +262,7 @@ make dev-up
 # 1. 生成生产环境配置模板 (位于 deploy/docker/)
 make prod-init
 
-# 2. 修改敏感信息: 编辑 deploy/docker/.env.backend/admin/client
+# 2. 修改敏感信息: 编辑 deploy/docker/.env
 # 填入域名、数据库密码、JWT 密钥等
 
 # 3. 后台启动
@@ -271,7 +271,7 @@ make prod-up
 
 > [!IMPORTANT]
 > 详细的安全配置建议（如证书配置、对象存储对接等）请参考：
-> **[👉 生产环境完整部署指南 (deploy/docker/README.md)](./deploy/docker/README.md)**
+> **[👉 生产环境部署目录 (deploy/docker/)](./deploy/docker/)**
 
 ---
 

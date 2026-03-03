@@ -199,9 +199,7 @@ make gen-sdk
 ```bash
 make prod-init
 cd deploy/docker
-vim .env.backend  # 修改后端配置
-vim .env.admin    # 修改 Admin 配置
-vim .env.client   # 修改 Client 配置
+vim .env  # 修改所有服务配置
 ```
 
 ---

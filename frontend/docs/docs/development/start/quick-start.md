@@ -24,14 +24,14 @@ cd catWiki
 # 2. 首次启动（初始化配置）
 make dev-init
 
-# 3. 修改配置 .env (可选)
+# 3. 修改配置 backend/.env (可选)
 
 # 4. 启动开发环境
 make dev-up
 ```
 
 > [!WARNING]
-> **关于 `make dev-init`**: 它会重新从模板复制 `.env` 文件，这会覆盖您已有的配置。
+> **关于 `make dev-init`**: 它会重新从模板复制 `backend/.env` 文件，这会覆盖您已有的配置。
 > - **第一次运行**: 请使用 `make dev-init`
 > - **后续开发**: 请直接使用 `make dev-up`
 
@@ -59,9 +59,7 @@ make dev-up
 make prod-init
 
 # 2. 修改配置文件（必须！）
-vim deploy/docker/.env.backend    # 后端配置
-vim deploy/docker/.env.admin      # Admin 前端配置
-vim deploy/docker/.env.client     # Client 前端配置
+vim deploy/docker/.env
 
 # 3. 后台启动生产环境
 make prod-up
@@ -72,7 +70,7 @@ make prod-up
 > [!IMPORTANT]
 > 生产环境**必须**修改以下配置，否则存在安全风险！
 
-#### 后端配置 (`deploy/docker/.env.backend`)
+#### 核心配置 (`deploy/docker/.env`)
 
 ```bash
 # 数据库密码（必改）
@@ -93,8 +91,7 @@ RUSTFS_PUBLIC_URL=https://files.catwiki.cn  # 公网访问地址
 
 #### 前端配置
 
-- **Admin 后台**: 修改 `deploy/docker/.env.admin` 中的 `NEXT_PUBLIC_API_URL` 为您的 API 域名。
-- **Client 端**: 修改 `deploy/docker/.env.client` 中的 `NEXT_PUBLIC_API_URL`。
+前端环境变量（如 `NEXT_PUBLIC_API_URL`）现在直接在 `deploy/docker/docker-compose.yml` 的 `environment` 块中配置。修改后需重启容器生效。
 
 ---
 
@@ -104,7 +101,7 @@ RUSTFS_PUBLIC_URL=https://files.catwiki.cn  # 公网访问地址
 
 | 命令 | 说明 |
 |------|------|
-| `make dev-init` | **环境初始化**：生成本地 `.env` 文件（仅首次执行或重置配置时使用） |
+| `make dev-init` | **环境初始化**：生成后端 `.env` 文件（仅首次执行或重置配置时使用） |
 | `make dev-up` | **一键启动**：构建并运行容器，展示实时日志 (Ctrl+C 停止) |
 | `make dev-rebuild` | **后台重启**：构建并以守护进程模式启动 (Background) |
 | `make dev-down` | **停止服务**：移除容器，保留数据 |

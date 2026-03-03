@@ -86,16 +86,7 @@ const envSchema = z.object({
     .refine(val => isPlaceholder(val) || z.string().url().safeParse(val).success)
     .default('http://localhost:8003'),
 
-  /**
-   * CatWiki 版本
-   */
-  NEXT_PUBLIC_CATWIKI_EDITION: z.string()
-    .transform(val => {
-      if (isPlaceholder(val)) return 'community';
-      return val;
-    })
-    .pipe(z.enum(['community', 'enterprise']))
-    .default('community'),
+
   /**
    * 管理后台 URL
    */
@@ -125,7 +116,7 @@ function validateEnv(): Env {
       NEXT_PUBLIC_CLIENT_URL: process.env.NEXT_PUBLIC_CLIENT_URL,
       NEXT_PUBLIC_DOCS_URL: process.env.NEXT_PUBLIC_DOCS_URL,
       NEXT_PUBLIC_ADMIN_URL: process.env.NEXT_PUBLIC_ADMIN_URL,
-      NEXT_PUBLIC_CATWIKI_EDITION: process.env.NEXT_PUBLIC_CATWIKI_EDITION,
+
     })
 
     return env
