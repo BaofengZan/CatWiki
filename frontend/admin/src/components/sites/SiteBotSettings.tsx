@@ -951,7 +951,7 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
       >
         <SettingItem label="回调地址" badge="系统预设">
           <CopyableInput
-            value={`${env.NEXT_PUBLIC_API_URL}/v1/bot/wecom-smart-robot?site_id=${siteId}`}
+            value={`${env.NEXT_PUBLIC_API_URL}/v1/bot/wecom-smart?site_id=${siteId}`}
             readOnly
             hint="请在企业微信管理后台“智能机器人”配置中填写此地址"
           />

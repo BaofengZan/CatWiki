@@ -12,62 +12,92 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from app.core.common.masking import filter_client_site_data
 from app.core.common.utils import Paginator
 from app.core.infra.cache import cached_response
 from app.core.web.exceptions import NotFoundException
-from app.crud import crud_site
 from app.db.database import get_db
 from app.schemas.response import ApiResponse, PaginatedResponse
-from app.schemas.site import Site
+from app.schemas.site import ClientSite
 
 router = APIRouter()
 
 
-@router.get("", response_model=ApiResponse[PaginatedResponse[Site]], operation_id="listClientSites")
+@router.get(
+    "", response_model=ApiResponse[PaginatedResponse[ClientSite]], operation_id="listClientSites"
+)
 async def list_active_sites(
     page: int = 1,
     size: int = 10,
+    tenant_slug: str | None = Query(None, description="租户标识（可选，不传则返回所有租户的站点）"),
+    keyword: str | None = Query(None, description="搜索关键词（站点名称或描述）"),
     db: AsyncSession = Depends(get_db),
-) -> ApiResponse[PaginatedResponse[Site]]:
-    """获取激活的站点列表（客户端）"""
-    total = await crud_site.count(db, status="active")
-    paginator = Paginator(page=page, size=size, total=total)
+) -> ApiResponse[PaginatedResponse[ClientSite]]:
+    """获取激活的站点列表（客户端）
 
-    # 只返回状态为 active 的站点，并预加载租户信息
-    from sqlalchemy import select
+    - 不传 tenant_slug：返回所有租户的激活站点（站点广场）
+    - 传 tenant_slug：仅返回该租户下的激活站点
+    """
+    from sqlalchemy import func, or_, select
 
     from app.models.site import Site as SiteModel
 
-    stmt = (
-        select(SiteModel).where(SiteModel.status == "active").options(joinedload(SiteModel.tenant))
-    )
+    # 解析租户过滤条件
+    tenant_id = None
+    if tenant_slug:
+        from app.crud.tenant import crud_tenant
+
+        tenant = await crud_tenant.get_by_slug(db, slug=tenant_slug)
+        if not tenant:
+            raise NotFoundException(detail=f"租户 {tenant_slug} 不存在")
+        tenant_id = tenant.id
+
+    # 构建基础查询条件
+    base_filters = [SiteModel.status == "active"]
+    if tenant_id is not None:
+        base_filters.append(SiteModel.tenant_id == tenant_id)
+
+    if keyword:
+        base_filters.append(
+            or_(
+                SiteModel.name.icontains(keyword),
+                SiteModel.description.icontains(keyword),
+            )
+        )
+
+    # 统计总数
+    count_stmt = select(func.count()).select_from(SiteModel).where(*base_filters)
+    total = (await db.execute(count_stmt)).scalar_one()
+    paginator = Paginator(page=page, size=size, total=total)
+
+    # 查询站点列表，预加载租户信息
+    stmt = select(SiteModel).where(*base_filters).options(joinedload(SiteModel.tenant))
     result = await db.execute(stmt.offset(paginator.skip).limit(paginator.size))
     sites = list(result.scalars())
 
-    # [Security] 对客户端站点数据进行脱敏
-    for site in sites:
-        filter_client_site_data(site)
+    # [Security] 使用 ClientSite Schema 自动过滤敏感字段
+    client_sites = [ClientSite.model_validate(site, from_attributes=True) for site in sites]
 
     return ApiResponse.ok(
         data=PaginatedResponse(
-            list=sites,
+            list=client_sites,
             pagination=paginator.to_pagination_info(),
         ),
         msg="获取成功",
     )
 
 
-@router.get(":bySlug/{slug}", response_model=ApiResponse[Site], operation_id="getClientSiteBySlug")
+@router.get(
+    ":bySlug/{slug}", response_model=ApiResponse[ClientSite], operation_id="getClientSiteBySlug"
+)
 @cached_response(ttl=10, key_prefix="client:site:slug")  # 降低缓存时间到 10 秒
 async def get_site_by_slug(
     slug: str,
     db: AsyncSession = Depends(get_db),
-) -> ApiResponse[Site]:
+) -> ApiResponse[ClientSite]:
     """通过 slug 获取站点详情（客户端）"""
     from sqlalchemy import select
 
@@ -79,18 +109,18 @@ async def get_site_by_slug(
     if not site or site.status != "active":
         raise NotFoundException(detail=f"站点 {slug} 不存在")
 
-    # [Security] 对客户端站点数据进行脱敏
-    filter_client_site_data(site)
+    # [Security] 使用 ClientSite Schema 自动过滤敏感字段
+    return ApiResponse.ok(
+        data=ClientSite.model_validate(site, from_attributes=True), msg="获取成功"
+    )
 
-    return ApiResponse.ok(data=site, msg="获取成功")
 
-
-@router.get("/{site_id}", response_model=ApiResponse[Site], operation_id="getClientSite")
+@router.get("/{site_id}", response_model=ApiResponse[ClientSite], operation_id="getClientSite")
 @cached_response(ttl=10, key_prefix="client:site:id")  # 降低缓存时间到 10 秒
 async def get_site(
     site_id: int,
     db: AsyncSession = Depends(get_db),
-) -> ApiResponse[Site]:
+) -> ApiResponse[ClientSite]:
     """获取站点详情（客户端）"""
     from sqlalchemy import select
 
@@ -102,7 +132,7 @@ async def get_site(
     if not site or site.status != "active":
         raise NotFoundException(detail=f"站点 {site_id} 不存在")
 
-    # [Security] 对客户端站点数据进行脱敏
-    filter_client_site_data(site)
-
-    return ApiResponse.ok(data=site, msg="获取成功")
+    # [Security] 使用 ClientSite Schema 自动过滤敏感字段
+    return ApiResponse.ok(
+        data=ClientSite.model_validate(site, from_attributes=True), msg="获取成功"
+    )

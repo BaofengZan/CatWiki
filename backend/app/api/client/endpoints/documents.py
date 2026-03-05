@@ -36,6 +36,9 @@ async def list_published_documents(
     collection_id: int | None = Query(None, description="合集ID"),
     keyword: str | None = Query(None, description="搜索关键词"),
     exclude_content: bool = Query(True, description="是否排除文档内容（用于列表展示，提升性能）"),
+    order_by: str | None = Query(None, description="排序字段"),
+    order_dir: str = Query("desc", description="排序方向"),
+    include_site_info: bool = Query(False, description="是否包含站点信息"),
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[PaginatedResponse[Document]]:
     """获取已发布文档列表（客户端）"""
@@ -57,6 +60,9 @@ async def list_published_documents(
         keyword=keyword,
         skip=paginator.skip,
         limit=paginator.size,
+        order_by=order_by,
+        order_dir=order_dir,
+        include_site=include_site_info,
     )
     paginator.total = await crud_document.count(
         db, site_id=site_id, collection_ids=collection_ids, status="published", keyword=keyword
@@ -71,7 +77,11 @@ async def list_published_documents(
     for doc in documents:
         # 使用工具函数构建文档字典
         doc_dict = await enrich_document_dict(
-            doc, db, crud_collection, include_site_name=False, collection_map=collection_map
+            doc,
+            db,
+            crud_collection,
+            include_site_info=include_site_info,
+            collection_map=collection_map,
         )
         # 处理 exclude_content 逻辑
         if exclude_content:
@@ -126,7 +136,7 @@ async def get_document(
 
     # 构建文档字典，添加关联信息
     document_dict = await enrich_document_dict(
-        document, db, crud_collection, include_site_name=True
+        document, db, crud_collection, include_site_info=True
     )
 
     return ApiResponse.ok(data=document_dict, msg="获取成功")

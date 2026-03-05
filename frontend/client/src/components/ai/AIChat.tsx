@@ -27,7 +27,7 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Send, Bot, User, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { Site } from "@/lib/api-client"
+import type { ClientSite } from "@/lib/api-client"
 import { Streamdown } from "streamdown"
 import { useAIChat } from "@/hooks"
 import { MessageSources } from "./MessageSources"
@@ -38,7 +38,7 @@ interface AIChatProps {
   onOpenChange: (open: boolean) => void
   initialQuery?: string
   siteId?: number | null
-  allSites?: Site[]
+  allSites?: ClientSite[]
 }
 
 const WELCOME_MESSAGE = {
@@ -136,7 +136,7 @@ export function AIChat({ open, onOpenChange, initialQuery, siteId, allSites }: A
                     {message.role === "assistant" && message.toolCalls && message.toolCalls.length > 0 && (
                       <ToolCallCard toolCalls={message.toolCalls} />
                     )}
-                    
+
                     {/* 消息内容 */}
                     {message.content && (
                       <Streamdown isAnimating={isLoading && message.role === "assistant" && message.status === "streaming"}>

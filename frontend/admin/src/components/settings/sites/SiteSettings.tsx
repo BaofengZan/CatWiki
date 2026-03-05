@@ -42,6 +42,7 @@ import { initialConfigs, type BotConfig } from "@/types/settings"
 import { env } from "@/lib/env"
 import { mergeSiteBotConfig } from "@/lib/site-bot-config"
 import { useAIConfig } from "@/hooks/useSystemConfig"
+import { ImageUpload } from "@/components/ui/ImageUpload"
 
 // 主题色配置
 const THEME_COLORS = [
@@ -61,6 +62,7 @@ interface SiteSettingsSnapshot {
   name: string
   slug: string
   description: string
+  icon: string | null
   isActive: boolean
   themeColor: string
   layoutMode: string
@@ -72,6 +74,7 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
   const [name, setName] = useState("")
   const [slug, setSlug] = useState("")
   const [description, setDescription] = useState("")
+  const [icon, setIcon] = useState<string | null>(null)
   const [isActive, setIsActive] = useState(true)
   const [themeColor, setThemeColor] = useState<string>("blue")
   const [layoutMode, setLayoutMode] = useState<string>("sidebar")
@@ -105,6 +108,7 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
       setName(siteData.name)
       setSlug(siteData.slug || "")
       setDescription(siteData.description || "")
+      setIcon(siteData.icon || null)
       setIsActive(siteData.status === "active")
       setThemeColor(siteData.theme_color || "blue")
       setLayoutMode(siteData.layout_mode || "sidebar")
@@ -115,6 +119,7 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
         name: siteData.name,
         slug: siteData.slug || "",
         description: siteData.description || "",
+        icon: siteData.icon || null,
         isActive: siteData.status === "active",
         themeColor: siteData.theme_color || "blue",
         layoutMode: siteData.layout_mode || "sidebar",
@@ -128,6 +133,7 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
     name,
     slug,
     description,
+    icon,
     isActive,
     themeColor,
     layoutMode,
@@ -153,6 +159,7 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
         name: name.trim(),
         slug: slug.trim(),
         description: description.trim() || undefined,
+        icon: icon || null,
         status: isActive ? "active" : "disabled",
         theme_color: themeColor,
         layout_mode: layoutMode,
@@ -169,6 +176,7 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
         setName(updatedSite.name)
         setSlug(updatedSite.slug || "")
         setDescription(updatedSite.description || "")
+        setIcon(updatedSite.icon || null)
         setIsActive(updatedSite.status === "active")
         setThemeColor(updatedSite.theme_color || "blue")
         setLayoutMode(updatedSite.layout_mode || "sidebar")
@@ -178,6 +186,7 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
           name: updatedSite.name,
           slug: updatedSite.slug || "",
           description: updatedSite.description || "",
+          icon: updatedSite.icon || null,
           isActive: updatedSite.status === "active",
           themeColor: updatedSite.theme_color || "blue",
           layoutMode: updatedSite.layout_mode || "sidebar",
@@ -290,42 +299,59 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4 pt-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold text-slate-700">站点名称</label>
-                      <input
-                        className="flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30"
-                        placeholder="例如：catWiki"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
+                  <div className="flex flex-col md:flex-row gap-8">
+                    {/* 站点图标上传 */}
+                    <div className="w-full md:w-32 space-y-2">
+                      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">站点图标</label>
+                      <ImageUpload
+                        value={icon}
+                        onChange={setIcon}
+                        text="更换"
+                        aspect="aspect-square"
+                        className="w-full"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold text-slate-700">站点唯一标识</label>
-                      <div className="flex items-center">
-                        <span
-                          className="inline-flex items-center px-3 h-9 rounded-l-lg border border-r-0 border-slate-200 bg-slate-50 text-slate-500 text-[10px] font-mono flex-1 min-w-0 overflow-hidden"
-                          title={env.NEXT_PUBLIC_CLIENT_URL}
-                        >
-                          <span className="truncate">{env.NEXT_PUBLIC_CLIENT_URL}</span>/
-                        </span>
-                        <input
-                          className="flex h-9 w-[35%] min-w-[80px] rounded-r-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30"
-                          placeholder="cat"
-                          value={slug}
-                          onChange={(e) => setSlug(e.target.value)}
+
+                    {/* 站点基本信息字段 */}
+                    <div className="flex-1 space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-slate-700">站点名称</label>
+                          <input
+                            className="flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30"
+                            placeholder="例如：catWiki"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-slate-700">站点唯一标识</label>
+                          <div className="flex items-center">
+                            <span
+                              className="inline-flex items-center px-3 h-9 rounded-l-lg border border-r-0 border-slate-200 bg-slate-50 text-slate-500 text-[10px] font-mono flex-1 min-w-0 overflow-hidden"
+                              title={env.NEXT_PUBLIC_CLIENT_URL}
+                            >
+                              <span className="truncate">{env.NEXT_PUBLIC_CLIENT_URL}</span>/
+                            </span>
+                            <input
+                              className="flex h-9 w-[35%] min-w-[80px] rounded-r-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30"
+                              placeholder="cat"
+                              value={slug}
+                              onChange={(e) => setSlug(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-slate-700">站点描述</label>
+                        <textarea
+                          className="flex min-h-[80px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 resize-none"
+                          placeholder="简要介绍这个 Wiki 站点的主要内容..."
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
                         />
                       </div>
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700">站点描述</label>
-                    <textarea
-                      className="flex min-h-[80px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 resize-none"
-                      placeholder="简要介绍这个 Wiki 站点的主要内容..."
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                    />
                   </div>
                 </CardContent>
               </Card>

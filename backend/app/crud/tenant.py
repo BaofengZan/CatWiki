@@ -22,12 +22,28 @@ from app.schemas.tenant import TenantCreate, TenantUpdate
 
 
 class CRUDTenant(CRUDBase[Tenant, TenantCreate, TenantUpdate]):
-    """租户 CRUD 操​​作"""
+    """租户 CRUD 操作"""
 
     async def get_by_slug(self, db: AsyncSession, *, slug: str) -> Tenant | None:
         """根据 slug 获取租户"""
         result = await db.execute(select(Tenant).where(Tenant.slug == slug))
         return result.scalar_one_or_none()
+
+    async def remove(self, db: AsyncSession, *, id: int) -> Tenant:
+        """删除租户并清理相关向量数据"""
+        # 1. 清理该租户下所有站点的向量数据
+        try:
+            from app.core.vector.vector_store import VectorStoreManager
+
+            vector_mgr = await VectorStoreManager.get_instance()
+            await vector_mgr.delete_by_metadata("tenant_id", id)
+        except Exception as e:
+            from app.core.infra.logging import logger
+
+            logger.warning(f"⚠️ [Cleanup] 租户 {id} 向量清理失败: {e}")
+
+        # 2. 执行数据库删除
+        return await super().remove(db, id=id)
 
 
 crud_tenant = CRUDTenant(Tenant)

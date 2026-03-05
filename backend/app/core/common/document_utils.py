@@ -62,17 +62,17 @@ async def enrich_document_dict(
     document,
     db: AsyncSession,
     crud_collection,
-    include_site_name: bool = False,
+    include_site_info: bool = False,
     collection_map: dict[int, dict] | None = None,
 ) -> dict:
     """
-    丰富文档字典，添加关联的合集信息和站点名称
+    丰富文档字典，添加关联的合集信息和站点信息
 
     Args:
         document: 文档模型实例
         db: 数据库会话
         crud_collection: 合集 CRUD 实例
-        include_site_name: 是否包含站点名称
+        include_site_info: 是否包含站点信息（名称、Slug、租户Slug）
         collection_map: 预加载的合集映射（用于优化性能）
 
     Returns:
@@ -101,9 +101,14 @@ async def enrich_document_dict(
             "content": getattr(document, "content", None),
         }
 
-    # 添加站点名称
-    if include_site_name and hasattr(document, "site") and document.site:
+    # 添加站点信息
+    if include_site_info and hasattr(document, "site") and document.site:
         doc_dict["site_name"] = document.site.name
+        doc_dict["site_slug"] = document.site.slug
+        if hasattr(document.site, "tenant") and document.site.tenant:
+            doc_dict["tenant_slug"] = document.site.tenant.slug
+        else:
+            doc_dict["tenant_slug"] = None
 
     # 添加合集对象
     collection_id = doc_dict.get("collection_id")

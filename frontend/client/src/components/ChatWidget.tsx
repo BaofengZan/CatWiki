@@ -21,7 +21,7 @@ import { useAIChat } from "@/hooks"
 import { Streamdown } from "streamdown"
 import { MessageSources } from "@/components/ai/MessageSources"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import type { Site } from "@/lib/api-client"
+import type { ClientSite } from "@/lib/api-client"
 
 interface ChatWidgetProps {
   title: string
@@ -31,7 +31,7 @@ interface ChatWidgetProps {
   isOpen: boolean
   onToggle: (isOpen: boolean) => void
   siteId?: number | null
-  allSites?: Site[]
+  allSites?: ClientSite[]
 }
 
 export function ChatWidget({

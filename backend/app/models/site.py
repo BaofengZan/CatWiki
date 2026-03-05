@@ -29,7 +29,7 @@ class Site(BaseModel):
     name = Column(String(100), nullable=False, index=True, comment="站点名称")
     slug = Column(String(200), nullable=False, unique=True, comment="站点标识")
     description = Column(Text, nullable=True, comment="站点描述")
-    icon = Column(String(50), nullable=True, comment="图标名称")
+    icon = Column(String(1000), nullable=True, comment="图标URL或名称")
     status = Column(
         String(20), default="active", nullable=False, comment="状态: active(激活), disabled(禁用)"
     )
@@ -69,6 +69,13 @@ class Site(BaseModel):
     def tenant_slug(self) -> str | None:
         """所属租户标识"""
         return self.tenant.slug if self.tenant else None
+
+    @property
+    def web_widget(self) -> dict | None:
+        """网页挂件配置"""
+        if not self.bot_config:
+            return None
+        return self.bot_config.get("web_widget")
 
     def __repr__(self) -> str:
         return f"<Site(id={self.id}, name='{self.name}')>"

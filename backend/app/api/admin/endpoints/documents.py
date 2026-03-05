@@ -292,7 +292,7 @@ async def get_document(
 
     # 构建文档字典，添加关联的合集信息
     document_dict = await enrich_document_dict(
-        document, db, crud_collection, include_site_name=True
+        document, db, crud_collection, include_site_info=True
     )
 
     return ApiResponse.ok(data=document_dict, msg="获取成功")

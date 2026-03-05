@@ -172,7 +172,22 @@ class CRUDSite(CRUDBase[Site, SiteCreate, SiteUpdate]):
             coll_del = coll_del.where(Collection.tenant_id == tenant_id)
         await db.execute(coll_del)
 
-        # 4. 删除站点
+        # 4. 清理向量库数据
+        try:
+            from app.core.vector.vector_store import VectorStoreManager
+
+            vector_mgr = await VectorStoreManager.get_instance()
+            await vector_mgr.delete_by_metadata("site_id", id)
+
+            from app.core.infra.logging import logger
+
+            logger.info(f"✅ [Cleanup] 已成功清理站点 {id} 的向量数据")
+        except Exception as e:
+            from app.core.infra.logging import logger
+
+            logger.warning(f"⚠️ [Cleanup] 站点 {id} 向量清理失败: {e}")
+
+        # 5. 删除站点
         await db.delete(site)
 
         await db.commit()

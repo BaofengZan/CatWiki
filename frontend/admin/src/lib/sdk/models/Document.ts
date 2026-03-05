@@ -81,6 +81,14 @@ export type Document = {
      */
     site_name?: (string | null);
     /**
+     * 站点标识
+     */
+    site_slug?: (string | null);
+    /**
+     * 租户标识
+     */
+    tenant_slug?: (string | null);
+    /**
      * 所属合集信息
      */
     collection?: (CollectionInfo | null);

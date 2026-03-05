@@ -19,7 +19,7 @@ import { useState, useEffect, Suspense } from "react"
 import { ChatWidget } from "@/components/ChatWidget"
 
 import { api } from "@/lib/api-client"
-import type { Site } from "@/lib/api-client"
+import type { ClientSite } from "@/lib/api-client"
 
 interface WebWidgetConfig {
   title?: string
@@ -28,16 +28,13 @@ interface WebWidgetConfig {
   welcome_message?: string
 }
 
-interface BotConfig {
-  web_widget?: WebWidgetConfig
-}
 
 function WidgetContent() {
   const searchParams = useSearchParams()
   const [isOpen, setIsOpen] = useState(false)
-  const [siteConfig, setSiteConfig] = useState<BotConfig | null>(null)
+  const [siteConfig, setSiteConfig] = useState<WebWidgetConfig | null>(null)
   const [isReady, setIsReady] = useState(false)
-  const [site, setSite] = useState<Site | null>(null)
+  const [site, setSite] = useState<ClientSite | null>(null)
 
   const siteId = searchParams.get("siteId")
   const queryTitle = searchParams.get("title")
@@ -51,8 +48,8 @@ function WidgetContent() {
       if (!isNaN(sid)) {
         api.site.get(sid).then((res) => {
           setSite(res)
-          if (res.bot_config) {
-            setSiteConfig(res.bot_config as BotConfig)
+          if (res.web_widget) {
+            setSiteConfig(res.web_widget as WebWidgetConfig)
           }
         }).catch(err => {
           console.error("Failed to fetch site config:", err);
@@ -67,12 +64,13 @@ function WidgetContent() {
     }
   }, [siteId])
 
+
   // 合并配置：Query 参数优先级高于数据库配置
   // 注意：如果 query 参数存在但为空字符串，应该被视为没有提供，从而使用数据库配置
-  const title = queryTitle || siteConfig?.web_widget?.title || "AI 客服助手"
-  const position = ((queryPosition || siteConfig?.web_widget?.position) as "left" | "right") || "right"
-  const color = queryColor || siteConfig?.web_widget?.primary_color || "#3b82f6"
-  const welcomeMessage = queryWelcomeMessage || siteConfig?.web_widget?.welcome_message || ""
+  const title = queryTitle || siteConfig?.title || "AI 客服助手"
+  const position = ((queryPosition || siteConfig?.position) as "left" | "right") || "right"
+  const color = queryColor || siteConfig?.primary_color || "#3b82f6"
+  const welcomeMessage = queryWelcomeMessage || siteConfig?.welcome_message || ""
 
   useEffect(() => {
     if (isReady) {

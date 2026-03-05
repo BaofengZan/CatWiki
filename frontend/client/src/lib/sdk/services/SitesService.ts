@@ -2,8 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ApiResponse_PaginatedResponse_Site__ } from '../models/ApiResponse_PaginatedResponse_Site__';
-import type { ApiResponse_Site_ } from '../models/ApiResponse_Site_';
+import type { ApiResponse_ClientSite_ } from '../models/ApiResponse_ClientSite_';
+import type { ApiResponse_PaginatedResponse_ClientSite__ } from '../models/ApiResponse_PaginatedResponse_ClientSite__';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class SitesService {
@@ -11,22 +11,37 @@ export class SitesService {
     /**
      * List Active Sites
      * 获取激活的站点列表（客户端）
-     * @returns ApiResponse_PaginatedResponse_Site__ Successful Response
+     *
+     * - 不传 tenant_slug：返回所有租户的激活站点（站点广场）
+     * - 传 tenant_slug：仅返回该租户下的激活站点
+     * @returns ApiResponse_PaginatedResponse_ClientSite__ Successful Response
      * @throws ApiError
      */
     public listClientSites({
         page = 1,
         size = 10,
+        tenantSlug,
+        keyword,
     }: {
         page?: number,
         size?: number,
-    }): CancelablePromise<ApiResponse_PaginatedResponse_Site__> {
+        /**
+         * 租户标识（可选，不传则返回所有租户的站点）
+         */
+        tenantSlug?: (string | null),
+        /**
+         * 搜索关键词（站点名称或描述）
+         */
+        keyword?: (string | null),
+    }): CancelablePromise<ApiResponse_PaginatedResponse_ClientSite__> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/v1/sites',
             query: {
                 'page': page,
                 'size': size,
+                'tenant_slug': tenantSlug,
+                'keyword': keyword,
             },
             errors: {
                 422: `Validation Error`,
@@ -36,14 +51,14 @@ export class SitesService {
     /**
      * Get Site By Slug
      * 通过 slug 获取站点详情（客户端）
-     * @returns ApiResponse_Site_ Successful Response
+     * @returns ApiResponse_ClientSite_ Successful Response
      * @throws ApiError
      */
     public getClientSiteBySlug({
         slug,
     }: {
         slug: string,
-    }): CancelablePromise<ApiResponse_Site_> {
+    }): CancelablePromise<ApiResponse_ClientSite_> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/v1/sites:bySlug/{slug}',
@@ -58,14 +73,14 @@ export class SitesService {
     /**
      * Get Site
      * 获取站点详情（客户端）
-     * @returns ApiResponse_Site_ Successful Response
+     * @returns ApiResponse_ClientSite_ Successful Response
      * @throws ApiError
      */
     public getClientSite({
         siteId,
     }: {
         siteId: number,
-    }): CancelablePromise<ApiResponse_Site_> {
+    }): CancelablePromise<ApiResponse_ClientSite_> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/v1/sites/{site_id}',

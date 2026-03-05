@@ -23,16 +23,20 @@ import { BookOpen, ChevronDown, ExternalLink, Github, Star } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AIChatLanding } from "@/components/ai"
 import { NotFoundState } from "@/components/ui/not-found"
-import type { Site } from "@/lib/api-client"
+import { ClientSite } from "@/lib/api-client"
+import { Input } from "@/components/ui/input"
+import { Search } from "lucide-react"
+
 import { env } from "@/lib/env"
 
 export default function TenantPortalPage() {
   const router = useRouter()
   const { tenantSlug } = useParams()
-  const [sites, setSites] = useState<Site[]>([])
+  const [sites, setSites] = useState<ClientSite[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedSite, setSelectedSite] = useState<Site | null>(null)
+  const [selectedSite, setSelectedSite] = useState<ClientSite | null>(null)
   const [isSiteSelectorOpen, setIsSiteSelectorOpen] = useState(false)
+  const [keyword, setKeyword] = useState("")
   const selectorRef = useRef<HTMLDivElement>(null)
   const [error, setError] = useState<any>(null)
 
@@ -41,13 +45,16 @@ export default function TenantPortalPage() {
       try {
         setLoading(true)
         setError(null)
-        // api-client 会自动注入 X-Tenant-Slug header
-        const response = await api.site.list({ page: 1, size: 100 })
-        const availableSites = (response.list || []).filter((site) => site.slug)
-        setSites(availableSites)
+        const response = await api.site.list({
+          page: 1,
+          size: 100,
+          tenantSlug: tenantSlug as string,
+          keyword: keyword || undefined
+        })
+        setSites(response.list || [])
 
         // 如果没有站点且不是加载中，也视为租户配置问题或不存在
-        if (availableSites.length === 0) {
+        if (!keyword && (!response.list || response.list.length === 0)) {
           setError({ status: 404, message: "暂时无该租户" })
         }
       } catch (err: any) {
@@ -58,8 +65,12 @@ export default function TenantPortalPage() {
       }
     }
 
-    loadSites()
-  }, [tenantSlug])
+    const timer = setTimeout(() => {
+      loadSites()
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [tenantSlug, keyword])
 
   // 点击外部关闭选择器
   useEffect(() => {
@@ -103,7 +114,7 @@ export default function TenantPortalPage() {
       </div>
 
       {/* 顶部导航栏 */}
-      <header className="relative z-20 h-14 md:h-16 border-b border-slate-100 flex items-center gap-4 px-4 md:px-8 bg-white/80 backdrop-blur-md shrink-0">
+      <header className="relative z-40 h-14 md:h-16 border-b border-slate-100 flex items-center gap-4 px-4 md:px-8 bg-white/80 backdrop-blur-md shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 md:w-10 md:h-10 bg-primary rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
             <BookOpen className="h-5 w-5 md:h-6 md:w-6 text-white" />
@@ -171,7 +182,19 @@ export default function TenantPortalPage() {
 
               {/* 下拉菜单 */}
               {isSiteSelectorOpen && (
-                <div className="absolute top-full mt-2 right-0 w-64 md:w-80 glass-card rounded-xl md:rounded-2xl shadow-2xl border border-slate-200/50 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="absolute top-full mt-2 right-0 w-64 md:w-80 glass-card rounded-xl md:rounded-2xl shadow-2xl border border-slate-200/50 z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="p-3 border-b border-slate-100 bg-slate-50/50">
+                    <div className="relative group">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+                      <Input
+                        autoFocus
+                        value={keyword}
+                        onChange={(e) => setKeyword(e.target.value)}
+                        placeholder={`搜索 ${tenantSlug} 的站点...`}
+                        className="pl-10 h-9 bg-white border-slate-200 rounded-lg text-sm focus-visible:ring-primary/20 focus:border-primary/30"
+                      />
+                    </div>
+                  </div>
                   <div className="p-2 max-h-[400px] overflow-y-auto">
                     {/* 全部站点选项 */}
                     <button
@@ -203,54 +226,53 @@ export default function TenantPortalPage() {
                     <div className="h-px bg-slate-100 my-2" />
 
                     {/* 站点列表 */}
-                    {sites.map((site) => (
-                      <button
-                        key={site.id}
-                        onClick={() => {
-                          setSelectedSite(site)
-                          setIsSiteSelectorOpen(false)
-                        }}
-                        className={cn(
-                          "w-full p-3 md:p-4 rounded-lg md:rounded-xl text-left transition-all",
-                          selectedSite?.id === site.id
-                            ? "bg-primary/10 border border-primary/30"
-                            : "hover:bg-slate-50 border border-transparent"
-                        )}
-                      >
-                        <div className="flex items-start justify-between mb-1">
-                          <div className="text-sm md:text-base font-semibold text-slate-900 flex items-center gap-1.5">
-                            {site.name}
-                            <span className="px-1 py-0.5 bg-slate-100 text-slate-400 rounded text-[9px] font-mono leading-none">
-                              {tenantSlug}
+                    {sites.length > 0 ? (
+                      sites.map((site) => (
+                        <button
+                          key={site.id}
+                          onClick={() => {
+                            setSelectedSite(site)
+                            setIsSiteSelectorOpen(false)
+                          }}
+                          className={cn(
+                            "w-full p-3 md:p-4 rounded-lg md:rounded-xl text-left transition-all",
+                            selectedSite?.id === site.id
+                              ? "bg-primary/10 border border-primary/30"
+                              : "hover:bg-slate-50 border border-transparent"
+                          )}
+                        >
+                          <div className="flex items-start justify-between mb-1">
+                            <div className="text-sm md:text-base font-semibold text-slate-900 flex items-center gap-1.5">
+                              {site.name}
+                              <span className="px-1 py-0.5 bg-slate-100 text-slate-400 rounded text-[9px] font-mono leading-none">
+                                {tenantSlug}
+                              </span>
+                            </div>
+                            {selectedSite?.id === site.id && (
+                              <div className="w-2 h-2 bg-primary rounded-full mt-1.5 shrink-0" />
+                            )}
+                          </div>
+                          {site.description && (
+                            <div className="text-xs md:text-sm text-slate-500 line-clamp-2 mb-2">
+                              {site.description}
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="text-xs text-primary group-hover:underline flex items-center gap-1">
+                              限定此站点
                             </span>
                           </div>
-                          {selectedSite?.id === site.id && (
-                            <div className="w-2 h-2 bg-primary rounded-full mt-1.5 shrink-0" />
-                          )}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="p-8 text-center bg-slate-50/50 rounded-xl">
+                        <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                          <Search className="h-5 w-5 text-slate-400" />
                         </div>
-                        {site.description && (
-                          <div className="text-xs md:text-sm text-slate-500 line-clamp-2 mb-2">
-                            {site.description}
-                          </div>
-                        )}
-                        <div className="flex items-center gap-2 mt-2">
-                          <a
-                            href={`/${tenantSlug}/${site.slug}`}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              if (site.slug) {
-                                e.preventDefault()
-                                router.push(`/${tenantSlug}/${site.slug}`)
-                              }
-                            }}
-                            className="text-xs text-primary hover:text-primary/80 flex items-center gap-1"
-                          >
-                            访问站点
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                        </div>
-                      </button>
-                    ))}
+                        <p className="text-sm text-slate-500 font-medium">未找到匹配的站点</p>
+                        <p className="text-[10px] text-slate-400 mt-1">请尝试更换搜索关键字</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

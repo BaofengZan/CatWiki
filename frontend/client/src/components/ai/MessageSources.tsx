@@ -15,12 +15,12 @@
 import { Link, FileText, ExternalLink } from "lucide-react"
 import { useParams } from "next/navigation"
 import { Source } from "@/types"
-import type { Site } from "@/lib/api-client"
+import type { ClientSite } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
 
 interface MessageSourcesProps {
   sources?: Source[]
-  allSites?: Site[]
+  allSites?: ClientSite[]
 }
 
 export function MessageSources({ sources, allSites }: MessageSourcesProps) {

@@ -24,7 +24,7 @@ export type SiteCreate = {
      */
     description?: (string | null);
     /**
-     * 图标名称
+     * 图标URL或名称
      */
     icon?: (string | null);
     /**

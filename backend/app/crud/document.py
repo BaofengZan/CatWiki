@@ -156,12 +156,19 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
         limit: int | None = 100,
         order_by: str | None = None,
         order_dir: str = "desc",
+        include_site: bool = False,
     ) -> list[Document]:
         """
         获取文档列表（不含content，用于列表展示）
         """
         # 使用基础字段查询
         query = self._get_base_list_query()
+
+        # 关联站点与租户信息
+        if include_site:
+            from app.models.site import Site
+
+            query = query.options(joinedload(self.model.site).joinedload(Site.tenant))
 
         # 应用过滤
         query = self._apply_filters(

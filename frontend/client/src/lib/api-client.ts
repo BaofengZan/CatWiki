@@ -22,6 +22,9 @@ import { FetchHttpRequest } from './sdk/core/FetchHttpRequest'
 
 // ==================== SDK 类型统一导出 ====================
 export * from './sdk/models'
+export * as Models from './sdk/models'
+
+
 
 // ==================== 配置 ====================
 
@@ -125,6 +128,9 @@ const documentApi = {
     collectionId?: number
     keyword?: string
     excludeContent?: boolean
+    orderBy?: string
+    orderDir?: 'asc' | 'desc'
+    includeSiteInfo?: boolean
   } = {}) => {
     return wrapResponse<Models.PaginatedResponse_Document_>(client.documents.listClientDocuments({
       page: params.page ?? 1,
@@ -133,6 +139,9 @@ const documentApi = {
       collectionId: params.collectionId,
       keyword: params.keyword,
       excludeContent: params.excludeContent ?? true,
+      orderBy: params.orderBy,
+      orderDir: params.orderDir,
+      includeSiteInfo: params.includeSiteInfo,
     }))
   },
 
@@ -169,10 +178,12 @@ const siteApi = {
   /**
    * 获取站点列表
    */
-  list: (params: { page?: number; size?: number } = {}) => {
-    return wrapResponse<Models.PaginatedResponse_Site_>(client.sites.listClientSites({
+  list: (params: { page?: number; size?: number; tenantSlug?: string; keyword?: string } = {}) => {
+    return wrapResponse<Models.PaginatedResponse_ClientSite_>(client.sites.listClientSites({
       page: params.page ?? 1,
       size: params.size ?? 10,
+      tenantSlug: params.tenantSlug,
+      keyword: params.keyword,
     }))
   },
 
@@ -181,7 +192,7 @@ const siteApi = {
    * 获取站点详情
    */
   get: (id: number) => {
-    return wrapResponse<Models.Site>(client.sites.getClientSite({
+    return wrapResponse<Models.ClientSite>(client.sites.getClientSite({
       siteId: id,
     }))
   },
@@ -191,7 +202,7 @@ const siteApi = {
    * 通过 slug 获取站点详情
    */
   getBySlug: (slug: string) => {
-    return wrapResponse<Models.Site>(client.sites.getClientSiteBySlug({
+    return wrapResponse<Models.ClientSite>(client.sites.getClientSiteBySlug({
       slug,
     }))
   },
@@ -255,6 +266,7 @@ export const api = {
   collection: collectionApi,
   site: siteApi,
   chatSession: chatSessionApi,
+  bot: client.bot,
   health: healthApi,
 }
 

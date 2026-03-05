@@ -31,18 +31,12 @@ class SiteBase(BaseModel):
     tenant_id: int | None = Field(None, description="所属租户ID")
     slug: str = Field(..., max_length=200, description="站点标识")
     description: str | None = Field(None, description="站点描述")
-    icon: str | None = Field(None, max_length=50, description="图标名称")
+    icon: str | None = Field(None, max_length=1000, description="图标URL或名称")
     status: str = Field(default="active", description="状态: active, draft")
     theme_color: str | None = Field(None, max_length=50, description="主题色")
     layout_mode: str | None = Field(None, max_length=20, description="布局模式: sidebar, top")
     quick_questions: list[QuickQuestion] | None = Field(None, description="快速问题配置")
     bot_config: dict | None = Field(None, description="机器人配置")
-
-    @field_validator("bot_config")
-    @classmethod
-    def validate_bot_config(cls, v: dict | None) -> dict | None:
-        """验证机器人配置"""
-        return v
 
 
 class SiteCreate(SiteBase):
@@ -78,3 +72,20 @@ class Site(SiteBase, BaseSchemaWithTimestamps):
 
     article_count: int = Field(default=0, description="文章数量")
     tenant_slug: str | None = Field(None, description="所属租户标识")
+    web_widget: dict | None = Field(None, description="网页挂件配置")
+
+
+class ClientSite(BaseModel):
+    """客户端展示用的站点信息 (精简版)"""
+
+    id: int
+    name: str
+    slug: str
+    description: str | None = None
+    icon: str | None = None
+    article_count: int = 0
+    tenant_slug: str | None = None
+    theme_color: str | None = None
+    layout_mode: str | None = None
+    quick_questions: list[QuickQuestion] | None = None
+    web_widget: dict | None = None

@@ -126,7 +126,7 @@ class TenantSeeder(BaseSeeder):
                 tenant_id=tenant_id,
                 slug=s_data["slug"],
                 description=s_data["description"],
-                icon=s_data["icon"],
+                icon=s_data.get("icon"),
                 status=s_data["status"],
                 theme_color=s_data["theme_color"],
                 layout_mode=s_data["layout_mode"],

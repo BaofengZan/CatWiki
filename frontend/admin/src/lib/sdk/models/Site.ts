@@ -27,7 +27,7 @@ export type Site = {
      */
     description?: (string | null);
     /**
-     * 图标名称
+     * 图标URL或名称
      */
     icon?: (string | null);
     /**
@@ -58,5 +58,9 @@ export type Site = {
      * 所属租户标识
      */
     tenant_slug?: (string | null);
+    /**
+     * 网页挂件配置
+     */
+    web_widget?: (Record<string, any> | null);
 };
 

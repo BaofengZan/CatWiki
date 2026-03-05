@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import Image from "next/image"
 import { useRouter, usePathname, useParams, useSearchParams } from "next/navigation"
 import type { Site } from "@/lib/api-client"
 import { UserRole } from "@/lib/api-client"
@@ -138,8 +139,12 @@ function SiteSwitcherComponent() {
               onSelect={() => handleSiteSelect(site)}
               className="flex items-center gap-3 py-2.5 cursor-pointer"
             >
-              <div className="p-1.5 rounded-lg bg-slate-100 text-slate-500" suppressHydrationWarning>
-                <Globe className="h-4 w-4" />
+              <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 overflow-hidden flex items-center justify-center border border-slate-200/50" suppressHydrationWarning>
+                {site.icon ? (
+                  <Image src={site.icon} alt={site.name} width={32} height={32} className="w-full h-full object-cover" unoptimized />
+                ) : (
+                  <Globe className="h-4 w-4" />
+                )}
               </div>
               <div className="flex flex-col flex-1 min-w-0">
                 <span className="text-sm font-semibold truncate">{site.name}</span>
@@ -179,10 +184,16 @@ function SiteSwitcherComponent() {
           className="flex items-center gap-2 px-3 py-2 h-auto hover:bg-slate-100 transition-colors rounded-xl border border-transparent hover:border-slate-200"
         >
           <div className={cn(
-            "w-6 h-6 rounded-lg flex items-center justify-center shrink-0",
+            "w-6 h-6 rounded-lg flex items-center justify-center shrink-0 overflow-hidden",
             activeSite ? "bg-primary/10 text-primary" : "bg-slate-100 text-slate-400"
           )} suppressHydrationWarning>
-            {activeSite ? <Globe className="h-4 w-4" /> : <PlusCircle className="h-4 w-4" />}
+            {activeSite?.icon ? (
+              <Image src={activeSite.icon} alt={activeSite.name} width={24} height={24} className="w-full h-full object-cover" unoptimized />
+            ) : activeSite ? (
+              <Globe className="h-4 w-4" />
+            ) : (
+              <PlusCircle className="h-4 w-4" />
+            )}
           </div>
           <div className="flex flex-col items-start text-left">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">
@@ -223,10 +234,14 @@ function SiteSwitcherComponent() {
             className="flex items-center gap-3 py-2.5 cursor-pointer"
           >
             <div className={cn(
-              "p-1.5 rounded-lg transition-colors",
-              activeSite?.id === site.id ? "bg-primary text-white" : "bg-slate-100 text-slate-500"
+              "w-8 h-8 rounded-lg transition-colors overflow-hidden flex items-center justify-center",
+              activeSite?.id === site.id ? "bg-primary text-white shadow-sm ring-1 ring-primary-foreground/20" : "bg-slate-100 text-slate-500 border border-slate-200/50"
             )} suppressHydrationWarning>
-              <Globe className="h-4 w-4" />
+              {site.icon ? (
+                <Image src={site.icon} alt={site.name} width={32} height={32} className="w-full h-full object-cover" unoptimized />
+              ) : (
+                <Globe className="h-4 w-4" />
+              )}
             </div>
             <div className="flex flex-col flex-1 min-w-0">
               <span className="text-sm font-semibold truncate">{site.name}</span>

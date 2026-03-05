@@ -25,7 +25,7 @@ async def get_wecom_smart_context(site_id: int = Query(...), db: AsyncSession = 
     return await get_robot_context("wecom_smart", "smart", site_id, db)
 
 
-@router.get("/wecom-smart-robot")
+@router.get("/wecom-smart")
 async def verify_url(
     msg_signature: str = Query(...),
     timestamp: str = Query(...),
@@ -43,7 +43,7 @@ async def verify_url(
         return Response(content="验证失败", media_type="text/plain", status_code=400)
 
 
-@router.post("/wecom-smart-robot")
+@router.post("/wecom-smart")
 async def handle_wecom_message(
     request: Request,
     background_tasks: BackgroundTasks,

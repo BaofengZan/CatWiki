@@ -12,31 +12,50 @@ Client API 不需要身份认证，可以直接访问。
 
 ### 站点信息
 
-- `GET /api/v1/sites` - 获取已发布站点列表
-- `GET /api/v1/sites/{id}` - 获取站点详情
-- `GET /api/v1/sites:byDomain/{domain}` - 通过域名获取站点
+- `GET /v1/sites` - 获取已发布站点列表
+- `GET /v1/sites/{id}` - 获取站点详情
+- `GET /v1/sites:bySlug/{slug}` - 通过 slug 获取站点
 
 ### 文档浏览
 
-- `GET /api/v1/documents` - 获取已发布文档列表
-- `GET /api/v1/documents/{id}` - 获取文档详情（自动增加浏览量）
+- `GET /v1/documents` - 获取已发布文档列表
+- `GET /v1/documents/{id}` - 获取文档详情（自动增加浏览量）
 
 ### 合集浏览
 
-- `GET /api/v1/collections:tree` - 获取合集树（仅已发布内容）
+- `GET /v1/collections:tree` - 获取合集树（仅已发布内容）
 
 ### 文件访问
 
-- `GET /api/v1/files/{path}:download` - 下载文件
-- `GET /api/v1/files/{path}:info` - 获取文件信息
-- `GET /api/v1/files/{path}:presignedUrl` - 获取预签名 URL
+- `GET /v1/files/{path}:download` - 下载文件
+- `GET /v1/files/{path}:info` - 获取文件信息
+- `GET /v1/files/{path}:presignedUrl` - 获取预签名 URL
+
+### AI 对话
+
+- `POST /v1/chat/completions` - 创建聊天补全 (OpenAI 兼容接口)
 
 ### 会话记录
 
-- `GET /api/v1/chat/sessions` - 获取会话列表（支持 keyword 搜索，member_id 过滤）
-- `GET /api/v1/chat/sessions/{thread_id}` - 获取会话详情
-- `GET /api/v1/chat/sessions/{thread_id}/messages` - 获取会话历史消息
-- `DELETE /api/v1/chat/sessions/{thread_id}` - 删除会话
+- `GET /v1/chat/sessions` - 获取会话列表（支持 keyword 搜索，member_id 过滤）
+- `GET /v1/chat/sessions/{thread_id}` - 获取会话详情
+- `GET /v1/chat/sessions/{thread_id}/messages` - 获取会话历史消息
+- `DELETE /v1/chat/sessions/{thread_id}` - 删除会话
+
+### 机器人 Webhook
+
+- `GET/POST /v1/bot/wecom-smart` - 企业微信智能机器人（URL 验证 & 消息回调）
+- `GET/POST /v1/bot/wecom-kefu` - 企业微信客服（URL 验证 & 消息回调）
+- `GET/POST /v1/bot/wecom-app` - 企业微信应用（URL 验证 & 消息回调）
+
+### EE Bot API 👑 (企业版专属)
+
+- `POST /v1/bot/chat/completions` - 站点专用聊天补全（通过 API Key 认证）
+- `GET /v1/bot/models` - 列出可用模型
+
+### 健康检查
+
+- `GET /v1/health` - 健康检查（数据库状态）
 
 ---
 
@@ -76,11 +95,11 @@ const response = await apiClient.documents.getClientDocument({
 const doc = response.data
 ```
 
-### 通过域名获取站点
+### 通过 slug 获取站点
 
 ```typescript
-const response = await apiClient.sites.getClientSiteByDomain({
-  domain: "example.com"
+const response = await apiClient.sites.getClientSiteBySlug({
+  slug: "my-site"
 })
 
 const site = response.data
@@ -97,6 +116,20 @@ const response = await apiClient.chatSessions.listChatSessions({
 })
 
 const sessions = response.data.items
+```
+
+### AI 对话
+
+```typescript
+const response = await fetch("/v1/chat/completions", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    messages: [{ role: "user", content: "你好" }],
+    stream: true,
+    filter: { site_id: 1 }
+  })
+})
 ```
 
 ---

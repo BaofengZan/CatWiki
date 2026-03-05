@@ -28,7 +28,7 @@
    ![获取凭据](/images/roboot/wecom-smart/wecom-smart-3.png)
 3. **URL 配置**：
    - 填入 CatWiki 提供的 Webhook 地址。
-   - 格式为：`https://您的域名/v1/bot/wecom-smart-robot?site_id={site_id}`
+   - 格式为：`https://您的域名/v1/bot/wecom-smart?site_id={site_id}`
    - *注意：请将 `{site_id}` 替换为您在 CatWiki 后台的实际站点 ID。*
    - 该地址必须能够从公网访问且支持 HTTPS。
 4. **⚠️ 暂不点击保存！** 由于微信服务器在你点击“保存”时会向你填写的 URL 发起签名验证请求，此时如果你还没在 CatWiki 后台填入 Token，CatWiki 无法验证通过。因此，请保持该页面不关，先进行下方的第 2 步配置。

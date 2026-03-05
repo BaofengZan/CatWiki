@@ -15,9 +15,9 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { ImageIcon, X, Upload, Loader2 } from "lucide-react"
-import { Button } from "./button"
+import { ImageIcon, Loader2, Camera, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
 import { api } from "@/lib/api-client"
 import imageCompression from 'browser-image-compression'
@@ -197,62 +197,75 @@ export function ImageUpload({
       />
 
       {previewUrl ? (
-        // 预览模式
-        <div className="relative group">
-          <div className={cn(aspect, "rounded-xl overflow-hidden bg-slate-100 border-2 border-slate-200 transition-all group-hover:border-primary/30")}>
+        // 预览模式 - 精美重构
+        <div className="relative group w-full h-full">
+          <div className={cn(
+            aspect,
+            "rounded-2xl overflow-hidden bg-slate-100 border-2 border-slate-200 transition-all duration-500",
+            "group-hover:border-primary/40 group-hover:shadow-lg group-hover:shadow-primary/5"
+          )}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={previewUrl}
               alt="封面预览"
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
             />
           </div>
 
-          {/* 悬停遮罩 - 优雅的渐变效果 */}
-          <div className={cn(
-            "absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-xl flex flex-col items-center justify-end gap-3",
-            compact ? "pb-2" : "pb-6"
-          )}>
-            <div className={cn("flex items-center", compact ? "gap-1.5" : "gap-3")}>
-              {/* 更换图片按钮 */}
-              <button
-                type="button"
-                onClick={handleClick}
-                disabled={disabled || isProcessing}
-                className={cn(
-                  "flex items-center justify-center bg-white/95 hover:bg-white text-slate-700 rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed",
-                  compact ? "w-8 h-8" : "px-4 py-2.5 text-sm"
-                )}
-                title="更换图片"
-              >
-                {isProcessing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <Upload className="h-4 w-4" />
-                    {!compact && <span className="ml-2">更换图片</span>}
-                  </>
-                )}
-              </button>
+          {/* 玻璃拟态遮罩 */}
+          <AnimatePresence>
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileHover={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl overflow-hidden pointer-events-none group-hover:pointer-events-auto"
+            >
+              <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] transition-all duration-300" />
 
-              {/* 删除按钮 */}
-              <button
-                type="button"
-                onClick={handleRemove}
-                disabled={disabled || isProcessing}
-                className={cn(
-                  "flex items-center justify-center bg-red-500/90 hover:bg-red-500 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed",
-                  compact ? "w-8 h-8" : "w-10 h-10"
-                )}
-                title="移除图片"
-              >
-                <X className={cn(compact ? "h-4 w-4" : "h-5 w-5")} />
-              </button>
-            </div>
+              <div className="relative z-20 flex gap-2">
+                {/* 更换按钮 - 悬浮圆球设计 */}
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  type="button"
+                  onClick={handleClick}
+                  disabled={disabled || isProcessing}
+                  className="w-10 h-10 rounded-full bg-white/95 text-slate-700 shadow-xl flex items-center justify-center hover:bg-white hover:text-primary transition-colors disabled:opacity-50"
+                  title="更换图片"
+                >
+                  {isProcessing ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  ) : (
+                    <Camera className="h-4 w-4" />
+                  )}
+                </motion.button>
 
-            {/* 提示文字 */}
-            {!compact && <span className="text-white/90 text-[10px] font-medium">点击更换或删除</span>}
-          </div>
+                {/* 删除按钮 - 悬浮圆球设计 */}
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  type="button"
+                  onClick={handleRemove}
+                  disabled={disabled || isProcessing}
+                  className="w-10 h-10 rounded-full bg-red-500 text-white shadow-xl flex items-center justify-center hover:bg-red-600 transition-colors disabled:opacity-50"
+                  title="移除图片"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </motion.button>
+              </div>
+
+              {/* 底部微提示 */}
+              {!compact && (
+                <motion.div
+                  initial={{ y: 10, opacity: 0 }}
+                  whileHover={{ y: 0, opacity: 1 }}
+                  className="absolute bottom-4 text-white/90 text-[10px] font-bold tracking-widest uppercase"
+                >
+                  编辑图像
+                </motion.div>
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       ) : (
         // 上传模式

@@ -23,14 +23,14 @@ import { useAIChat } from "@/hooks"
 import { MessageSources } from "./MessageSources"
 import { ToolCallCard } from "./ToolCallCard"
 import { ChatHistorySidebar } from "./ChatHistorySidebar"
-import type { Site } from "@/lib/api-client"
-import type { QuickQuestion } from "@/lib/api-client"
+import { ClientSite, QuickQuestion } from "@/lib/api-client"
+
 
 interface AIChatLandingProps {
   siteName?: string
   siteId?: number | null
   quickQuestions?: QuickQuestion[]
-  allSites?: Site[]
+  allSites?: ClientSite[]
 }
 
 export function AIChatLanding({ siteName = "CatWiki", siteId, quickQuestions: propQuickQuestions, allSites }: AIChatLandingProps) {
@@ -96,7 +96,7 @@ export function AIChatLanding({ siteName = "CatWiki", siteId, quickQuestions: pr
         </div>
 
         {/* 顶部操作按钮 */}
-        <div className="absolute top-4 right-4 z-50 flex flex-row-reverse gap-2">
+        <div className="absolute top-4 right-4 z-30 flex flex-row-reverse gap-2">
           {!isHistoryOpen && (
             <Button
               variant="outline"
@@ -179,7 +179,7 @@ export function AIChatLanding({ siteName = "CatWiki", siteId, quickQuestions: pr
                         {message.role === "assistant" && message.toolCalls && message.toolCalls.length > 0 && (
                           <ToolCallCard toolCalls={message.toolCalls} />
                         )}
-                        
+
                         {/* 消息内容 */}
                         {message.role === "assistant" && !message.content && !message.toolCalls?.length ? (
                           <div className="flex gap-1 md:gap-1.5 items-center py-2 h-6">

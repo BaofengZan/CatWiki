@@ -30,6 +30,7 @@ import {
 import { toast } from "sonner"
 import { useCreateSite } from "@/hooks"
 import { env } from "@/lib/env"
+import { ImageUpload } from "@/components/ui/ImageUpload"
 
 // 主题色配置
 const THEME_COLORS = [
@@ -49,6 +50,7 @@ export function CreateSiteForm({ onCancel, onSuccess }: CreateSiteFormProps) {
   const [name, setName] = useState("")
   const [slug, setSlug] = useState("")
   const [description, setDescription] = useState("")
+  const [icon, setIcon] = useState<string | null>(null)
   const [isActive, setIsActive] = useState(true)
   const [themeColor, setThemeColor] = useState<string>("blue")
   const [layoutMode, setLayoutMode] = useState<string>("sidebar")
@@ -80,6 +82,7 @@ export function CreateSiteForm({ onCancel, onSuccess }: CreateSiteFormProps) {
       name: name.trim(),
       slug: slug.trim(),
       description: description.trim() || undefined,
+      icon: icon || undefined,
       status: isActive ? "active" : "disabled",
       theme_color: themeColor,
       layout_mode: layoutMode,
@@ -129,43 +132,60 @@ export function CreateSiteForm({ onCancel, onSuccess }: CreateSiteFormProps) {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">站点名称</label>
-                <Input
-                  className="h-9"
-                  placeholder="例如：catWiki"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+            <div className="flex flex-col md:flex-row gap-8">
+              {/* 站点图标上传 */}
+              <div className="w-full md:w-32 space-y-2">
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">站点图标</label>
+                <ImageUpload
+                  value={icon}
+                  onChange={setIcon}
+                  text="上传"
+                  aspect="aspect-square"
+                  className="w-full"
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">站点唯一标识</label>
-                <div className="flex items-center">
-                  <span
-                    className="inline-flex items-center px-3 h-9 rounded-l-md border border-r-0 border-slate-200 bg-slate-50 text-slate-500 text-[10px] font-mono flex-1 min-w-0 overflow-hidden"
-                    title={env.NEXT_PUBLIC_CLIENT_URL}
-                  >
-                    <span className="truncate">{env.NEXT_PUBLIC_CLIENT_URL}</span>/
-                  </span>
-                  <Input
-                    className="h-9 w-[35%] min-w-[80px] rounded-l-none"
-                    placeholder="cat"
-                    value={slug}
-                    onChange={(e) => setSlug(e.target.value)}
+
+              {/* 站点基本信息字段 */}
+              <div className="flex-1 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">站点名称</label>
+                    <Input
+                      className="h-9"
+                      placeholder="例如：catWiki"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">站点唯一标识</label>
+                    <div className="flex items-center">
+                      <span
+                        className="inline-flex items-center px-3 h-9 rounded-l-md border border-r-0 border-slate-200 bg-slate-50 text-slate-500 text-[10px] font-mono flex-1 min-w-0 overflow-hidden"
+                        title={env.NEXT_PUBLIC_CLIENT_URL}
+                      >
+                        <span className="truncate">{env.NEXT_PUBLIC_CLIENT_URL}</span>/
+                      </span>
+                      <Input
+                        className="h-9 w-[35%] min-w-[80px] rounded-l-none"
+                        placeholder="cat"
+                        value={slug}
+                        onChange={(e) => setSlug(e.target.value)}
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-500">此标识将用于访问该 Wiki 站点的 URL 地址。</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">站点描述</label>
+                  <Textarea
+                    className="min-h-[80px] text-sm resize-none"
+                    placeholder="简要介绍这个 Wiki 站点的主要内容..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
                   />
                 </div>
-                <p className="text-[10px] text-slate-500">此标识将用于访问该 Wiki 站点的 URL 地址。</p>
               </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">站点描述</label>
-              <Textarea
-                className="min-h-[80px] text-sm resize-none"
-                placeholder="简要介绍这个 Wiki 站点的主要内容..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
             </div>
           </CardContent>
         </Card>

@@ -14,7 +14,7 @@ export class BotService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    public verifyUrlV1BotWecomSmartRobotGet({
+    public verifyUrlV1BotWecomSmartGet({
         msgSignature,
         timestamp,
         nonce,
@@ -29,7 +29,7 @@ export class BotService {
     }): CancelablePromise<any> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/v1/bot/wecom-smart-robot',
+            url: '/v1/bot/wecom-smart',
             query: {
                 'msg_signature': msgSignature,
                 'timestamp': timestamp,
@@ -48,7 +48,7 @@ export class BotService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    public handleWecomMessageV1BotWecomSmartRobotPost({
+    public handleWecomMessageV1BotWecomSmartPost({
         msgSignature,
         timestamp,
         nonce,
@@ -61,7 +61,7 @@ export class BotService {
     }): CancelablePromise<any> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/v1/bot/wecom-smart-robot',
+            url: '/v1/bot/wecom-smart',
             query: {
                 'msg_signature': msgSignature,
                 'timestamp': timestamp,

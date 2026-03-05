@@ -17,7 +17,6 @@
     "name": "健康百科",
     "slug": "health",
     "description": "医学知识科普站点，提供常见疾病、健康生活、急救知识等内容",
-    "icon": "medical",
     "status": "active",
     "theme_color": "blue",
     "layout_mode": "sidebar",

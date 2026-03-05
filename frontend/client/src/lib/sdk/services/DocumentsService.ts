@@ -21,6 +21,9 @@ export class DocumentsService {
         collectionId,
         keyword,
         excludeContent = true,
+        orderBy,
+        orderDir = 'desc',
+        includeSiteInfo = false,
     }: {
         page?: number,
         size?: number,
@@ -40,6 +43,18 @@ export class DocumentsService {
          * 是否排除文档内容（用于列表展示，提升性能）
          */
         excludeContent?: boolean,
+        /**
+         * 排序字段
+         */
+        orderBy?: (string | null),
+        /**
+         * 排序方向
+         */
+        orderDir?: string,
+        /**
+         * 是否包含站点信息
+         */
+        includeSiteInfo?: boolean,
     }): CancelablePromise<ApiResponse_PaginatedResponse_Document__> {
         return this.httpRequest.request({
             method: 'GET',
@@ -51,6 +66,9 @@ export class DocumentsService {
                 'collection_id': collectionId,
                 'keyword': keyword,
                 'exclude_content': excludeContent,
+                'order_by': orderBy,
+                'order_dir': orderDir,
+                'include_site_info': includeSiteInfo,
             },
             errors: {
                 422: `Validation Error`,

@@ -140,7 +140,7 @@ def upgrade() -> None:
         sa.Column("name", sa.String(length=100), nullable=False, comment="站点名称"),
         sa.Column("slug", sa.String(length=200), nullable=False, comment="站点标识"),
         sa.Column("description", sa.Text(), nullable=True, comment="站点描述"),
-        sa.Column("icon", sa.String(length=50), nullable=True, comment="图标名称"),
+        sa.Column("icon", sa.String(length=1000), nullable=True, comment="图标URL或名称"),
         sa.Column(
             "status",
             sa.String(length=20),

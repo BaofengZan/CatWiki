@@ -18,6 +18,7 @@ import { LoadingState } from "@/components/ui/loading-state"
 import { EmptyState } from "@/components/ui/empty-state"
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -147,8 +148,12 @@ export function GlobalSites() {
               <Card key={site.id} className="group hover:shadow-lg transition-all duration-300 border-border/60 rounded-2xl overflow-hidden bg-card/50 hover:bg-card">
                 <CardHeader className="pb-3 pt-4 px-4">
                   <div className="flex justify-between items-start">
-                    <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
-                      <Globe className="h-4 w-4" />
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary group-hover:bg-white group-hover:text-primary transition-all duration-300 overflow-hidden flex items-center justify-center border border-transparent group-hover:border-primary/20 shadow-sm">
+                      {site.icon ? (
+                        <Image src={site.icon} alt={site.name} width={40} height={40} className="w-full h-full object-cover" unoptimized />
+                      ) : (
+                        <Globe className="h-5 w-5" />
+                      )}
                     </div>
                     <div className="flex gap-1">
                       <Link href={`?modal=site-settings&siteId=${site.id}`} scroll={false}>
