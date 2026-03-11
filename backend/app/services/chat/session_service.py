@@ -207,7 +207,11 @@ class ChatSessionService:
             query = query.where(keyword_filter)
 
         # 按更新时间倒序，分页
-        query = query.order_by(desc(ChatSession.updated_at)).offset(paginator.skip).limit(paginator.size)
+        query = (
+            query.order_by(desc(ChatSession.updated_at))
+            .offset(paginator.skip)
+            .limit(paginator.size)
+        )
 
         result = await db.execute(query)
         sessions = list(result.scalars().all())

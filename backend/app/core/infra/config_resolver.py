@@ -36,6 +36,8 @@ SECTION_TO_KEY = {
     "vl": AI_VL_CONFIG_KEY,
 }
 
+MODEL_TYPES = ["chat", "embedding", "rerank", "vl"]
+
 
 class ConfigResolver:
     """Core configuration resolver logic.
@@ -101,15 +103,14 @@ class ConfigResolver:
                     raise CatWikiError(f"未配置 '{section}' 模块，请联系管理员配置模型")
                 # 如果是可选模块 (rerank/vl)，返回禁用状态
                 return {
-                    "_mode": "custom",
-                    "_source": "tenant",
+                    "mode": "custom",
                     "enabled": False,
                     "_hash": "disabled",
                 }
 
             mode = tenant_section.get("mode")
             if mode == "custom":
-                tenant_section.update({"_mode": "custom", "_source": "tenant", "enabled": True})
+                tenant_section.update({"mode": "custom", "enabled": True})
                 tenant_section["_hash"] = cls.compute_config_hash(tenant_section)
                 return tenant_section
 
@@ -122,8 +123,7 @@ class ConfigResolver:
                         )
                     # 如果是可选模块没授权，回退到禁用
                     return {
-                        "_mode": "platform",
-                        "_source": "platform",
+                        "mode": "platform",
                         "enabled": False,
                         "_hash": "unauthorized",
                     }
@@ -135,8 +135,7 @@ class ConfigResolver:
                         f"租户 {tenant_id} 的 '{section}' 配置无效，请重新检查配置项"
                     )
                 return {
-                    "_mode": "custom",
-                    "_source": "tenant",
+                    "mode": "custom",
                     "enabled": False,
                     "_hash": "invalid_mode",
                 }
@@ -154,13 +153,22 @@ class ConfigResolver:
                 raise CatWikiError(f"平台未配置 '{section}' 模块，请在系统设置中完成 AI 模型配置")
             # 可选模块缺失平台配置，返回禁用状态
             return {
-                "_mode": "platform",
-                "_source": "platform",
+                "mode": "platform",
                 "enabled": False,
                 "_hash": "platform_missing",
             }
 
-        platform_section.update({"_mode": "platform", "_source": "platform", "enabled": True})
+        # [✨ 优化] 上下文感知：
+        # 如果是租户在回退使用，其逻辑模式应为 platform。
+        # 如果是平台自己在查看，其逻辑模式应为 custom。
+        resolved_mode = "platform" if tenant_id is not None else "custom"
+
+        platform_section.update(
+            {
+                "mode": resolved_mode,  # 逻辑判定结果：当前运行模式
+                "enabled": True,
+            }
+        )
         platform_section["_hash"] = cls.compute_config_hash(platform_section)
         return platform_section
 
@@ -190,7 +198,7 @@ class ConfigResolver:
                 provider = conf.get("provider", "N/A")
                 model = conf.get("model", "N/A")
                 eb = conf.get("extra_body")
-                mode = conf.get("_mode", "platform")
+                mode = conf.get("mode", "platform")
                 h = conf.get("_hash", "N/A")[:8]
 
                 eb_str = f" | Extra: {json.dumps(eb)}" if eb else ""

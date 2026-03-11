@@ -35,5 +35,9 @@ export type DocProcessorConfig = {
      * 额外配置（如 is_ocr）
      */
     config?: Record<string, any>;
+    /**
+     * 服务来源
+     */
+    origin?: ('platform' | 'tenant' | null);
 };
 

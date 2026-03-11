@@ -107,7 +107,6 @@ export const initialConfigs: AIConfigs = {
     model: "",
     api_key: "",
     base_url: "",
-    mode: ModelConfigEnum.mode.CUSTOM,
     is_vision: false,
     extra_body: {
       chat_template_kwargs: {
@@ -120,7 +119,6 @@ export const initialConfigs: AIConfigs = {
     model: "",
     api_key: "",
     base_url: "",
-    mode: ModelConfigEnum.mode.CUSTOM,
     is_vision: false
   },
   rerank: {
@@ -128,7 +126,6 @@ export const initialConfigs: AIConfigs = {
     model: "",
     api_key: "",
     base_url: "",
-    mode: ModelConfigEnum.mode.CUSTOM,
     is_vision: false
   },
   vl: {
@@ -136,7 +133,6 @@ export const initialConfigs: AIConfigs = {
     model: "",
     api_key: "",
     base_url: "",
-    mode: ModelConfigEnum.mode.CUSTOM,
     is_vision: true
   },
   bot_config: {

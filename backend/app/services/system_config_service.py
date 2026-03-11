@@ -2,25 +2,21 @@ import asyncio
 import copy
 import logging
 from typing import Any
+from uuid import uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.common.masking import mask_sensitive_data
 from app.core.infra.config import (
-    AI_CHAT_CONFIG_KEY,
-    AI_EMBEDDING_CONFIG_KEY,
-    AI_RERANK_CONFIG_KEY,
-    AI_VL_CONFIG_KEY,
     DOC_PROCESSOR_CONFIG_KEY,
 )
+from app.core.infra.config_resolver import MODEL_TYPES, SECTION_TO_KEY
 from app.core.infra.tenant import get_current_tenant, temporary_tenant_context
 from app.core.web.exceptions import BadRequestException
 from app.crud.system_config import crud_system_config
 from app.services.config.configuration_service import configuration_service
 
 logger = logging.getLogger(__name__)
-
-MODEL_TYPES = ["chat", "embedding", "rerank", "vl"]
 
 
 class SystemConfigService:
@@ -38,57 +34,131 @@ class SystemConfigService:
         return AsyncOpenAI(api_key=api_key, base_url=base_url, timeout=timeout)
 
     @staticmethod
-    async def get_ai_config(db: AsyncSession, target_tenant_id: int | None) -> dict | None:
-        """获取 AI 模型配置"""
+    async def get_ai_config(db: AsyncSession, target_tenant_id: int | None) -> dict:
+        """获取 AI 模型配置 (返回结构化数据：configs + meta)"""
         with temporary_tenant_context(target_tenant_id):
-            configs = []
-            for key in [
-                AI_CHAT_CONFIG_KEY,
-                AI_EMBEDDING_CONFIG_KEY,
-                AI_RERANK_CONFIG_KEY,
-                AI_VL_CONFIG_KEY,
-            ]:
+            # 1. 初始化模型骨架
+            configs = {model_type: {} for model_type in MODEL_TYPES}
+
+            # 2. 从数据库加载现有配置
+            for model_type in MODEL_TYPES:
+                config_key = SECTION_TO_KEY[model_type]
                 config = await crud_system_config.get_by_key(
-                    db, config_key=key, tenant_id=target_tenant_id
+                    db, config_key=config_key, tenant_id=target_tenant_id
                 )
                 if config:
-                    configs.append(config)
+                    val = copy.deepcopy(config.config_value)
+                    configs[model_type] = mask_sensitive_data(val)
 
-            if not configs:
-                return None
+            # 3. [✨ 亮点] 生成元数据，标记哪些配置正在回退到平台
+            meta = {"is_platform_fallback": {model_type: False for model_type in MODEL_TYPES}}
 
-            result = {}
-            for config in configs:
-                # 获取展示名称 (chat/embedding/...)
-                type_name = config.config_key.replace("ai_", "").replace("_config", "")
-                val = copy.deepcopy(config.config_value)
-                # 敏感字段掩补
-                val = mask_sensitive_data(val)
-                result[type_name] = val
+            if target_tenant_id:
+                try:
+                    from app.crud.tenant import crud_tenant
 
-            return result
+                    tenant = await crud_tenant.get(db, id=target_tenant_id)
+                    if tenant and "models" in (tenant.platform_resources_allowed or []):
+                        for model_type in MODEL_TYPES:
+                            # [✨ 逻辑修正] 只有当租户显式保存了 mode 为 'platform' 时，才视为 Fallback 状态
+                            # 这样如果租户什么都没配，界面会正确显示为“未配置”，而不是莫名其妙就变成“已配置（平台提供）”
+                            is_fallback = configs.get(model_type, {}).get("mode") == "platform"
+                            meta["is_platform_fallback"][model_type] = is_fallback
+                except Exception as e:
+                    logger.warning(f"⚠️ [SystemConfigService] Failed to generate meta: {e}")
+
+            return {"configs": configs, "meta": meta}
+
+    @staticmethod
+    async def resolve_platform_defaults(db: AsyncSession, target_tenant_id: int | None) -> dict:
+        """解析并聚合平台默认配置 (脱敏后)"""
+        if not target_tenant_id:
+            return {}
+
+        try:
+            from app.crud.tenant import crud_tenant
+
+            tenant = await crud_tenant.get(db, id=target_tenant_id)
+            if tenant and "models" in (tenant.platform_resources_allowed or []):
+                from app.core.infra.config_resolver import ConfigResolver
+
+                defaults = {
+                    "chat": await ConfigResolver.resolve_section("chat", None),
+                    "embedding": await ConfigResolver.resolve_section("embedding", None),
+                    "rerank": await ConfigResolver.resolve_section("rerank", None),
+                    "vl": await ConfigResolver.resolve_section("vl", None),
+                }
+                return mask_sensitive_data(defaults)
+        except Exception as e:
+            logger.error(f"❌ Failed to resolve platform defaults: {e}")
+
+        return {}
+
+    @staticmethod
+    def _is_masked(val: Any) -> bool:
+        """判断字符串是否包含脱敏掩码"""
+        return isinstance(val, str) and "****" in val
+
+    @staticmethod
+    def _merge_securely(new_dict: dict, old_dict: dict):
+        """深度合并配置，实现两个核心能力：
+        1. 掩码还原：识别 **** 占位符并从旧数据中恢复真实 Credentials。
+        2. 字段保全：如果新提交的字典缺少旧字典中的某些非涉密字段，自动补全它们（防止偏序提交导致的数据丢失）。
+        """
+        for k, v in old_dict.items():
+            if k not in new_dict:
+                # 1. 补全：新数据中完全缺失的键，直接从旧数据继承
+                new_dict[k] = v
+            elif SystemConfigService._is_masked(new_dict[k]):
+                # 2. 还原：新数据中是掩码，且旧数据是真实值，则回填真实值
+                if not SystemConfigService._is_masked(v) and v:
+                    new_dict[k] = v
+                else:
+                    # 连旧数据也是空的或掩码，说明该字段彻底失效，置空
+                    new_dict[k] = ""
+            elif isinstance(v, dict) and isinstance(new_dict.get(k), dict):
+                # 3. 递归：处理嵌套结构 (如 extra_body)
+                SystemConfigService._merge_securely(new_dict[k], v)
+
+    @staticmethod
+    async def get_full_ai_state(db: AsyncSession, target_tenant_id: int | None) -> dict:
+        """获取全量 AI 状态 (配置 + 元数据 + 平台默认值)"""
+        ai_state = await SystemConfigService.get_ai_config(db, target_tenant_id)
+        platform_defaults = await SystemConfigService.resolve_platform_defaults(
+            db, target_tenant_id
+        )
+        return {
+            "configs": ai_state["configs"],
+            "meta": ai_state["meta"],
+            "platform_defaults": platform_defaults or None,
+        }
 
     @staticmethod
     async def update_ai_config(
         db: AsyncSession, target_tenant_id: int | None, update_data: Any
     ) -> dict:
-        """更新 AI 模型配置"""
+        """更新 AI 模型配置 (保存后返回全量数据)"""
         new_values = update_data.model_dump(exclude_unset=True)
-        response_data = {}
 
-        # 1. 转换键并存库
         for model_type in MODEL_TYPES:
             if model_type in new_values:
-                config_key = f"ai_{model_type}_config"
-                config_val = new_values[model_type]
+                config_key = SECTION_TO_KEY[model_type]
+                new_config_val = new_values[model_type]
 
-                db_config = await crud_system_config.update_by_key(
-                    db, config_key=config_key, config_value=config_val, tenant_id=target_tenant_id
+                # [✨ 亮点] 深度合并逻辑：保护真实密钥不被脱敏占位符 (****) 覆盖
+                existing = await crud_system_config.get_by_key(
+                    db, config_key=config_key, tenant_id=target_tenant_id
                 )
 
-                response_val = copy.deepcopy(db_config.config_value)
-                response_val = mask_sensitive_data(response_val)
-                response_data[model_type] = response_val
+                if existing and isinstance(existing.config_value, dict):
+                    SystemConfigService._merge_securely(new_config_val, existing.config_value)
+
+                await crud_system_config.update_by_key(
+                    db,
+                    config_key=config_key,
+                    config_value=new_config_val,
+                    tenant_id=target_tenant_id,
+                )
 
         # 2. 清理配置缓存
         try:
@@ -114,69 +184,100 @@ class SystemConfigService:
 
             asyncio.create_task(_reload_vector_store())
 
-        return response_data
+        # 4. 返回全量状态
+        return await SystemConfigService.get_full_ai_state(db, target_tenant_id)
 
     @staticmethod
-    async def test_model_connection(model_type: str, config: Any) -> dict:
-        """测试模型连接性"""
-        if model_type in ["chat", "vl"]:
-            try:
-                client = SystemConfigService._create_openai_client(
-                    api_key=config.api_key, base_url=config.base_url
+    async def _resolve_connection_params(
+        db: AsyncSession, target_tenant_id: int | None, model_type: str, config: Any
+    ) -> tuple[str, str, str]:
+        """解析最终用于连接的 (api_key, base_url, model)"""
+        api_key = config.api_key
+        base_url = config.base_url
+        model = config.model
+
+        is_masked = SystemConfigService._is_masked(api_key)
+        is_platform = config.mode == "platform"
+
+        if is_masked or is_platform:
+            lookup_tenant_id = target_tenant_id if not is_platform else None
+            config_key = SECTION_TO_KEY[model_type]
+
+            existing = await crud_system_config.get_by_key(
+                db, config_key=config_key, tenant_id=lookup_tenant_id
+            )
+            if existing and isinstance(existing.config_value, dict):
+                old_val = existing.config_value
+                if is_masked or (is_platform and not api_key):
+                    api_key = old_val.get("api_key", api_key)
+                if is_platform and not model:
+                    model = old_val.get("model", model)
+                if is_platform and not base_url:
+                    base_url = old_val.get("base_url", base_url)
+
+        return api_key, base_url, model
+
+    @staticmethod
+    async def test_model_connection(
+        db: AsyncSession, target_tenant_id: int | None, model_type: str, config: Any
+    ) -> dict:
+        """测试模型连接性 (支持自动从数据库恢复 **** 占位符)"""
+        api_key, base_url, model = await SystemConfigService._resolve_connection_params(
+            db, target_tenant_id, model_type, config
+        )
+
+        try:
+            if model_type in ["chat", "vl"]:
+                return await SystemConfigService._test_chat_connection(api_key, base_url, model)
+            elif model_type == "embedding":
+                return await SystemConfigService._test_embedding_connection(
+                    api_key, base_url, model
                 )
-                response = await client.chat.completions.create(
-                    model=config.model,
-                    messages=[{"role": "user", "content": "Hello"}],
-                    max_tokens=5,
-                )
-                return {"details": f"Response: {response.choices[0].message.content[:20]}..."}
-            except Exception as e:
-                logger.error(f"❌ Chat/VL connection test failed: {e}")
-                raise BadRequestException(detail=f"连接失败: {str(e)}")
-
-        elif model_type == "embedding":
-            try:
-                client = SystemConfigService._create_openai_client(
-                    api_key=config.api_key, base_url=config.base_url
-                )
-                response = await client.embeddings.create(model=config.model, input="Hello world")
-                dim = len(response.data[0].embedding)
-                return {"dimension": dim}
-            except Exception as e:
-                logger.error(f"❌ Embedding connection test failed: {e}")
-                raise BadRequestException(detail=f"连接失败: {str(e)}")
-
-        elif model_type == "rerank":
-            try:
-                import httpx
-
-                url = config.base_url.rstrip("/")
-                if not url.endswith("/rerank"):
-                    url = f"{url}/rerank"
-
-                payload = {
-                    "model": config.model,
-                    "query": "What is Deep Learning?",
-                    "documents": ["Deep Learning is ...", "Hello World"],
-                    "top_n": 1,
-                }
-                headers = {
-                    "Authorization": f"Bearer {config.api_key}",
-                    "Content-Type": "application/json",
-                }
-
-                async with httpx.AsyncClient(timeout=10.0) as client:
-                    resp = await client.post(url, json=payload, headers=headers)
-                    if resp.status_code != 200:
-                        raise BadRequestException(
-                            detail=f"请求失败 (Status {resp.status_code}): {resp.text[:100]}"
-                        )
-                    return {"status": "ok"}
-            except Exception as e:
-                logger.error(f"❌ Rerank connection test failed: {e}")
-                raise BadRequestException(detail=f"连接失败: {str(e)}")
+            elif model_type == "rerank":
+                return await SystemConfigService._test_rerank_connection(api_key, base_url, model)
+        except Exception as e:
+            logger.error(f"❌ {model_type.upper()} connection test failed: {e}")
+            raise BadRequestException(detail=f"连接失败: {str(e)}")
 
         raise BadRequestException(detail=f"不支持的测试类型: {model_type}")
+
+    @staticmethod
+    async def _test_chat_connection(api_key: str, base_url: str, model: str) -> dict:
+        client = SystemConfigService._create_openai_client(api_key, base_url)
+        response = await client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": "Hello"}],
+            max_tokens=5,
+        )
+        return {"details": f"Response: {response.choices[0].message.content[:20]}..."}
+
+    @staticmethod
+    async def _test_embedding_connection(api_key: str, base_url: str, model: str) -> dict:
+        client = SystemConfigService._create_openai_client(api_key, base_url)
+        response = await client.embeddings.create(model=model, input="Hello world")
+        return {"dimension": len(response.data[0].embedding)}
+
+    @staticmethod
+    async def _test_rerank_connection(api_key: str, base_url: str, model: str) -> dict:
+        import httpx
+
+        url = base_url.rstrip("/")
+        if not url.endswith("/rerank"):
+            url = f"{url}/rerank"
+
+        payload = {
+            "model": model,
+            "query": "Ping",
+            "documents": ["Pong"],
+            "top_n": 1,
+        }
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(url, json=payload, headers=headers)
+            if resp.status_code != 200:
+                raise Exception(f"HTTP {resp.status_code}: {resp.text[:100]}")
+            return {"status": "ok"}
 
     @staticmethod
     async def get_doc_processor_config(
@@ -192,21 +293,17 @@ class SystemConfigService:
             if tenant and "doc_processors" in (tenant.platform_resources_allowed or []):
                 platform_fallback_allowed = True
 
-        # 2. 获取租户自身配置
+        tenant_processors = []
         with temporary_tenant_context(target_tenant_id):
             config = await crud_system_config.get_by_key(
                 db, config_key=DOC_PROCESSOR_CONFIG_KEY, tenant_id=target_tenant_id
             )
-
-        tenant_processors = []
-        if config:
-            tenant_processors = config.config_value.get("processors", [])
-            for p in tenant_processors:
-                p["origin"] = "tenant"
-                if "id" not in p:
-                    from uuid import uuid4
-
-                    p["id"] = str(uuid4())
+            if config:
+                tenant_processors = config.config_value.get("processors", [])
+                for p in tenant_processors:
+                    p["origin"] = "tenant"
+                    if "id" not in p:
+                        p["id"] = str(uuid4())
 
         # 3. 获取平台配置 (如果允许)
         platform_processors = []
@@ -220,8 +317,6 @@ class SystemConfigService:
                     for p in platform_processors:
                         p["origin"] = "platform"
                         if "id" not in p:
-                            from uuid import uuid4
-
                             p["id"] = str(uuid4())
 
         # 4. 根据视角进行脱敏并合并
@@ -235,12 +330,22 @@ class SystemConfigService:
     async def update_doc_processor_config(
         db: AsyncSession, target_tenant_id: int | None, update_data: Any
     ) -> dict:
-        """更新文档处理服务配置 (自动过滤平台来源)"""
+        """更新文档处理服务配置 (自动过滤平台来源，并持久化 ID)"""
         config_value = update_data.model_dump(mode="json")
         if "processors" in config_value:
-            config_value["processors"] = [
-                p for p in config_value["processors"] if p.get("origin") != "platform"
-            ]
+            filtered_procs = []
+            for p in config_value["processors"]:
+                # 1. 过滤：禁止将来源为 platform 的项存入租户私有库
+                if p.get("origin") == "platform":
+                    continue
+
+                # 2. 稳定 ID：如果新加的项没有 ID，生成一个并固定下来
+                if not p.get("id"):
+                    p["id"] = str(uuid4())
+
+                filtered_procs.append(p)
+
+            config_value["processors"] = filtered_procs
 
         db_config = await crud_system_config.update_by_key(
             db,

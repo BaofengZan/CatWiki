@@ -67,14 +67,13 @@ class ConfigurationService:
 
         return ConfigResolver.compute_config_hash(config)
 
-    def _log_resolved_config(self, section: str, target: str, mode: str, config: dict[str, Any]):
+    def _log_resolved_config(self, section: str, target: str, config: dict[str, Any]):
         """打印全量可视化卡片 (仅在数据库加载时触发，内部调试用)"""
         from app.core.common.masking import mask_sensitive_data
 
         masked = mask_sensitive_data(config)
         model = masked.get("model", "N/A")
         provider = masked.get("provider", "N/A")
-        extra_body = masked.get("extra_body")
 
         try:
             pretty_json = json.dumps(masked, indent=4, ensure_ascii=False)
@@ -82,16 +81,15 @@ class ConfigurationService:
             pretty_json = str(masked)
 
         log_msg = (
-            f"\n{'=' * 60}\n"
+            f"\n{'=' * 70}\n"
             f"🔍 [Config Service] -> 🔄 从数据库新鲜加载\n"
             f"   - 模块阶段: {section}\n"
             f"   - 目标对象: {target}\n"
             f"   - 指纹标识: {config.get('_hash', 'N/A')}\n"
-            f"   - 命中模式: {mode}\n"
+            f"   - 模型模式 (mode): {config.get('mode', 'N/A')} (运行状态)\n"
             f"   - 核心模型: {provider} | {model}\n"
-            f"   - 扩展参数 (extra_body): {json.dumps(extra_body) if extra_body else 'None'}\n"
             f"   - 完整脱敏快照:\n{pretty_json}\n"
-            f"{'=' * 60}"
+            f"{'=' * 70}"
         )
         logger.info(log_msg)
 
@@ -134,9 +132,7 @@ class ConfigurationService:
 
         # 3. 打印日志并存回缓存
         target_display = f"Tenant {tenant_id}" if tenant_id else "Platform"
-        self._log_resolved_config(
-            section, target_display, resolved_config.get("_mode", "N/A"), resolved_config
-        )
+        self._log_resolved_config(section, target_display, resolved_config)
 
         self._config_cache[cache_key] = resolved_config
         self._last_update_map[cache_key] = now

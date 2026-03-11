@@ -13,7 +13,6 @@ export class AdminSitesService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
      * List Sites
-     * 获取站点列表（分页）
      * @returns ApiResponse_PaginatedResponse_Site__ Successful Response
      * @throws ApiError
      */
@@ -41,7 +40,6 @@ export class AdminSitesService {
     }
     /**
      * Create Site
-     * 创建站点
      * @returns ApiResponse_Site_ Successful Response
      * @throws ApiError
      */
@@ -62,7 +60,6 @@ export class AdminSitesService {
     }
     /**
      * Get Site
-     * 获取站点详情
      * @returns ApiResponse_Site_ Successful Response
      * @throws ApiError
      */
@@ -84,7 +81,6 @@ export class AdminSitesService {
     }
     /**
      * Update Site
-     * 更新站点
      * @returns ApiResponse_Site_ Successful Response
      * @throws ApiError
      */
@@ -110,7 +106,6 @@ export class AdminSitesService {
     }
     /**
      * Delete Site
-     * 删除站点（级联删除关联数据）
      * @returns ApiResponse_NoneType_ Successful Response
      * @throws ApiError
      */
@@ -132,7 +127,6 @@ export class AdminSitesService {
     }
     /**
      * Get Site By Slug
-     * 通过 slug 获取站点详情（管理后台）
      * @returns ApiResponse_Site_ Successful Response
      * @throws ApiError
      */

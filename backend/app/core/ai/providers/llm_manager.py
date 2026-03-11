@@ -58,7 +58,7 @@ class LLMManager:
 
         # 严格校验：如果处于 custom 模式，必须提供有效的配置，不回退到系统环境变量
         api_key = config.get("api_key")
-        mode = config.get("_mode", "platform")
+        mode = config.get("mode", "platform")
 
         if mode == "custom" and not api_key:
             raise BadRequestException("已开启自定义模型模式，但未在管理后台配置 API Key。")
@@ -84,7 +84,6 @@ class LLMManager:
                 extra={
                     "Base URL": base_url,
                     "Temperature": temperature,
-                    "Source": config.get("_source", "platform"),
                 },
                 purpose=purpose,
             )
@@ -97,7 +96,6 @@ class LLMManager:
                 "extra": {
                     "Base URL": base_url,
                     "Temperature": temperature,
-                    "Source": config.get("_source", "platform"),
                 },
             }
             return model_inst
@@ -114,7 +112,6 @@ class LLMManager:
             extra={
                 "Base URL": base_url,
                 "Temperature": temperature,
-                "Source": config.get("_source", "platform"),
             },
             purpose=purpose,
         )
@@ -138,7 +135,6 @@ class LLMManager:
             "extra": {
                 "Base URL": base_url,
                 "Temperature": temperature,
-                "Source": config.get("_source", "platform"),
             },
         }
 

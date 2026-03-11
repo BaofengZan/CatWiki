@@ -2,8 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { SystemConfigResponse } from './SystemConfigResponse';
-export type ApiResponse_Union_SystemConfigResponse__NoneType__ = {
+import type { DocProcessorResponse } from './DocProcessorResponse';
+export type ApiResponse_DocProcessorResponse_ = {
     /**
      * 响应码，0 表示成功
      */
@@ -15,6 +15,6 @@ export type ApiResponse_Union_SystemConfigResponse__NoneType__ = {
     /**
      * 响应数据
      */
-    data?: (SystemConfigResponse | null);
+    data?: (DocProcessorResponse | null);
 };
 

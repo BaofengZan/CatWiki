@@ -124,41 +124,45 @@ export function SettingsProvider({ children, scope = 'tenant' }: { children: Rea
   const { data: aiConfigData, isLoading } = useAIConfig(scope)
   const updateAIConfigMutation = useUpdateAIConfig(scope)
 
-  // 当配置数据加载完成时，合并到本地状态
+  // [✨ 亮点] 统一的状态更新逻辑，确保初始加载和保存后逻辑一致
+  const updateStateFromResponse = (data: any) => {
+    if (!data) return
+
+    // 1. 更新模型配置 (configs 只包含 chat/embedding 等项目)
+    if (data.configs) {
+      const updated = mergeAIConfigs(data.configs, initialConfigs)
+      setConfigs(updated)
+      setSavedConfigs(updated)
+    }
+
+    // 2. 更新元数据 (meta.is_platform_fallback)
+    if (data.meta) {
+      const fallback = data.meta.is_platform_fallback
+      if (isRecord(fallback)) {
+        const parsed = Object.entries(fallback).reduce<Record<string, boolean>>((acc, [key, value]) => {
+          if (typeof value === "boolean") {
+            acc[key] = value
+          }
+          return acc
+        }, {})
+        setPlatformFallback(parsed)
+      }
+    } else {
+      setPlatformFallback({})
+    }
+
+    // 3. 更新平台默认值
+    if (data.platform_defaults) {
+      setPlatformDefaults(mergeAIConfigs(data.platform_defaults, initialConfigs))
+    } else {
+      setPlatformDefaults(null)
+    }
+  }
+
+  // 当配置数据加载完成时，同步到本地状态
   useEffect(() => {
     if (aiConfigData) {
-      let loadedConfigs: AIConfigs = { ...initialConfigs }
-
-      // aiConfigData is SystemConfigResponse
-      if (aiConfigData.config_value) {
-        const aiData = aiConfigData.config_value
-        loadedConfigs = mergeAIConfigs(aiData, initialConfigs)
-
-        // 提取元数据
-        const meta = isRecord(aiData) && isRecord(aiData._meta) ? aiData._meta : undefined
-        const fallback = meta?.is_platform_fallback
-        if (isRecord(fallback)) {
-          const parsed = Object.entries(fallback).reduce<Record<string, boolean>>((acc, [key, value]) => {
-            if (typeof value === "boolean") {
-              acc[key] = value
-            }
-            return acc
-          }, {})
-          setPlatformFallback(parsed)
-        } else {
-          setPlatformFallback({})
-        }
-      }
-
-      // 提取平台默认配置
-      if (aiConfigData.platform_defaults) {
-        setPlatformDefaults(mergeAIConfigs(aiConfigData.platform_defaults, initialConfigs))
-      } else {
-        setPlatformDefaults(null)
-      }
-
-      setConfigs(loadedConfigs)
-      setSavedConfigs(loadedConfigs)
+      updateStateFromResponse(aiConfigData)
     }
   }, [aiConfigData])
 
@@ -173,12 +177,10 @@ export function SettingsProvider({ children, scope = 'tenant' }: { children: Rea
   }
 
   const handleSave = async (modelType?: RuntimeModelType, overrides?: Partial<Record<string, PrimitiveConfigValue>>) => {
-    // 根据是否传入 modelType 构建 Payload
-    // 如果传入则仅保存该项，否则全量保存
+    // 构造更新 Payload
     let aiConfig: AIConfigUpdate = {}
 
     if (modelType) {
-      // 合并 overrides 到当前配置（解决 setState 异步导致的时序问题）
       const mergedConfig = overrides
         ? { ...configs[modelType], ...overrides }
         : configs[modelType]
@@ -194,37 +196,12 @@ export function SettingsProvider({ children, scope = 'tenant' }: { children: Rea
 
     try {
       const data = await updateAIConfigMutation.mutateAsync(aiConfig)
-
-      if (data && data.config_value) {
-        const aiData = data.config_value
-        const updated = mergeAIConfigs(aiData, initialConfigs)
-
-        setSavedConfigs(updated)
-        setConfigs(updated)
-
-        const meta = isRecord(aiData) && isRecord(aiData._meta) ? aiData._meta : undefined
-        const fallback = meta?.is_platform_fallback
-        if (isRecord(fallback)) {
-          const parsed = Object.entries(fallback).reduce<Record<string, boolean>>((acc, [key, value]) => {
-            if (typeof value === "boolean") {
-              acc[key] = value
-            }
-            return acc
-          }, {})
-          setPlatformFallback(parsed)
-        }
-
-        // 更新平台默认配置 (虽然通常不变，但为了数据一致性)
-        if (data.platform_defaults) {
-          setPlatformDefaults(mergeAIConfigs(data.platform_defaults, initialConfigs))
-        }
-      } else {
-        setSavedConfigs({ ...configs })
+      if (data) {
+        updateStateFromResponse(data)
+        toast.success("AI 模型配置已保存")
       }
-
-      toast.success("AI 模型配置已保存")
     } catch (error) {
-      // 错误由 useAdminMutation 处理，但我们需要 rethrow 以便调用者知道失败了
+      // 错误由 useAdminMutation 统一处理
       throw error
     }
   }
@@ -256,8 +233,8 @@ export function SettingsProvider({ children, scope = 'tenant' }: { children: Rea
   const isModelConfigured = (modelType: RuntimeModelType) => {
     const config = configs[modelType]
 
-    // 如果使用了平台资源，则视为已配置
-    if (config.mode === "platform") {
+    // 如果使用了平台资源或正在使用平台回退，则视为已配置
+    if (config.mode === "platform" || platformFallback[modelType]) {
       return true
     }
 

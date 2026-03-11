@@ -17,13 +17,11 @@
 """
 
 import logging
-from datetime import datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.common.masking import mask_sensitive_data
 from app.core.infra.tenant import temporary_tenant_context
 from app.core.web.deps import get_current_user_with_tenant
 from app.core.web.exceptions import NotFoundException
@@ -32,9 +30,10 @@ from app.db.database import get_db
 from app.models.user import User
 from app.schemas.response import ApiResponse
 from app.schemas.system_config import (
+    AIConfigResponse,
     AIConfigUpdate,
+    DocProcessorResponse,
     DocProcessorsUpdate,
-    SystemConfigResponse,
     TestConnectionRequest,
     TestDocProcessorRequest,
 )
@@ -43,71 +42,32 @@ from app.services.system_config_service import SystemConfigService
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-# 模型类型常量
-MODEL_TYPES = ["chat", "embedding", "rerank", "vl"]
-
 
 @router.get(
     "/ai-config",
-    response_model=ApiResponse[SystemConfigResponse | None],
+    response_model=ApiResponse[AIConfigResponse],
     operation_id="getAdminAiConfig",
 )
 async def get_ai_config(
     scope: Literal["platform", "tenant"] = "tenant",
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_with_tenant),
-) -> ApiResponse[SystemConfigResponse | None]:
-    """
-    获取 AI 模型配置
-    """
+) -> ApiResponse[AIConfigResponse]:
+    """获取 AI 模型配置"""
     target_tenant_id = SystemConfigService.resolve_target_tenant_id(scope)
-    logger.info(
-        "🧭 [SystemConfig] get_ai_config scope=%s target_tenant_id=%s", scope, target_tenant_id
+
+    # 1. 直接获取全量状态 (含 configs, meta, platform_defaults)
+    full_state = await SystemConfigService.get_full_ai_state(db, target_tenant_id)
+
+    return ApiResponse.ok(
+        data=AIConfigResponse(**full_state),
+        msg="获取成功",
     )
-
-    # 1. 获取基础配置
-    tenant_config_value = await SystemConfigService.get_ai_config(db, target_tenant_id) or {
-        "chat": {},
-        "embedding": {},
-        "rerank": {},
-        "vl": {},
-    }
-
-    # 2. 检查平台回退权限
-    platform_defaults = {}
-    if scope == "tenant" and target_tenant_id:
-        from app.crud.tenant import crud_tenant
-
-        tenant = await crud_tenant.get(db, id=target_tenant_id)
-        if tenant and "models" in (tenant.platform_resources_allowed or []):
-            from app.core.infra.config_resolver import ConfigResolver
-
-            platform_defaults = {
-                "chat": await ConfigResolver.resolve_section("chat", None),
-                "embedding": await ConfigResolver.resolve_section("embedding", None),
-                "rerank": await ConfigResolver.resolve_section("rerank", None),
-                "vl": await ConfigResolver.resolve_section("vl", None),
-            }
-            # 对平台默认配置进行脱敏
-            platform_defaults = mask_sensitive_data(platform_defaults)
-
-    config_response = SystemConfigResponse(
-        id=0,
-        tenant_id=target_tenant_id,
-        config_key="ai_config",
-        config_value=tenant_config_value,
-        is_active=True,
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
-        platform_defaults=platform_defaults,
-    )
-
-    return ApiResponse.ok(data=config_response, msg="获取成功")
 
 
 @router.put(
     "/ai-config",
-    response_model=ApiResponse[SystemConfigResponse],
+    response_model=ApiResponse[AIConfigResponse],
     operation_id="updateAdminAiConfig",
 )
 async def update_ai_config(
@@ -115,27 +75,17 @@ async def update_ai_config(
     scope: Literal["platform", "tenant"] = "tenant",
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_with_tenant),
-) -> ApiResponse[SystemConfigResponse]:
-    """
-    更新 AI 模型配置 (支持局部更新)
-    """
+) -> ApiResponse[AIConfigResponse]:
+    """更新 AI 模型配置 (仅更新传入部分，返回全量状态)"""
     target_tenant_id = SystemConfigService.resolve_target_tenant_id(scope)
-    logger.info(
-        "🧭 [SystemConfig] update_ai_config scope=%s target_tenant_id=%s", scope, target_tenant_id
+
+    # 1. 执行更新，Service 层现在直接返回全量状态
+    full_state = await SystemConfigService.update_ai_config(db, target_tenant_id, config_in)
+
+    return ApiResponse.ok(
+        data=AIConfigResponse(**full_state),
+        msg="保存成功",
     )
-
-    updated_values = await SystemConfigService.update_ai_config(db, target_tenant_id, config_in)
-
-    response_data = SystemConfigResponse(
-        id=0,
-        config_key="ai_config",
-        config_value=updated_values,
-        is_active=True,
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
-    )
-
-    return ApiResponse.ok(data=response_data, msg="AI 配置更新成功")
 
 
 @router.delete("/{config_key}", response_model=ApiResponse[dict], operation_id="deleteAdminConfig")
@@ -192,7 +142,9 @@ async def test_model_connection(
         request.model_type,
     )
 
-    result = await SystemConfigService.test_model_connection(request.model_type, request.config)
+    result = await SystemConfigService.test_model_connection(
+        db, target_tenant_id, request.model_type, request.config
+    )
     return ApiResponse.ok(data=result, msg="连接成功")
 
 
@@ -201,51 +153,43 @@ async def test_model_connection(
 
 @router.get(
     "/doc-processor",
-    response_model=ApiResponse[dict | None],
+    response_model=ApiResponse[DocProcessorResponse],
     operation_id="getAdminDocProcessorConfig",
 )
 async def get_doc_processor_config(
     scope: Literal["platform", "tenant"] = "tenant",
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_with_tenant),
-) -> ApiResponse[dict | None]:
-    """
-    获取文档处理服务配置
-    """
+) -> ApiResponse[DocProcessorResponse]:
+    """获取文档处理服务配置 (自动合并平台资源)"""
     target_tenant_id = SystemConfigService.resolve_target_tenant_id(scope)
-    logger.info(
-        "🧭 [SystemConfig] get_doc_processor_config scope=%s target_tenant_id=%s",
-        scope,
-        target_tenant_id,
-    )
 
     response_val = await SystemConfigService.get_doc_processor_config(db, target_tenant_id, scope)
-    return ApiResponse.ok(data=response_val, msg="获取成功")
+    return ApiResponse.ok(data=DocProcessorResponse(**response_val), msg="获取成功")
 
 
 @router.put(
-    "/doc-processor", response_model=ApiResponse[dict], operation_id="updateAdminDocProcessorConfig"
+    "/doc-processor",
+    response_model=ApiResponse[DocProcessorResponse],
+    operation_id="updateAdminDocProcessorConfig",
 )
 async def update_doc_processor_config(
     config_in: DocProcessorsUpdate,
     scope: Literal["platform", "tenant"] = "tenant",
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_with_tenant),
-) -> ApiResponse[dict]:
-    """
-    更新文档处理服务配置
-    """
+) -> ApiResponse[DocProcessorResponse]:
+    """更新文档处理服务配置 (仅保存租户私有配置)"""
     target_tenant_id = SystemConfigService.resolve_target_tenant_id(scope)
-    logger.info(
-        "🧭 [SystemConfig] update_doc_processor_config scope=%s target_tenant_id=%s",
-        scope,
-        target_tenant_id,
-    )
 
-    response_val = await SystemConfigService.update_doc_processor_config(
-        db, target_tenant_id, config_in
-    )
-    return ApiResponse.ok(data=response_val, msg="文档处理服务配置更新成功")
+    # 1. 更新并获取全量状态 (含合并后的平台资源)
+    # 注意：service 层 update 后应当返回最新的全量列表，以配合前端更新
+    await SystemConfigService.update_doc_processor_config(db, target_tenant_id, config_in)
+
+    # 2. 重新加载最新全量配置 (含 origin 标记)
+    response_val = await SystemConfigService.get_doc_processor_config(db, target_tenant_id, scope)
+
+    return ApiResponse.ok(data=DocProcessorResponse(**response_val), msg="保存成功")
 
 
 @router.post(

@@ -178,7 +178,9 @@ class DocumentService:
             )
             if doc_processor_config:
                 tenant_procs = doc_processor_config.config_value.get("processors", [])
-                logger.debug(f"🔍 租户侧配置 (T:{active_tenant_id}): found {len(tenant_procs)} processors")
+                logger.debug(
+                    f"🔍 租户侧配置 (T:{active_tenant_id}): found {len(tenant_procs)} processors"
+                )
                 for p in tenant_procs:
                     p["_source"] = "tenant"
                 accessible_processors.extend(tenant_procs)
@@ -215,7 +217,9 @@ class DocumentService:
                 p_type = str(p.get("type") or "")
                 p_name = str(p.get("name") or "")
 
-                if (p_type == processor_type or p_name == processor_type) and p.get("enabled", True):
+                if (p_type == processor_type or p_name == processor_type) and p.get(
+                    "enabled", True
+                ):
                     target_processor_config = p
                     break
 
@@ -226,7 +230,10 @@ class DocumentService:
                 )
                 # 记录更多详细信息以便排查
                 if accessible_processors:
-                    available = [f"{p.get('name')}({p.get('type')}, enabled={p.get('enabled')})" for p in accessible_processors]
+                    available = [
+                        f"{p.get('name')}({p.get('type')}, enabled={p.get('enabled')})"
+                        for p in accessible_processors
+                    ]
                     logger.warning(f"   可用处理器: {available}")
 
                 raise BadRequestException(

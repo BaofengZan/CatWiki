@@ -3,9 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ApiResponse_Collection_ } from '../models/ApiResponse_Collection_';
-import type { ApiResponse_list_Collection__ } from '../models/ApiResponse_list_Collection__';
 import type { ApiResponse_list_CollectionTree__ } from '../models/ApiResponse_list_CollectionTree__';
 import type { ApiResponse_NoneType_ } from '../models/ApiResponse_NoneType_';
+import type { ApiResponse_PaginatedResponse_Collection__ } from '../models/ApiResponse_PaginatedResponse_Collection__';
 import type { CollectionCreate } from '../models/CollectionCreate';
 import type { CollectionUpdate } from '../models/CollectionUpdate';
 import type { MoveCollectionRequest } from '../models/MoveCollectionRequest';
@@ -16,23 +16,35 @@ export class AdminCollectionsService {
     /**
      * List Collections
      * 获取合集列表
-     * @returns ApiResponse_list_Collection__ Successful Response
+     * @returns ApiResponse_PaginatedResponse_Collection__ Successful Response
      * @throws ApiError
      */
     public listAdminCollections({
         siteId,
+        page = 1,
+        size = 20,
         parentId,
     }: {
         siteId: number,
         /**
+         * 页码
+         */
+        page?: number,
+        /**
+         * 每页大小
+         */
+        size?: number,
+        /**
          * 父合集ID，为空则获取根合集
          */
         parentId?: (number | null),
-    }): CancelablePromise<ApiResponse_list_Collection__> {
+    }): CancelablePromise<ApiResponse_PaginatedResponse_Collection__> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/admin/v1/collections',
             query: {
+                'page': page,
+                'size': size,
                 'parent_id': parentId,
                 'site_id': siteId,
             },
@@ -64,7 +76,6 @@ export class AdminCollectionsService {
     }
     /**
      * Get Collection Tree
-     * 获取合集树形结构（优化版：批量加载文档，避免N+1查询）
      * @returns ApiResponse_list_CollectionTree__ Successful Response
      * @throws ApiError
      */

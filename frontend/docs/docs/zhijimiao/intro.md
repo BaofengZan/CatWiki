@@ -16,5 +16,5 @@
 
 | 文档 | 说明 |
 |------|------|
-| [快速上手](/zhijimiao/quick-start) | 下载安装、添加模型与开始对话 |
+| [快速上手](/zhijimiao/llm-quick-start) | 下载安装、添加模型与开始对话 |
 | [OpenClaw 对接](/zhijimiao/openclaw-quick-start) | 配置 OpenClaw Gateway 实现内网穿透访问 |

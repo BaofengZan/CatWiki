@@ -2,8 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { Collection } from './Collection';
-export type ApiResponse_list_Collection__ = {
+import type { PaginatedResponse_dict_ } from './PaginatedResponse_dict_';
+export type ApiResponse_PaginatedResponse_dict__ = {
     /**
      * 响应码，0 表示成功
      */
@@ -15,6 +15,6 @@ export type ApiResponse_list_Collection__ = {
     /**
      * 响应数据
      */
-    data?: (Array<Collection> | null);
+    data?: (PaginatedResponse_dict_ | null);
 };
 

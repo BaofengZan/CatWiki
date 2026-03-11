@@ -31,7 +31,7 @@ interface ManualModeConfigProps {
 }
 
 export function ManualModeConfig({ onSelectModel, activeTab }: ManualModeConfigProps) {
-  const { savedConfigs, platformFallback } = useSettings()
+  const { savedConfigs, platformFallback, platformDefaults } = useSettings()
 
   return (
     <div className="space-y-6">
@@ -45,11 +45,19 @@ export function ManualModeConfig({ onSelectModel, activeTab }: ManualModeConfigP
         </p>
         <div className="grid grid-cols-2 gap-4">
           {MODEL_TYPES_LIST.map((item) => {
+            const type = item.id as "chat" | "embedding" | "rerank" | "vl"
             // @ts-ignore
-            const conf = savedConfigs[item.id as "chat" | "embedding" | "rerank" | "vl"]
+            const conf = savedConfigs[type]
+            const isPlatform = platformFallback[type] || conf?.mode === 'platform'
 
             // 使用 savedConfigs 判断配置状态 (避免未保存的修改影响列表显示)
-            const isConfigured = conf.mode === 'platform' || !!(conf.provider && conf.model && conf.api_key && conf.base_url)
+            // 如果开启了平台共享，即使租户自己没填 Key，也视为已配置
+            const isConfigured = isPlatform || !!(conf.provider && conf.model && conf.api_key && conf.base_url)
+
+            // 获取展示用的 Provider 名称
+            const displayProvider = isPlatform 
+              ? (platformDefaults?.[type]?.provider || "平台默认")
+              : (conf.provider || "未设置")
 
             return (
               <button
@@ -71,7 +79,7 @@ export function ManualModeConfig({ onSelectModel, activeTab }: ManualModeConfigP
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="font-bold text-slate-900">{item.title}</h3>
-                        {(platformFallback[item.id] || conf?.mode === 'platform') && (
+                        {isPlatform && (
                           <Badge
                             variant="secondary"
                             className="text-[10px] px-1.5 py-0.5 h-5 bg-indigo-100 text-indigo-700 border-indigo-200 flex items-center gap-1"
@@ -105,7 +113,7 @@ export function ManualModeConfig({ onSelectModel, activeTab }: ManualModeConfigP
                     </span>
                   </div>
                   <Badge variant="secondary" className="text-[10px] bg-slate-100">
-                    {conf.provider || "未设置"}
+                    {displayProvider}
                   </Badge>
                 </div>
               </button>

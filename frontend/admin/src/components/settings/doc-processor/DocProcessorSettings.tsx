@@ -79,7 +79,10 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
   // 当配置加载完成时，同步到本地 processors 状态
   useEffect(() => {
     if (configData?.processors) {
-      setProcessors(configData.processors)
+      setProcessors(configData.processors.map(p => ({
+        ...p,
+        id: p.id || "" // 确保 ID 存在，满足前端类型要求
+      } as DocProcessorConfig)))
     }
   }, [configData])
 

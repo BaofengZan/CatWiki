@@ -4,6 +4,7 @@
 /* eslint-disable */
 import type { ApiResponse_dict_ } from '../models/ApiResponse_dict_';
 import type { ApiResponse_NoneType_ } from '../models/ApiResponse_NoneType_';
+import type { ApiResponse_PaginatedResponse_dict__ } from '../models/ApiResponse_PaginatedResponse_dict__';
 import type { Body_batchUploadAdminFiles } from '../models/Body_batchUploadAdminFiles';
 import type { Body_uploadAdminFile } from '../models/Body_uploadAdminFile';
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -13,15 +14,6 @@ export class AdminFilesService {
     /**
      * Upload File
      * 上传文件到 RustFS
-     *
-     * Args:
-     * file: 上传的文件
-     * folder: 存储文件夹路径（默认: uploads）
-     * rustfs: RustFS 服务实例
-     * current_user: 当前登录用户
-     *
-     * Returns:
-     * 上传成功后的文件信息
      * @returns ApiResponse_dict_ Successful Response
      * @throws ApiError
      */
@@ -51,15 +43,6 @@ export class AdminFilesService {
     /**
      * Upload Multiple Files
      * 批量上传文件到 RustFS
-     *
-     * Args:
-     * files: 上传的多个文件
-     * folder: 存储文件夹路径
-     * rustfs: RustFS 服务实例
-     * current_user: 当前登录用户
-     *
-     * Returns:
-     * 上传结果列表
      * @returns ApiResponse_dict_ Successful Response
      * @throws ApiError
      */
@@ -89,14 +72,6 @@ export class AdminFilesService {
     /**
      * Download File
      * 下载文件
-     *
-     * Args:
-     * object_name: 文件对象名称（路径）
-     * rustfs: RustFS 服务实例
-     * current_user: 当前登录用户
-     *
-     * Returns:
-     * 文件内容
      * @returns any Successful Response
      * @throws ApiError
      */
@@ -119,14 +94,6 @@ export class AdminFilesService {
     /**
      * Delete File
      * 删除文件
-     *
-     * Args:
-     * object_name: 文件对象名称（路径）
-     * rustfs: RustFS 服务实例
-     * current_user: 当前登录用户
-     *
-     * Returns:
-     * 删除结果
      * @returns ApiResponse_NoneType_ Successful Response
      * @throws ApiError
      */
@@ -149,21 +116,14 @@ export class AdminFilesService {
     /**
      * List Files
      * 列出文件
-     *
-     * Args:
-     * prefix: 文件路径前缀（用于过滤）
-     * recursive: 是否递归列出子目录
-     * rustfs: RustFS 服务实例
-     * current_user: 当前登录用户
-     *
-     * Returns:
-     * 文件列表
-     * @returns ApiResponse_dict_ Successful Response
+     * @returns ApiResponse_PaginatedResponse_dict__ Successful Response
      * @throws ApiError
      */
     public listAdminFiles({
         prefix = '',
         recursive = true,
+        page = 1,
+        size = 20,
     }: {
         /**
          * 文件路径前缀
@@ -173,13 +133,23 @@ export class AdminFilesService {
          * 是否递归列出
          */
         recursive?: boolean,
-    }): CancelablePromise<ApiResponse_dict_> {
+        /**
+         * 页码
+         */
+        page?: number,
+        /**
+         * 每页数量
+         */
+        size?: number,
+    }): CancelablePromise<ApiResponse_PaginatedResponse_dict__> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/admin/v1/files:list',
+            url: '/admin/v1/files',
             query: {
                 'prefix': prefix,
                 'recursive': recursive,
+                'page': page,
+                'size': size,
             },
             errors: {
                 422: `Validation Error`,
@@ -189,14 +159,6 @@ export class AdminFilesService {
     /**
      * Get File Info
      * 获取文件信息
-     *
-     * Args:
-     * object_name: 文件对象名称（路径）
-     * rustfs: RustFS 服务实例
-     * current_user: 当前登录用户
-     *
-     * Returns:
-     * 文件详细信息
      * @returns ApiResponse_dict_ Successful Response
      * @throws ApiError
      */
@@ -218,18 +180,7 @@ export class AdminFilesService {
     }
     /**
      * Get Presigned Url
-     * 获取文件的预签名 URL（用于临时访问私有文件）
-     *
-     * 注意：如果存储桶是公开的，可以直接使用 /info 接口返回的 url
-     *
-     * Args:
-     * object_name: 文件对象名称（路径）
-     * expires_hours: URL 有效期（小时，默认 1 小时，最长 7 天）
-     * rustfs: RustFS 服务实例
-     * current_user: 当前登录用户
-     *
-     * Returns:
-     * 预签名 URL
+     * 获取文件的预签名 URL
      * @returns ApiResponse_dict_ Successful Response
      * @throws ApiError
      */

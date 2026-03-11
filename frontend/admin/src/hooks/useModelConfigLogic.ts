@@ -20,12 +20,15 @@ import { MODEL_TYPES, initialConfigs } from "@/types/settings"
 type RuntimeModelType = typeof MODEL_TYPES[number]
 
 export function useModelConfigLogic(type: RuntimeModelType, onSuccess?: () => void) {
-  const { configs, handleUpdate, handleSave, scope, platformDefaults } = useSettings()
+  const { configs, handleUpdate, handleSave, scope, platformDefaults, platformFallback } = useSettings()
   const testConnection = useTestConnection(scope)
 
   const config = configs[type] || initialConfigs[type]
   const hasPlatformResource = !!(platformDefaults && platformDefaults[type] && platformDefaults[type].api_key)
-  const mode = config.mode || "custom"
+  // [✨ 亮点] 如果租户还没有在该模型上显式保存配置 (config.mode 为 undefined)
+  // 且当前正处于后端标记的 Fallback 状态，则默认 UI Tab 选在 "platform" 上。
+  // 这保证了用户点击进入模型时，看到的是他们当前实际正在使用的资源。
+  const mode = config.mode || (platformFallback[type] ? "platform" : "custom")
 
   const handleModeChange = (newMode: "custom" | "platform") => {
     handleUpdate(type, "mode", newMode)

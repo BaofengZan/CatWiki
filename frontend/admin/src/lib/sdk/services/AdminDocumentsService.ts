@@ -19,7 +19,6 @@ export class AdminDocumentsService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
      * List Documents
-     * 获取文档列表（分页）
      * @returns ApiResponse_PaginatedResponse_Document__ Successful Response
      * @throws ApiError
      */
@@ -92,7 +91,6 @@ export class AdminDocumentsService {
     }
     /**
      * Create Document
-     * 创建文档
      * @returns ApiResponse_Document_ Successful Response
      * @throws ApiError
      */
@@ -113,7 +111,6 @@ export class AdminDocumentsService {
     }
     /**
      * Get Document
-     * 获取文档详情（管理后台查看，不增加浏览量）
      * @returns ApiResponse_Document_ Successful Response
      * @throws ApiError
      */
@@ -135,7 +132,6 @@ export class AdminDocumentsService {
     }
     /**
      * Update Document
-     * 更新文档
      * @returns ApiResponse_Document_ Successful Response
      * @throws ApiError
      */
@@ -161,7 +157,6 @@ export class AdminDocumentsService {
     }
     /**
      * Delete Document
-     * 删除文档
      * @returns ApiResponse_NoneType_ Successful Response
      * @throws ApiError
      */
@@ -225,7 +220,6 @@ export class AdminDocumentsService {
     }
     /**
      * Vectorize Single Document
-     * 向量化单个文档（会启动向量化后台任务）
      * @returns ApiResponse_Document_ Successful Response
      * @throws ApiError
      */
@@ -247,7 +241,6 @@ export class AdminDocumentsService {
     }
     /**
      * Remove Document Vector
-     * 移除文档向量（从向量库删除并重置状态为 none）
      * @returns ApiResponse_Document_ Successful Response
      * @throws ApiError
      */
@@ -269,7 +262,6 @@ export class AdminDocumentsService {
     }
     /**
      * Get Document Chunks
-     * 获取文档的向量切片信息
      * @returns ApiResponse_list_dict__ Successful Response
      * @throws ApiError
      */

@@ -2,8 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { SystemConfigResponse } from './SystemConfigResponse';
-export type ApiResponse_SystemConfigResponse_ = {
+import type { PaginatedResponse_Collection_ } from './PaginatedResponse_Collection_';
+export type ApiResponse_PaginatedResponse_Collection__ = {
     /**
      * 响应码，0 表示成功
      */
@@ -15,6 +15,6 @@ export type ApiResponse_SystemConfigResponse_ = {
     /**
      * 响应数据
      */
-    data?: (SystemConfigResponse | null);
+    data?: (PaginatedResponse_Collection_ | null);
 };
 

@@ -409,10 +409,10 @@ const userApi = {
 
 const systemConfigApi = {
   getAIConfig: (scope: 'platform' | 'tenant' = 'tenant') =>
-    wrapResponse<Models.SystemConfigResponse | null>(client.adminSystemConfigs.getAdminAiConfig({ scope })),
+    wrapResponse<Models.AIConfigResponse | null>(client.adminSystemConfigs.getAdminAiConfig({ scope })),
 
   updateAIConfig: (config: Models.AIConfigUpdate, scope: 'platform' | 'tenant' = 'tenant') =>
-    wrapResponse<Models.SystemConfigResponse>(client.adminSystemConfigs.updateAdminAiConfig({ requestBody: config, scope })),
+    wrapResponse<Models.AIConfigResponse>(client.adminSystemConfigs.updateAdminAiConfig({ requestBody: config, scope })),
 
 
   deleteConfig: (configKey: string, scope: 'platform' | 'tenant' = 'tenant') =>
@@ -437,13 +437,13 @@ const systemConfigApi = {
 
   // 文档处理服务配置
   getDocProcessorConfig: (scope: 'platform' | 'tenant' = 'tenant') =>
-    wrapResponse<Models.ApiResponse_Union_dict__NoneType__['data']>(client.adminSystemConfigs.getAdminDocProcessorConfig({ scope })),
+    wrapResponse<Models.DocProcessorResponse>(client.adminSystemConfigs.getAdminDocProcessorConfig({ scope })),
 
   updateDocProcessorConfig: (
     data: { processors: Array<Record<string, unknown>> } | Models.DocProcessorsUpdate,
     scope: 'platform' | 'tenant' = 'tenant'
   ) =>
-    wrapResponse<Models.ApiResponse_dict_['data']>(client.adminSystemConfigs.updateAdminDocProcessorConfig({
+    wrapResponse<Models.DocProcessorResponse>(client.adminSystemConfigs.updateAdminDocProcessorConfig({
       requestBody: data as Models.DocProcessorsUpdate,
       scope
     })),

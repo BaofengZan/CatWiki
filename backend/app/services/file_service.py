@@ -218,7 +218,11 @@ class FileService:
 
     @staticmethod
     async def list_files(
-        rustfs: RustFSService, prefix: str = "", recursive: bool = True, page: int = 1, size: int = 20
+        rustfs: RustFSService,
+        prefix: str = "",
+        recursive: bool = True,
+        page: int = 1,
+        size: int = 20,
     ) -> tuple[list[dict], Paginator]:
         """列出文件（带分页）"""
         if not rustfs.is_available():

@@ -124,9 +124,9 @@ export function DocumentUploadDialog({
           setIsLoadingProcessors(true)
           const res = await api.systemConfig.getDocProcessorConfig()
           const list = Array.isArray(res?.processors)
-            ? res.processors
+            ? (res.processors as any[])
               .filter((item): item is Record<string, unknown> => isRecord(item))
-              .map((item) => ({
+              .map((item: Record<string, unknown>) => ({
                 id: typeof item.id === "string" ? item.id : "",
                 name: typeof item.name === "string" ? item.name : "",
                 type: parseDocProcessorType(item.type),
@@ -137,11 +137,11 @@ export function DocumentUploadDialog({
                 api_key: typeof item.api_key === "string" ? item.api_key : "",
               }))
             : []
-          const activeProcessors = list.filter(p => p.enabled)
+          const activeProcessors = list.filter((p: DocProcessor) => p.enabled)
 
           // 按指定顺序排序: MinerU -> Docling -> PaddleOCR
           const typeOrder = ['MinerU', 'Docling', 'PaddleOCR']
-          activeProcessors.sort((a, b) => {
+          activeProcessors.sort((a: DocProcessor, b: DocProcessor) => {
             const orderA = typeOrder.indexOf(a.type)
             const orderB = typeOrder.indexOf(b.type)
             return (orderA === -1 ? 999 : orderA) - (orderB === -1 ? 999 : orderB)

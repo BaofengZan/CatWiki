@@ -113,6 +113,14 @@ class AIConfigUpdate(BaseConfigModel):
     vl: ModelConfig | None = Field(default=None, description="视觉模型配置")
 
 
+class AIConfigResponse(BaseConfigModel):
+    """AI 配置专用响应结构 (扁平化且优雅)"""
+
+    configs: dict[str, Any] = Field(..., description="各模型项配置 (chat/embedding/...)")
+    meta: dict[str, Any] | None = Field(None, description="元数据 (如 Fallback 状态)")
+    platform_defaults: dict[str, Any] | None = Field(None, description="平台默认配置 (参考用)")
+
+
 class TestConnectionRequest(BaseConfigModel):
     """测试连接请求"""
 
@@ -243,12 +251,13 @@ class DocProcessorConfig(BaseConfigModel):
     api_key: str = Field(default="", description="API 密钥（可选）")
     enabled: bool = Field(default=True, description="是否启用")
     config: dict[str, Any] = Field(default_factory=dict, description="额外配置（如 is_ocr）")
+    origin: Literal["platform", "tenant"] | None = Field(None, description="服务来源")
 
 
-class DocProcessorsConfig(BaseConfigModel):
-    """文档处理服务列表配置"""
+class DocProcessorResponse(BaseConfigModel):
+    """文档处理服务最终响应"""
 
-    processors: list[DocProcessorConfig] = Field(default_factory=list, description="服务列表")
+    processors: list[DocProcessorConfig] = Field(..., description="服务列表 (已合并租户与平台资源)")
 
 
 class DocProcessorsUpdate(BaseConfigModel):

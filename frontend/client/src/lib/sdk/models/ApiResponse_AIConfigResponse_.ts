@@ -2,7 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type ApiResponse_Union_dict__NoneType__ = {
+import type { AIConfigResponse } from './AIConfigResponse';
+export type ApiResponse_AIConfigResponse_ = {
     /**
      * 响应码，0 表示成功
      */
@@ -14,6 +15,6 @@ export type ApiResponse_Union_dict__NoneType__ = {
     /**
      * 响应数据
      */
-    data?: (Record<string, any> | null);
+    data?: (AIConfigResponse | null);
 };
 

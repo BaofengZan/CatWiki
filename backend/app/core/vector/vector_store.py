@@ -93,7 +93,7 @@ class VectorStoreManager:
         embedding_conf = await ConfigResolver.resolve_section("embedding", tenant_id=tenant_id)
 
         api_key = embedding_conf.get("api_key")
-        mode = embedding_conf.get("_mode", "platform")
+        mode = embedding_conf.get("mode", "platform")
 
         if not api_key:
             if mode == "custom":
@@ -124,7 +124,6 @@ class VectorStoreManager:
                 "Provider": embedding_conf.get("provider", "N/A"),
                 "Base URL": embedding_conf.get("base_url", "N/A"),
                 "Dimension": embedding_conf.get("dimension", "auto"),
-                "Source": embedding_conf.get("_source", "platform"),
             }
         log_ai_usage_signal(
             "embedding",
@@ -187,7 +186,6 @@ class VectorStoreManager:
         api_key = embedding_conf.get("api_key")
         base_url = embedding_conf.get("base_url")
         dimension = int(embedding_conf.get("dimension") or 1024)
-        source = embedding_conf.get("_source", "platform")
         conf_hash = embedding_conf.get("_hash")
 
         log_ai_usage_signal(
@@ -200,7 +198,6 @@ class VectorStoreManager:
                 "Provider": embedding_conf.get("provider"),
                 "Base URL": base_url,
                 "Dimension": dimension,
-                "Source": source,
             },
             purpose=purpose,
         )
@@ -242,7 +239,7 @@ class VectorStoreManager:
         self._context_metadata.set({"model": model, "hash": conf_hash})
 
         logger.debug(
-            f"✅ [VectorStore] 实例初始化完成 (哈希: {conf_hash[:8]}, 租户: {tenant_id}, 来源: {source})"
+            f"✅ [VectorStore] 实例初始化完成 (哈希: {conf_hash[:8]}, 租户: {tenant_id}, 模式: {embedding_conf.get('mode')})"
         )
         return (new_store, new_embeddings, model, conf_hash)
 

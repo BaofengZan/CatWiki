@@ -84,9 +84,7 @@ async def delete_file(
     return ApiResponse.ok(msg="文件删除成功")
 
 
-@router.get(
-    "", response_model=ApiResponse[PaginatedResponse[dict]], operation_id="listAdminFiles"
-)
+@router.get("", response_model=ApiResponse[PaginatedResponse[dict]], operation_id="listAdminFiles")
 async def list_files(
     prefix: str = Query("", description="文件路径前缀"),
     recursive: bool = Query(True, description="是否递归列出"),

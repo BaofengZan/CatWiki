@@ -3,10 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { AIConfigUpdate } from '../models/AIConfigUpdate';
+import type { ApiResponse_AIConfigResponse_ } from '../models/ApiResponse_AIConfigResponse_';
 import type { ApiResponse_dict_ } from '../models/ApiResponse_dict_';
-import type { ApiResponse_SystemConfigResponse_ } from '../models/ApiResponse_SystemConfigResponse_';
-import type { ApiResponse_Union_dict__NoneType__ } from '../models/ApiResponse_Union_dict__NoneType__';
-import type { ApiResponse_Union_SystemConfigResponse__NoneType__ } from '../models/ApiResponse_Union_SystemConfigResponse__NoneType__';
+import type { ApiResponse_DocProcessorResponse_ } from '../models/ApiResponse_DocProcessorResponse_';
 import type { DocProcessorsUpdate } from '../models/DocProcessorsUpdate';
 import type { TestConnectionRequest } from '../models/TestConnectionRequest';
 import type { TestDocProcessorRequest } from '../models/TestDocProcessorRequest';
@@ -17,14 +16,14 @@ export class AdminSystemConfigsService {
     /**
      * Get Ai Config
      * 获取 AI 模型配置
-     * @returns ApiResponse_Union_SystemConfigResponse__NoneType__ Successful Response
+     * @returns ApiResponse_AIConfigResponse_ Successful Response
      * @throws ApiError
      */
     public getAdminAiConfig({
         scope = 'tenant',
     }: {
         scope?: 'platform' | 'tenant',
-    }): CancelablePromise<ApiResponse_Union_SystemConfigResponse__NoneType__> {
+    }): CancelablePromise<ApiResponse_AIConfigResponse_> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/admin/v1/system-configs/ai-config',
@@ -38,8 +37,8 @@ export class AdminSystemConfigsService {
     }
     /**
      * Update Ai Config
-     * 更新 AI 模型配置 (支持局部更新)
-     * @returns ApiResponse_SystemConfigResponse_ Successful Response
+     * 更新 AI 模型配置 (仅更新传入部分，返回全量状态)
+     * @returns ApiResponse_AIConfigResponse_ Successful Response
      * @throws ApiError
      */
     public updateAdminAiConfig({
@@ -48,7 +47,7 @@ export class AdminSystemConfigsService {
     }: {
         requestBody: AIConfigUpdate,
         scope?: 'platform' | 'tenant',
-    }): CancelablePromise<ApiResponse_SystemConfigResponse_> {
+    }): CancelablePromise<ApiResponse_AIConfigResponse_> {
         return this.httpRequest.request({
             method: 'PUT',
             url: '/admin/v1/system-configs/ai-config',
@@ -117,15 +116,15 @@ export class AdminSystemConfigsService {
     }
     /**
      * Get Doc Processor Config
-     * 获取文档处理服务配置
-     * @returns ApiResponse_Union_dict__NoneType__ Successful Response
+     * 获取文档处理服务配置 (自动合并平台资源)
+     * @returns ApiResponse_DocProcessorResponse_ Successful Response
      * @throws ApiError
      */
     public getAdminDocProcessorConfig({
         scope = 'tenant',
     }: {
         scope?: 'platform' | 'tenant',
-    }): CancelablePromise<ApiResponse_Union_dict__NoneType__> {
+    }): CancelablePromise<ApiResponse_DocProcessorResponse_> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/admin/v1/system-configs/doc-processor',
@@ -139,8 +138,8 @@ export class AdminSystemConfigsService {
     }
     /**
      * Update Doc Processor Config
-     * 更新文档处理服务配置
-     * @returns ApiResponse_dict_ Successful Response
+     * 更新文档处理服务配置 (仅保存租户私有配置)
+     * @returns ApiResponse_DocProcessorResponse_ Successful Response
      * @throws ApiError
      */
     public updateAdminDocProcessorConfig({
@@ -149,7 +148,7 @@ export class AdminSystemConfigsService {
     }: {
         requestBody: DocProcessorsUpdate,
         scope?: 'platform' | 'tenant',
-    }): CancelablePromise<ApiResponse_dict_> {
+    }): CancelablePromise<ApiResponse_DocProcessorResponse_> {
         return this.httpRequest.request({
             method: 'PUT',
             url: '/admin/v1/system-configs/doc-processor',

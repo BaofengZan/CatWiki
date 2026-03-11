@@ -86,7 +86,7 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
   const { data: aiConfigData } = useAIConfig('tenant')
 
   // 模型显示逻辑：优先使用租户自定义模型，如果是平台模式则取平台默认模型
-  const chatConfig = aiConfigData?.config_value?.chat
+  const chatConfig = aiConfigData?.configs?.chat
   const chatModel = (chatConfig?.mode === 'platform'
     ? aiConfigData?.platform_defaults?.chat?.model
     : chatConfig?.model) || ''
