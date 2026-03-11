@@ -26,14 +26,16 @@ class Settings(BaseSettings):
     # 基础配置
     PROJECT_NAME: str = "CatWiki API"
     DESCRIPTION: str = "CatWiki 后端 API"
-    VERSION: str = "1.0.0"
+    VERSION: str = "1.0.1"
     API_V1_STR: str = "/v1"  # 客户端 API
     ADMIN_API_V1_STR: str = "/admin/v1"  # 管理后台 API
 
     # 环境配置
     ENVIRONMENT: str = Field(default="local", pattern="^(local|dev|prod)$")
     DEBUG: bool = Field(default=False)
-    CATWIKI_EDITION: str = Field(default="community", validation_alias="CATWIKI_EDITION_DISABLE_ENV_OVERRIDE")  # CE: hardcoded
+    CATWIKI_EDITION: str = Field(
+        default="community", validation_alias="CATWIKI_EDITION_DISABLE_ENV_OVERRIDE"
+    )  # CE: hardcoded
     CATWIKI_LICENSE_KEY: str | None = Field(default=None)
 
     # 数据库配置
