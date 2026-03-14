@@ -15,7 +15,6 @@
 from sqlalchemy import event, true
 from sqlalchemy.orm import Session, with_loader_criteria
 
-from app.core.infra.tenant import get_current_tenant
 from app.db.base import Base
 
 
@@ -23,6 +22,7 @@ def _tenant_filter_criteria(cls):
     """
     租户过滤准则函数（全局具名以支持序列化）
     """
+    from app.core.infra.tenant import get_current_tenant
 
     tenant_id = get_current_tenant()
     if tenant_id is not None:
@@ -35,6 +35,7 @@ def apply_tenant_filter(execute_state):
     """
     在 ORM 执行前拦截并注入 tenant_id 过滤条件
     """
+    from app.core.infra.tenant import get_current_tenant
 
     tenant_id = get_current_tenant()
     if tenant_id is not None:
