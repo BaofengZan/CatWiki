@@ -191,6 +191,9 @@ services:
 
   # 后端 Worker 服务 (处理异步任务)
   worker:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile.prod
     image: bulolo/catwiki-backend:v1.0.2
     container_name: catwiki-worker
     env_file:
