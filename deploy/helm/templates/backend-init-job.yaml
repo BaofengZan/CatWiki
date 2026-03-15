@@ -37,11 +37,11 @@ spec:
               echo '=========================================='
               echo ''
               echo '📦 运行数据库迁移...'
-              uv run alembic upgrade head
+              uv run --no-sync alembic upgrade head
               echo '✅ 数据库迁移完成'
               echo ''
               echo '🔧 执行系统资源初始化 (知识库 / 对象存储)...'
-              uv run python scripts/init.py
+              uv run --no-sync python scripts/init.py
               echo ''
               echo '=========================================='
               echo '🎉 CatWiki 生产环境初始化完成！'

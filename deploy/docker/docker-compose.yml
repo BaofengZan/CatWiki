@@ -16,6 +16,11 @@ services:
     networks:
       - catwiki-network
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
@@ -105,7 +110,7 @@ services:
     build:
       context: ../../backend
       dockerfile: Dockerfile.prod
-    image: bulolo/catwiki-backend-init:v1.0.2
+    image: bulolo/catwiki-backend-init:${DOCKER_IMAGE_TAG:-latest}
     pull_policy: always
     container_name: catwiki-backend-init
     env_file:
@@ -126,11 +131,11 @@ services:
         echo '==========================================' &&
         echo '' &&
         echo '📦 运行数据库迁移...' &&
-        uv run alembic upgrade head &&
+        uv run --no-sync alembic upgrade head &&
         echo '✅ 数据库迁移完成' &&
         echo '' &&
         echo '🔧 执行系统资源初始化 (知识库 / 对象存储)...' &&
-        uv run python scripts/init.py &&
+        uv run --no-sync python scripts/init.py &&
         echo '' &&
         echo '==========================================' &&
         echo '🎉 CatWiki 生产环境初始化完成！' &&
@@ -142,13 +147,18 @@ services:
         echo ''
       "
     restart: "no"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   # FastAPI 后端服务
   backend:
     build:
       context: ../../backend
       dockerfile: Dockerfile.prod
-    image: bulolo/catwiki-backend:v1.0.2
+    image: bulolo/catwiki-backend:${DOCKER_IMAGE_TAG:-latest}
     pull_policy: always
     container_name: catwiki-backend
     env_file:
@@ -194,7 +204,7 @@ services:
     build:
       context: ../../backend
       dockerfile: Dockerfile.prod
-    image: bulolo/catwiki-backend:v1.0.2
+    image: bulolo/catwiki-backend:${DOCKER_IMAGE_TAG:-latest}
     container_name: catwiki-worker
     env_file:
       - .env
@@ -208,7 +218,13 @@ services:
     networks:
       - catwiki-network
     restart: unless-stopped
-    command: arq app.core.queue.worker_config.WorkerSettings
+    command: uv run --no-sync arq app.core.queue.worker_config.WorkerSettings
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f arq || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     deploy:
       resources:
         limits:
@@ -228,7 +244,7 @@ services:
     build:
       context: ../../frontend/admin
       dockerfile: Dockerfile.prod
-    image: bulolo/catwiki-admin:v1.0.2
+    image: bulolo/catwiki-admin:${DOCKER_IMAGE_TAG:-latest}
     pull_policy: always
     container_name: catwiki-admin
     environment:
@@ -260,6 +276,12 @@ services:
       options:
         max-size: "50m"
         max-file: "3"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8001"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     ports:
       - "127.0.0.1:${ADMIN_PORT:-8001}:8001"
 
@@ -268,7 +290,7 @@ services:
     build:
       context: ../../frontend/client
       dockerfile: Dockerfile.prod
-    image: bulolo/catwiki-client:v1.0.2
+    image: bulolo/catwiki-client:${DOCKER_IMAGE_TAG:-latest}
     pull_policy: always
     container_name: catwiki-client
     environment:
@@ -299,6 +321,12 @@ services:
       options:
         max-size: "50m"
         max-file: "3"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8002"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     ports:
       - "127.0.0.1:${CLIENT_PORT:-8002}:8002"
 

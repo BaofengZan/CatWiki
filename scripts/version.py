@@ -77,18 +77,40 @@ def set_version(version):
             except Exception as e:
                 print(f"❌ Error updating {pkg_path}: {e}")
 
-    # 4. docker-compose files (仅更新 catwiki 相关镜像标签)
+    # 4. docker-compose files (仅更新 catwiki 相关镜像标签变量)
     compose_files = [
         'deploy/docker/docker-compose.yml',
         'deploy/docker-ee/docker-compose.yml',
+        'deploy/docker-ee/docker-compose.static.yml',
         'docker-compose.dev.yml'
     ]
-    # 仅匹配包含 catwiki 的镜像行
+    # 我们倾向于在 Compose 文件中使用 ${DOCKER_IMAGE_TAG:-latest}
+    # 这样在不指定变量时默认拉取最新镜像，而具体的版本控制完全交给 .env 文件
     for compose_path in compose_files:
+        # a. 匹配直接标签: image: xxx:v1.0.0 -> image: xxx:${DOCKER_IMAGE_TAG:-latest}
         update_file(
             compose_path,
-            r'(image: .*?catwiki.*?):[^\s]+',
-            r'\1:' + v_tag
+            r'(image: .*?catwiki.*?):v\d+\.\d+\.\d+',
+            r'\1:${DOCKER_IMAGE_TAG:-latest}'
+        )
+        # b. 如果已经是变量形式但 fallback 不是 latest，统一改为 latest
+        update_file(
+            compose_path,
+            r'(\$\{DOCKER_IMAGE_TAG:-)[^}]+\}',
+            r'\1latest}'
+        )
+
+    # 4.1 Production .env files (版本号的真正存放地)
+    env_files = [
+        'backend/.env.example',
+        'deploy/docker/.env',
+        'deploy/docker-ee/.env'
+    ]
+    for env_path in env_files:
+        update_file(
+            env_path,
+            r'DOCKER_IMAGE_TAG=[^\s#]+',
+            f'DOCKER_IMAGE_TAG={v_tag}'
         )
 
     # 4.5 SDK Version (generated files / core config)

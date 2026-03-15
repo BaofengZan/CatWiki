@@ -264,7 +264,7 @@ services:
     # 启动 Arq Worker (使用 watchfiles 支持开发环境热更新)
     command: uv run watchfiles --filter python "arq app.core.queue.worker_config.WorkerSettings" app
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/v1/health"]
+      test: ["CMD-SHELL", "pgrep -f arq || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

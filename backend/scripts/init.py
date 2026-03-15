@@ -42,49 +42,20 @@ async def init_database():
         edition = settings.CATWIKI_EDITION
         logger.info(f"✨ 检测到系统版本: {edition.upper()}")
 
-        if edition == "enterprise":
-            # ========================
-            # 企业版 (EE) 初始化
-            # ========================
-            logger.info("🏢 开始执行企业版 (EE) 初始化...")
+        # ========================
+        # 社区版 (CE) 初始化
+        # ========================
+        logger.info("🌍 开始执行社区版 (CE) 初始化...")
+        logger.info("  👉 社区版仅加载基础默认数据")
 
-            # 1. 创建平台管理员 (使用动态导入防止 CE 下文件缺失导致报错)
-            try:
-                from scripts.seeders.admin_seeder import AdminSeeder
+        # CE 版本仅需加载一个最基础的默认组织 (使用 health_care.json 的结构作为默认结构)
+        # 在 CE 分支打包时，sync_ce.sh 会自动将 health_care.json 替换为单组织默认内容
+        try:
+            await TenantSeeder(db, "health_care.json").run()
+        except Exception as e:
+            logger.error(f"❌ 导入社区版默认站点数据失败: {e}")
 
-                await AdminSeeder(db).run()
-            except ImportError as e:
-                logger.error(f"❌ 导入平台管理员创建脚本失败 (这在企业版不应发生): {e}")
-
-            # 2. 初始化 Health 站点 (多租户演示 A)
-            try:
-                await TenantSeeder(db, "health_care.json").run()
-            except Exception as e:
-                logger.error(f"❌ 导入 Health 演示站点数据失败: {e}")
-
-            # 3. 初始化 Baby 站点 (多租户演示 B)
-            try:
-                await TenantSeeder(db, "baby_care.json").run()
-            except Exception as e:
-                logger.error(f"❌ 导入 Baby 演示站点数据失败: {e}")
-
-            logger.info("✅ 企业版 (EE) 数据库数据初始化完成")
-
-        else:
-            # ========================
-            # 社区版 (CE) 初始化
-            # ========================
-            logger.info("🌍 开始执行社区版 (CE) 初始化...")
-            logger.info("  👉 社区版仅加载基础默认数据")
-
-            # CE 版本仅需加载一个最基础的默认组织 (使用 health_care.json 的结构作为默认结构)
-            # 在 CE 分支打包时，sync_ce.sh 会自动将 health_care.json 替换为单组织默认内容
-            try:
-                await TenantSeeder(db, "health_care.json").run()
-            except Exception as e:
-                logger.error(f"❌ 导入社区版默认站点数据失败: {e}")
-
-            logger.info("✅ 社区版 (CE) 数据库数据初始化完成")
+        logger.info("✅ 社区版 (CE) 数据库数据初始化完成")
 
 
 def init_storage():
