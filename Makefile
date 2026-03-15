@@ -72,7 +72,7 @@ help:
 	@echo ""
 	@echo " 📦  [发布同步] (Release & Sync)"
 	@echo "  make publish-ce-images  - 构建 CE 镜像并推送到 Docker Hub (公开仓库)"
-	@echo "  make set-version v=1.0.1 - 统一修改项目版本号 (代码, 配置, 镜像标签)"
+	@echo "  make set-version v=1.0.2 - 统一修改项目版本号 (代码, 配置, 镜像标签)"
 	@echo ""
 	@echo " ⚠️  Windows 用户注意: 请使用 WSL2 或 Git Bash 运行 make 命令"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -181,18 +181,13 @@ prod-down: check-prod-env
 # 查看生产环境日志
 prod-logs: check-prod-env
 	docker compose -f $(PROD_DIR)/docker-compose.yml logs -f
+# 重启生产环境所有服务
+prod-restart: check-prod-env
+	docker compose -f $(PROD_DIR)/docker-compose.yml restart
 
-# 深度清理生产环境
-prod-clean: check-prod-env
-	@echo "🛑 [危险] 正在尝试深度清理生产环境..."
-	@echo "⚠️  警告：此操作将删除所有生产容器相关的数据卷和数据！"
-	@read -p "您确定要继续吗？[y/N] " ans && [ $${ans:-N} = y ] || (echo "❌ 操作已取消"; exit 1)
-	docker compose -f $(PROD_DIR)/docker-compose.yml down -v
-	@if [ -f "$(PROD_DIR)/docker-compose.static.yml" ]; then \
-		docker compose -f $(PROD_DIR)/docker-compose.static.yml down -v; \
-	fi
-	@docker rm -f catwiki-backend-init-prod >/dev/null 2>&1 || true
-	@echo "✅ 生产环境深度清理完成"
+# 仅重启后端应用 (API + Worker)
+prod-restart-backend: check-prod-env
+	docker compose -f $(PROD_DIR)/docker-compose.yml restart backend worker
 
 
 # ------------------------------------------------------------------------------

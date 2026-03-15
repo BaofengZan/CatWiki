@@ -54,7 +54,7 @@ class CRUDTask(CRUDBase[Task, TaskCreate, TaskSchema]):
         error: str | None = None,
         auto_commit: bool = True,
     ) -> Task | None:
-        """快速更新任务状态和进度"""
+        """更新任务状态"""
         update_data = {"status": status.value if isinstance(status, TaskStatus) else status}
         if progress is not None:
             update_data["progress"] = progress

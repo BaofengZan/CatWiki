@@ -43,12 +43,14 @@ class ChatSessionService:
         user_message: str,
         member_id: str | None = None,
         tenant_id: int | None = None,
+        auto_commit: bool = True,
         _retry_count: int = 0,
     ) -> ChatSession:
         """创建或更新会话记录
 
         Args:
             member_id: 会员ID或访客ID（可选）
+            auto_commit: 是否自动提交事务
             _retry_count: 内部重试计数，防止无限递归
         """
         try:
@@ -68,8 +70,11 @@ class ChatSessionService:
                 logger.info(
                     f"📝 [ChatSession] Updated: thread_id={thread_id}, count={session.message_count}"
                 )
-                await self.db.commit()
-                await self.db.refresh(session)
+                if auto_commit:
+                    await self.db.commit()
+                    await self.db.refresh(session)
+                else:
+                    await self.db.flush()
             else:
                 # 创建新会话
                 session = ChatSession(
@@ -84,14 +89,20 @@ class ChatSessionService:
                 )
                 self.db.add(session)
                 try:
-                    await self.db.commit()
-                    await self.db.refresh(session)
+                    if auto_commit:
+                        await self.db.commit()
+                        await self.db.refresh(session)
+                    else:
+                        await self.db.flush()
                     logger.info(
                         f"✨ [ChatSession] Created: thread_id={thread_id}, site_id={site_id}"
                     )
                 except IntegrityError as ie:
                     # 并发冲突：可能在查询后被其他请求创建了，也可能是其他约束冲突
-                    await self.db.rollback()
+                    if auto_commit:
+                        await self.db.rollback()
+                    else:
+                        await self.db.flush()  # Try to see if it fixes it or re-raise
 
                     if _retry_count >= 1:
                         # 超过重试次数，可能是非并发导致的约束错误（如 tenant_id IS NULL）
@@ -109,6 +120,7 @@ class ChatSessionService:
                         user_message,
                         member_id,
                         tenant_id,
+                        auto_commit=auto_commit,
                         _retry_count=_retry_count + 1,
                     )
 
@@ -116,12 +128,15 @@ class ChatSessionService:
 
         except Exception as e:
             logger.error(f"❌ [ChatSession] Error in create_or_update: {e}")
+            if auto_commit:
+                await self.db.rollback()
             raise
 
     async def update_assistant_response(
         self,
         thread_id: str,
         assistant_message: str,
+        auto_commit: bool = True,
     ) -> ChatSession | None:
         """更新助手回复
 
@@ -145,7 +160,10 @@ class ChatSessionService:
                 message_count=ChatSession.message_count + 1,
             )
         )
-        await self.db.commit()
+        if auto_commit:
+            await self.db.commit()
+        else:
+            await self.db.flush()
 
         # 获取更新后的对象返回
         result = await self.db.execute(
@@ -240,6 +258,7 @@ class ChatSessionService:
     async def delete_session_by_thread_id(
         self,
         thread_id: str,
+        auto_commit: bool = True,
     ) -> bool:
         """删除会话
 
@@ -256,7 +275,10 @@ class ChatSessionService:
 
         if session:
             await self.db.delete(session)
-            await self.db.commit()
+            if auto_commit:
+                await self.db.commit()
+            else:
+                await self.db.flush()
             logger.info(f"🗑️ [ChatSession] Deleted: thread_id={thread_id}")
 
             # 同步清理 Checkpointer 中的消息历史，防止数据孤岛
@@ -269,7 +291,10 @@ class ChatSessionService:
                     await self.db.execute(
                         text(f"DELETE FROM {table} WHERE thread_id = :tid"), {"tid": thread_id}
                     )
-                await self.db.commit()
+                if auto_commit:
+                    await self.db.commit()
+                else:
+                    await self.db.flush()
                 logger.info(
                     f"🧹 [ChatSession] LangGraph checkpoints cleaned: thread_id={thread_id}"
                 )

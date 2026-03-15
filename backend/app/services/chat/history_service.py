@@ -40,6 +40,7 @@ class ChatHistoryService:
         self,
         thread_id: str,
         messages: list[BaseMessage],
+        auto_commit: bool = True,
     ) -> int:
         """从 LangChain 消息列表同步新消息到 SQL (包括 tool_calls 和 tool 结果)"""
         # 1. 找到最后一条 HumanMessage 的索引，这通常是当前轮次的起点
@@ -65,8 +66,12 @@ class ChatHistoryService:
                 tool_calls=msg_dict.get("tool_calls"),
                 tool_call_id=msg_dict.get("tool_call_id"),
                 additional_kwargs=msg_dict.get("additional_kwargs"),
+                auto_commit=False,
             )
             saved_count += 1
+
+        if auto_commit:
+            await self.db.commit()
 
         return saved_count
 
@@ -78,6 +83,7 @@ class ChatHistoryService:
         tool_calls: list | None = None,
         tool_call_id: str | None = None,
         additional_kwargs: dict | None = None,
+        auto_commit: bool = True,
     ) -> ChatMessage:
         """保存单条消息到全量历史表"""
         try:
@@ -90,13 +96,17 @@ class ChatHistoryService:
                 additional_kwargs=additional_kwargs,
             )
             self.db.add(msg)
-            await self.db.commit()
-            await self.db.refresh(msg)
+            if auto_commit:
+                await self.db.commit()
+                await self.db.refresh(msg)
+            else:
+                await self.db.flush()
             logger.debug(f"💾 [ChatMessage] Saved: thread_id={thread_id}, role={role}")
             return msg
         except Exception as e:
             logger.error(f"❌ [ChatMessage] Error in save_message: {e}")
-            await self.db.rollback()
+            if auto_commit:
+                await self.db.rollback()
             raise
 
     async def get_session_messages(

@@ -286,6 +286,9 @@ make prod-up
 | 命令 | 说明 |
 |------|------|
 | `make gen-sdk` | **生成 SDK**：触发后端 API 自动生成前端 SDK |
+| `make format` | **格式化代码**：运行 Ruff (后端) 和 Prettier (前端) |
+| `make check-all` | **规范检查**：全量代码规范与类型检查 |
+| `make clean-cache` | **清理缓存**：删除 node_modules, pycache 等构建产物 |
 | `make help` | **预览命令**：显示所有可用指令及其说明 |
 
 #### 开发环境
@@ -293,10 +296,13 @@ make prod-up
 |------|------|
 | `make dev-init` | **初始化环境配置**：清理并重新从 `.env.example` 复制配置文件 |
 | `make dev-up` | **开发启动**：构建镜像并在前台启动，实时查看所有服务日志 |
+| `make dev-rebuild` | **后台重启**：重新构建并以后台模式启动开发环境 |
 | `make dev-down` | **优雅停止**：停止并移除容器，保留数据库存储卷 |
-| `make dev-restart` | **快捷重启**：仅重启后端应用容器 |
+| `make dev-restart` | **全量重启**：重启开发环境所有服务容器 |
+| `make dev-restart-backend` | **后端重启**：仅重启后端应用容器 (API + Worker) |
 | `make dev-logs` | **实时日志**：查看后端核心服务的实时运行日志 |
 | `make dev-db-migrate m="msg"` | **生成迁移脚本**：生成新的数据库迁移脚本（需提供备注 `m`） |
+| `make dev-db-upgrade` | **数据库升级**：执行所有待处理的迁移脚本 |
 | `make dev-db-psql` | **数据库终端**：进入 PostgreSQL 交互式终端 |
 | `make dev-clean` | **深度重置**：停止容器并**删除所有数据卷**（清空数据库和存储，⚠️ 危险操作） |
 
@@ -308,10 +314,22 @@ make prod-up
 |------|------|
 | `make prod-init` | **生产初始化**：初始化生产环境配置文件模板 |
 | `make prod-up` | **生产启动**：在后台启动生产环境所有服务 |
+| `make prod-up-build` | **构建并启动**：在生产环境本地构建并启动服务 |
+| `make prod-rebuild` | **无缓存构建**：强制无缓存重新构建并启动生产环境 |
 | `make prod-down` | **生产停止**：停止并移除生产环境容器 |
-| `make prod-restart` | **重启后端**：仅重启生产环境后端应用容器 |
+| `make prod-restart` | **全量重启**：重启生产环境所有服务容器 |
+| `make prod-restart-backend` | **后端重启**：仅重启生产环境后端应用容器 (API + Worker) |
 | `make prod-logs` | **实时日志**：查看生产环境容器日志 |
 | `make prod-clean` | **深度重置**：停止容器并**删除生产所有数据卷**（⚠️ 危险操作） |
+
+#### 发布与版本管理
+| 命令 | 说明 |
+|------|------|
+| `make set-version v=1.0.0` | **版本管理**：统一修改项目版本号 (代码、镜像、标签) |
+| `make sync-ce` | **同步 CE**：(EE-only) 从企业版源码构建并脱敏生成开源版 |
+| `make license` | **注入授权**：自动为全量源文件追加 License Header |
+| `make setup-hooks` | **配置 Hooks**：安装 Git Hooks 以启用自动化规范检查 |
+| `make publish-ce-images`| **发布镜像**：构建社区版 Docker 镜像并推送到仓库 |
 
 ---
 

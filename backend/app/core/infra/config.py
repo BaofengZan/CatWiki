@@ -21,6 +21,8 @@ from urllib.parse import quote_plus
 from pydantic import Field, computed_field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+DEFAULT_VERSION = "1.0.2"
+
 
 def get_project_version() -> str:
     """从 pyproject.toml 读取版本号"""
@@ -30,10 +32,10 @@ def get_project_version() -> str:
         if pyproject_path.exists():
             with open(pyproject_path, "rb") as f:
                 pyproject_data = tomllib.load(f)
-                return pyproject_data.get("project", {}).get("version", "1.0.1")
+                return pyproject_data.get("project", {}).get("version", DEFAULT_VERSION)
     except Exception:
         pass
-    return "1.0.1"
+    return DEFAULT_VERSION
 
 
 class Settings(BaseSettings):
@@ -42,7 +44,7 @@ class Settings(BaseSettings):
     # 基础配置
     PROJECT_NAME: str = "CatWiki API"
     DESCRIPTION: str = "CatWiki 后端 API"
-    VERSION: str = "1.0.1"
+    VERSION: str = ""
     API_V1_STR: str = "/v1"  # 客户端 API
     ADMIN_API_V1_STR: str = "/admin/v1"  # 管理后台 API
 

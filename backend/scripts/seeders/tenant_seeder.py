@@ -23,9 +23,16 @@ from pathlib import Path
 from sqlalchemy import select
 
 from app.core.common.reading_time import calculate_reading_time
+from app.core.infra.config import (
+    AI_CHAT_CONFIG_KEY,
+    AI_EMBEDDING_CONFIG_KEY,
+    AI_RERANK_CONFIG_KEY,
+    AI_VL_CONFIG_KEY,
+)
 from app.crud.collection import crud_collection
 from app.crud.document import crud_document
 from app.crud.site import crud_site
+from app.crud.system_config import crud_system_config
 from app.crud.tenant import crud_tenant
 from app.crud.user import crud_user
 from app.models.collection import Collection
@@ -68,6 +75,7 @@ class TenantSeeder(BaseSeeder):
         await self.log(f"🚀 开始初始化 {tenant_name} 数据...")
 
         tenant = await self.create_tenant()
+        await self.init_ai_configs(tenant.id)
         site = await self.create_site(tenant.id)
         await self.create_admin(tenant.id, [site.id])
         await self.init_documents(tenant.id, site.id)
@@ -87,6 +95,7 @@ class TenantSeeder(BaseSeeder):
                 plan=t_data["plan"],
                 plan_expires_at=datetime.now(UTC) + timedelta(days=365),
                 status=t_data["status"],
+                platform_resources_allowed=t_data.get("platform_resources_allowed", []),
             )
             tenant = await crud_tenant.create(self.db, obj_in=tenant_in)
             await self.log(f"✅ 创建组织空间：{tenant.name}")
@@ -139,6 +148,33 @@ class TenantSeeder(BaseSeeder):
         else:
             await self.log(f"✅ 站点已存在：{site.name}")
         return site
+
+    async def init_ai_configs(self, tenant_id: int):
+        """初始化 AI 配置 (模型配置)"""
+        m_data = self.data.get("model_config")
+        if not m_data:
+            await self.log("ℹ️ 该播种数据中不含 model_config，跳过 AI 配置初始化")
+            return
+
+        ai_keys = {
+            "chat": AI_CHAT_CONFIG_KEY,
+            "embedding": AI_EMBEDDING_CONFIG_KEY,
+            "rerank": AI_RERANK_CONFIG_KEY,
+            "vl": AI_VL_CONFIG_KEY,
+        }
+
+        for section, key in ai_keys.items():
+            if section in m_data:
+                await crud_system_config.update_by_key(
+                    self.db,
+                    config_key=key,
+                    config_value=m_data[section],
+                    tenant_id=tenant_id,
+                    auto_commit=False,
+                )
+                await self.log(f"  ✅ 初始化 AI 配置节: {section}")
+
+        await self.db.commit()
 
     async def init_documents(self, tenant_id: int, site_id: int):
         """初始化文档 (支持多个合集)"""
