@@ -241,6 +241,12 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             await db.flush()
         await db.refresh(db_user)
 
+        # 清理可能存在的空缓存 (防止初始化前尝试登录导致的缓存击穿)
+        from app.core.infra.cache import get_cache
+
+        cache = get_cache()
+        await cache.delete(f"user:email:{db_user.email}")
+
         return db_user
 
     async def invite(
@@ -275,6 +281,12 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             await db.refresh(db_user)
         else:
             await db.flush()
+
+        # 清理可能存在的空缓存
+        from app.core.infra.cache import get_cache
+
+        cache = get_cache()
+        await cache.delete(f"user:email:{db_user.email}")
 
         return db_user, generated_password
 

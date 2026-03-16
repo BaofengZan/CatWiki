@@ -107,9 +107,6 @@ services:
   # 负责数据库迁移和初始化
   # 注意：生产环境建议在部署流程中单独执行，而不是每次部署都运行
   backend-init:
-    build:
-      context: ../../backend
-      dockerfile: Dockerfile.prod
     image: bulolo/catwiki-backend:${DOCKER_IMAGE_TAG:-latest}
     pull_policy: always
     container_name: catwiki-backend-init
@@ -201,9 +198,6 @@ services:
 
   # 后端 Worker 服务 (处理异步任务)
   worker:
-    build:
-      context: ../../backend
-      dockerfile: Dockerfile.prod
     image: bulolo/catwiki-backend:${DOCKER_IMAGE_TAG:-latest}
     container_name: catwiki-worker
     env_file:

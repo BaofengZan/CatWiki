@@ -59,7 +59,7 @@ export function useModelConfigLogic(type: RuntimeModelType, onSuccess?: () => vo
   const handleSaveWithCheck = async () => {
     if (mode === "platform") {
       try {
-        await handleSave(type)
+        await handleSave(type, { mode })
         onSuccess?.()
       } catch (e: unknown) {
         toast.error(e instanceof Error ? e.message : "保存失败")
@@ -82,7 +82,7 @@ export function useModelConfigLogic(type: RuntimeModelType, onSuccess?: () => vo
         handleUpdate(type, "dimension", dim)
         overrides.dimension = dim
       }
-      await handleSave(type, overrides)
+      await handleSave(type, { ...overrides, mode })
       onSuccess?.()
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "连接测试发生错误，无法保存")

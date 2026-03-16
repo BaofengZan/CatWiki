@@ -119,9 +119,6 @@ services:
   # 3. 创建 Demo 站点（医学科普）和初始化医学知识文档
   # 4. 初始化 RustFS 对象存储
   backend-init:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.dev
     image: catwiki-backend-dev
     container_name: catwiki-backend-init
     env_file:
@@ -241,9 +238,6 @@ services:
 
   # 后端 Worker 服务（处理异步任务：解析、向量化等）
   worker:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.dev
     image: catwiki-backend-dev
     container_name: catwiki-worker-dev
     env_file:
