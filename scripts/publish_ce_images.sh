@@ -139,14 +139,6 @@ for SERVICE_CONFIG in "${SERVICES[@]}"; do
     BUILD_TAGS+=("-t" "${NAMESPACE}/${IMAGE_NAME}:latest")
   fi
 
-  # backend 特殊处理: 同时打上 backend-init 标签
-  if [ "$SERVICE_NAME" == "backend" ]; then
-    BUILD_TAGS+=("-t" "${NAMESPACE}/catwiki-backend-init:${VERSION}")
-    if [ "$VERSION" != "latest" ]; then
-      BUILD_TAGS+=("-t" "${NAMESPACE}/catwiki-backend-init:latest")
-    fi
-  fi
-
   # 使用 buildx 进行多架构构建并直接推送
   if docker buildx build --platform "$PLATFORMS" "${BUILD_TAGS[@]}" -f "${CONTEXT_DIR}/${DOCKERFILE}" "${CONTEXT_DIR}" --push; then
     echo "✅ [${SERVICE_NAME}] 多架构镜像已推送成功！"

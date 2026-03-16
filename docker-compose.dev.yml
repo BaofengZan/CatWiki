@@ -122,7 +122,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.dev
-    image: catwiki-backend-init-dev
+    image: catwiki-backend-dev
     container_name: catwiki-backend-init
     env_file:
       - ./backend/.env

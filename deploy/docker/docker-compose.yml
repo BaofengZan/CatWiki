@@ -110,7 +110,7 @@ services:
     build:
       context: ../../backend
       dockerfile: Dockerfile.prod
-    image: bulolo/catwiki-backend-init:${DOCKER_IMAGE_TAG:-latest}
+    image: bulolo/catwiki-backend:${DOCKER_IMAGE_TAG:-latest}
     pull_policy: always
     container_name: catwiki-backend-init
     env_file:

@@ -181,7 +181,7 @@ prod-down: check-prod-env
 	@if [ -f "$(PROD_DIR)/docker-compose.static.yml" ]; then \
 		docker compose -f $(PROD_DIR)/docker-compose.static.yml down; \
 	fi
-	@docker rm -f catwiki-backend-init-prod >/dev/null 2>&1 || true
+	@docker rm -f catwiki-backend-init >/dev/null 2>&1 || true
 
 # 查看生产环境所有日志
 prod-logs: check-prod-env
@@ -203,7 +203,7 @@ prod-clean: check-prod-env
 	@if [ -f "$(PROD_DIR)/docker-compose.static.yml" ]; then \
 		docker compose -f $(PROD_DIR)/docker-compose.static.yml down -v; \
 	fi
-	@docker rm -f catwiki-backend-init-prod >/dev/null 2>&1 || true
+	@docker rm -f catwiki-backend-init >/dev/null 2>&1 || true
 	@echo "✅ 生产环境深度清理完成"
 
 
