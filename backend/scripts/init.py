@@ -54,6 +54,7 @@ async def init_database():
         try:
             await TenantSeeder(db, "health_care.json").run()
         except Exception as e:
+            await db.rollback()
             logger.error(f"❌ 导入社区版默认站点数据失败: {e}")
 
         logger.info("✅ 社区版 (CE) 数据库数据初始化完成")

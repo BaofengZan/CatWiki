@@ -26,6 +26,18 @@ from app.schemas.tenant import TenantCreate, TenantUpdate
 class CRUDTenant(CRUDBase[Tenant, TenantCreate, TenantUpdate]):
     """租户 CRUD 操作"""
 
+    async def create(
+        self, db: AsyncSession, *, obj_in: TenantCreate, auto_commit: bool = True
+    ) -> Tenant:
+        """创建租户 (带缓存失效)"""
+        tenant = await super().create(db, obj_in=obj_in, auto_commit=auto_commit)
+
+        from app.core.infra.cache import get_cache
+
+        cache = get_cache()
+        await cache.delete(f"tenant:slug:{tenant.slug}")
+        return tenant
+
     async def get(self, db: AsyncSession, id: Any) -> Tenant | None:
         """获取租户 (带缓存)"""
         from app.core.infra.cache import get_cache

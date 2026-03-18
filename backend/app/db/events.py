@@ -22,12 +22,16 @@ def _tenant_filter_criteria(cls):
     """
     租户过滤准则函数（全局具名以支持序列化）
     """
+    from sqlalchemy import bindparam
+
     from app.core.infra.tenant import get_current_tenant
 
     tenant_id = get_current_tenant()
     if tenant_id is not None:
         if hasattr(cls, "tenant_id"):
-            return cls.tenant_id == tenant_id
+            # 使用 bindparam 确保 tenant_id 作为一个绑定的变量在 SQL 中，
+            # 并通过 execution_options 中的 tenant_id 确保不同租户的 SQL 缓存隔离。
+            return cls.tenant_id == bindparam("current_tenant_id", value=tenant_id)
     return true()
 
 
@@ -39,13 +43,26 @@ def apply_tenant_filter(execute_state):
 
     tenant_id = get_current_tenant()
     if tenant_id is not None:
-        execute_state.statement = execute_state.statement.options(
-            with_loader_criteria(
-                Base,
-                _tenant_filter_criteria,
-                include_aliases=True,
+        # 仅对支持 options 的语句注入过滤准则（主要是 ORM 语句）
+        if hasattr(execute_state.statement, "options"):
+            execute_state.statement = execute_state.statement.options(
+                with_loader_criteria(
+                    Base,
+                    _tenant_filter_criteria,
+                    include_aliases=True,
+                )
             )
-        )
+
+        # 核心修复：SQLAlchemy 会缓存带有 with_loader_criteria 的语句。
+        # 由于我们的过滤准则依赖于外部状态 (tenant_id)，必须确保不同租户的语句具有不同的缓存键。
+        # 仅对支持 where 的 Generative 语句（Select, Update, Delete）注入指纹。
+        # 这确保了不同租户生成的 SQL 在缓存中是相互独立的。
+        if hasattr(execute_state.statement, "where"):
+            from sqlalchemy import literal_column
+
+            execute_state.statement = execute_state.statement.where(
+                literal_column(str(tenant_id)) == literal_column(str(tenant_id))
+            )
 
 
 @event.listens_for(Base, "before_insert", propagate=True)

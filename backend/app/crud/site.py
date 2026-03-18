@@ -54,6 +54,14 @@ class CRUDSite(CRUDBase[Site, SiteCreate, SiteUpdate]):
         else:
             await db.flush()
         await db.refresh(db_obj)
+
+        # 清理缓存
+        from app.core.infra.cache import get_cache
+
+        cache = get_cache()
+        await cache.delete(f"site:slug:{db_obj.slug}")
+        await cache.delete(f"site:id:{db_obj.id}")
+
         return db_obj
 
     async def get(self, db: AsyncSession, id: Any) -> Site | None:

@@ -172,6 +172,32 @@ class ConfigResolver:
         platform_section["_hash"] = cls.compute_config_hash(platform_section)
         return platform_section
 
+    @staticmethod
+    def validate_config(section: str, config: dict[str, Any]) -> None:
+        """[✨ 亮点] 统一 AI 配置校验逻辑
+
+        适用于所有 AI 模块 (Chat, Embedding, Rerank, VL)。
+        如果配置在 custom 模式下缺失核心参数 (API Key)，则抛出 BadRequestException。
+        """
+        from app.core.web.exceptions import BadRequestException
+
+        mode = config.get("mode", "platform")
+        api_key = config.get("api_key")
+        enabled = config.get("enabled", True)
+
+        # 如果是被显式禁用的可选模块，不触发校验（由业务层自己处理 enabled 标志）
+        if not enabled and section not in ["chat", "embedding"]:
+            return
+
+        if mode == "custom" and not api_key:
+            type_display = {
+                "chat": "模型对话",
+                "embedding": "向量化",
+                "rerank": "重排序 (Rerank)",
+                "vl": "视觉理解 (VL)",
+            }.get(section, section)
+            raise BadRequestException(f"已开启自定义{type_display}模式，但未配置 API Key。")
+
     @classmethod
     async def log_ai_stack(cls, tenant_id: int | None = None):
         """[✨ 亮点] 打印全量 AI 栈配置快照 (用于 Request 启动时)"""

@@ -84,33 +84,34 @@ def set_version(version):
         'deploy/docker-ee/docker-compose.static.yml',
         'docker-compose.dev.yml'
     ]
-    # 我们倾向于在 Compose 文件中使用 ${DOCKER_IMAGE_TAG:-latest}
-    # 这样在不指定变量时默认拉取最新镜像，而具体的版本控制完全交给 .env 文件
+    # 我们倾向于在 Compose 文件中使用 ${DOCKER_IMAGE_TAG:-vX.Y.Z}
+    # 这样在不指定变量时默认拉取最新发布的版本，而不需要用户手动修改 .env
     for compose_path in compose_files:
-        # a. 匹配直接标签: image: xxx:v1.0.0 -> image: xxx:${DOCKER_IMAGE_TAG:-latest}
+        # a. 匹配直接标签: image: xxx:v1.0.0 -> image: xxx:${DOCKER_IMAGE_TAG:-v1.0.0}
         update_file(
             compose_path,
             r'(image: .*?catwiki.*?):v\d+\.\d+\.\d+',
-            r'\1:${DOCKER_IMAGE_TAG:-latest}'
+            fr'\1:${{DOCKER_IMAGE_TAG:-{v_tag}}}'
         )
-        # b. 如果已经是变量形式但 fallback 不是 latest，统一改为 latest
+        # b. 如果已经是变量形式，更新 fallback 为当前版本
         update_file(
             compose_path,
             r'(\$\{DOCKER_IMAGE_TAG:-)[^}]+\}',
-            r'\1latest}'
+            fr'\1{v_tag}}}'
         )
 
-    # 4.1 Production .env files (版本号的真正存放地)
+    # 4.1 Environment files (不再存放 DOCKER_IMAGE_TAG)
+    # 移除这些文件中的 DOCKER_IMAGE_TAG 定义，因为它们现在定义在 Compose 文件中作为默认值
     env_files = [
         'backend/.env.example',
         'deploy/docker/.env',
-        'deploy/docker-ee/.env'
     ]
+    # 我们不直接删除整行，而是将其匹配并替换为空字符串（或你可以选择更彻底的删除方式）
     for env_path in env_files:
         update_file(
             env_path,
-            r'DOCKER_IMAGE_TAG=[^\s#]+',
-            f'DOCKER_IMAGE_TAG={v_tag}'
+            r'(?m)^DOCKER_IMAGE_TAG=[^\s#]+\n?',
+            ''
         )
 
     # 4.5 SDK Version (generated files / core config)

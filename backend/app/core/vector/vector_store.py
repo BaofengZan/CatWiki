@@ -82,8 +82,8 @@ class VectorStoreManager:
 
     # ==================== 初始化与配置 ====================
 
-    async def _resolve_config(self, tenant_id: int | None = None):
-        """解析当前租户的 embedding 配置（无锁，可安全在锁外调用）"""
+    async def validate_config(self, tenant_id: int | None = None):
+        """解析并验证当前租户的 embedding 配置（无锁，可安全在锁外调用）"""
         from app.core.infra.config_resolver import ConfigResolver
         from app.core.infra.tenant import get_current_tenant
 
@@ -91,18 +91,7 @@ class VectorStoreManager:
             tenant_id = get_current_tenant()
 
         embedding_conf = await ConfigResolver.resolve_section("embedding", tenant_id=tenant_id)
-
-        api_key = embedding_conf.get("api_key")
-        mode = embedding_conf.get("mode", "platform")
-
-        if not api_key:
-            if mode == "custom":
-                from app.core.web.exceptions import BadRequestException
-
-                raise BadRequestException("已开启自定义向量化模式，但未配置 API Key。")
-            raise ValueError(
-                f"未找到有效的 Embedding 配置 (租户: {tenant_id}, 模式: {mode})，请检查 AI 模型配置。"
-            )
+        ConfigResolver.validate_config("embedding", embedding_conf)
 
         return tenant_id, embedding_conf
 
@@ -141,7 +130,7 @@ class VectorStoreManager:
     ) -> tuple[PGVectorStore, Any, str, str]:
         """解析并获取向量存储实例（任务安全，不依赖实例属性指针）"""
         # 1. 解析配置（无锁）
-        tenant_id, embedding_conf = await self._resolve_config(tenant_id)
+        tenant_id, embedding_conf = await self.validate_config(tenant_id)
         model = embedding_conf.get("model")
         conf_hash = embedding_conf.get("_hash")
 

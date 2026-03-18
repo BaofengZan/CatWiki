@@ -23,6 +23,9 @@ logger = logging.getLogger(__name__)
 
 
 async def startup(ctx):
+    from app.core.common.logger import setup_logging
+
+    setup_logging()
     logger.info("🚀 Arq Worker 正在启动...")
     # 打印已注册的函数名称，方便调试
     registered_funcs = [

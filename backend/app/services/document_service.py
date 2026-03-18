@@ -21,7 +21,6 @@ from app.models.document import Document as DocumentModel
 from app.models.document import DocumentStatus, VectorStatus
 from app.models.task import TaskType
 from app.schemas.document import DocumentCreate
-from app.services.config.configuration_service import configuration_service
 from app.services.site_service import SiteService, get_site_service
 from app.services.system_config_service import SystemConfigService, get_system_config_service
 from app.services.task_service import TaskService
@@ -70,6 +69,10 @@ class DocumentService:
                     return
 
                 with temporary_tenant_context(document.tenant_id):
+                    # 🔍 [New] 在执行逻辑前再次强制检测配置 (针对 Worker 场景)
+                    vector_store = await VectorStoreManager.get_instance()
+                    await vector_store.validate_config(tenant_id=document.tenant_id)
+
                     await crud_document.update_vector_status(
                         db, document_id=document_id, status=VectorStatus.PROCESSING
                     )
@@ -137,6 +140,8 @@ class DocumentService:
                     )
                 except Exception as update_err:
                     logger.warning(f"更新文档 {document_id} 向量化状态失败: {update_err}")
+                # 重新抛出异常，让外部 Worker (document_tasks.py) 能感知到失败并标记 Task 状态
+                raise e
 
     async def import_document(
         self,
@@ -152,12 +157,13 @@ class DocumentService:
         """导入文档（上传 -> 解析 -> 创建）并返回 enriched dictionary"""
         try:
             active_tenant_id = get_current_tenant()
-            await configuration_service.get_embedding_config(tenant_id=active_tenant_id, force=True)
+            from app.core.vector.vector_store import VectorStoreManager
+
+            v_mgr = await VectorStoreManager.get_instance()
+            await v_mgr.validate_config(tenant_id=active_tenant_id)
         except Exception as e:
             logger.warning(f"⚠️ 导入文档前配置检查失败: {e}")
-            raise BadRequestException(
-                detail=f"导入失败：请先在系统设置中完成 Embedding 模型配置。具体原因: {str(e)}"
-            )
+            raise BadRequestException(detail=f"导入失败：{str(e)}")
 
         site = await crud_site.get(self.db, id=site_id)
         if not site:
@@ -252,7 +258,10 @@ class DocumentService:
 
         try:
             target_tenant_id = documents[0].tenant_id if documents else None
-            await configuration_service.get_embedding_config(tenant_id=target_tenant_id, force=True)
+            from app.core.vector.vector_store import VectorStoreManager
+
+            v_mgr = await VectorStoreManager.get_instance()
+            await v_mgr.validate_config(tenant_id=target_tenant_id)
         except Exception as e:
             error_msg = str(e)
             logger.debug(f"Sync configuration check failed: {e}")

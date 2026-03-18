@@ -28,13 +28,19 @@ async def process_import_parsing(ctx, task_id: int):
 
         task = await crud_task.get(db, id=task_id)
         if not task:
-            logger.error(f"❌ 任务 {task_id} 不存在")
+            logger.error(f"❌ [Job:{ctx['job_id']}] 任务 {task_id} 不存在")
             return
+
+        tenant_id = task.tenant_id
+        payload = task.payload
+        filename = payload.get("filename", "未知文件")
+
+        logger.info(
+            f"🚀 [Job:{ctx['job_id']}] [Tenant:{tenant_id}] 开始解析任务 {task_id} | 文件: {filename}"
+        )
 
         try:
             await TaskService.update_progress(db, task_id, 10.0)
-            payload = task.payload
-
             # 1. 准备解析器
             from app.core.doc_processor import DocProcessorFactory
             from app.crud.document import crud_document
@@ -49,7 +55,7 @@ async def process_import_parsing(ctx, task_id: int):
             # 2. 执行解析
             file_path = Path(payload.get("file_path"))
             logger.info(
-                f"⏳ 正在解析文档: {payload.get('filename')} 使用 {processor_config_obj.type}"
+                f"⏳ [Job:{ctx['job_id']}] 正在解析内容: {filename} (格式: {processor_config_obj.type})"
             )
 
             await TaskService.update_progress(db, task_id, 30.0)
@@ -76,11 +82,11 @@ async def process_import_parsing(ctx, task_id: int):
                     db, site_id=payload.get("site_id"), auto_commit=False
                 )
 
-                # 同步设置向量化状态为 PENDING，确保 UI 反映队列状态
+                # 默认设为 NONE (未学习)，等待手动触发
                 from app.models.document import VectorStatus
 
                 await crud_document.update_vector_status(
-                    db, document_id=document.id, status=VectorStatus.PENDING, auto_commit=False
+                    db, document_id=document.id, status=VectorStatus.NONE, auto_commit=False
                 )
                 await db.commit()
                 await db.refresh(document)
@@ -90,30 +96,26 @@ async def process_import_parsing(ctx, task_id: int):
                 raise e
 
             # 自动触发向量化 (可选，根据业务需求，通常导入后都需要学习)
-            from app.models.task import TaskType
 
-            await TaskService.enqueue_task(
-                db,
-                task_type=TaskType.VECTORIZE,
-                tenant_id=payload.get("tenant_id"),
-                site_id=payload.get("site_id"),
-                created_by=payload.get("author"),
-                payload={"document_id": document.id},
-            )
+            # 自动触发向量化 - 已根据需求禁用，改为手动统一触发
+            # from app.models.task import TaskType
+            # await TaskService.enqueue_task(...)
 
             await TaskService.complete(
                 db,
                 task_id,
                 result={
-                    "msg": "解析成功并已加入学习队列",
+                    "msg": "解析成功，请手动触发开始学习",
                     "document_id": document.id,
                     "title": document.title,
                 },
             )
-            logger.info(f"✅ 任务 {task_id} 处理完成，文档 ID: {document.id}，已自动排队向量化")
+            logger.info(
+                f"✅ [Job:{ctx['job_id']}] 任务 {task_id} 解析完成 | 文档 ID: {document.id} | 状态: 待手动触发向量化"
+            )
 
         except Exception as e:
-            logger.error(f"❌ 任务 {task_id} 失败: {e}", exc_info=True)
+            logger.error(f"❌ [Job:{ctx['job_id']}] 任务 {task_id} 解析失败: {e}", exc_info=True)
             await TaskService.fail(db, task_id, str(e))
         finally:
             # 4. 确保清理持久保存的本地文件
@@ -134,22 +136,32 @@ async def process_vectorize(ctx, task_id: int):
 
         task = await crud_task.get(db, id=task_id)
         if not task:
+            logger.error(f"❌ [Job:{ctx['job_id']}] 任务 {task_id} 不存在")
             return
+
+        tenant_id = task.tenant_id
+        doc_id = task.payload.get("document_id")
+
+        logger.info(
+            f"🔄 [Job:{ctx['job_id']}] [Tenant:{tenant_id}] 开始向量化任务 {task_id} | 文档: {doc_id}"
+        )
 
         try:
             await TaskService.update_progress(db, task_id, 10.0)
-            doc_id = task.payload.get("document_id")
 
             # 调用原本的向量化逻辑
             from app.services.document_service import DocumentService
             # 注意：此处需要处理 DocumentService 的实例化，或者将其向量化方法改为静态/类方法
             # 现有的 process_vectorization_task 已经是静态方法了
 
-            logger.info(f"🔄 正在向量化文档: {doc_id} (TaskID: {task_id})")
+            logger.info(
+                f"🔄 [Job:{ctx['job_id']}] 正在执行文档切片与向量化: {doc_id} (TaskID: {task_id})"
+            )
             await DocumentService.process_vectorization_task(doc_id)
 
             await TaskService.complete(db, task_id, result={"msg": "向量化完成"})
+            logger.info(f"✅ [Job:{ctx['job_id']}] 任务 {task_id} 向量化成功 | 文档 ID: {doc_id}")
 
         except Exception as e:
-            logger.error(f"❌ 任务 {task_id} 失败: {e}", exc_info=True)
+            logger.error(f"❌ [Job:{ctx['job_id']}] 任务 {task_id} 向量化失败: {e}", exc_info=True)
             await TaskService.fail(db, task_id, str(e))

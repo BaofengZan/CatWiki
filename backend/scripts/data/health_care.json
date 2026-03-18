@@ -4,7 +4,11 @@
     "slug": "default",
     "description": "CatWiki 官方团队",
     "plan": "pro",
-    "status": "active"
+    "status": "active",
+    "platform_resources_allowed": [
+      "models",
+      "doc_processors"
+    ]
   },
   "admin": {
     "name": "CatWiki Admin",

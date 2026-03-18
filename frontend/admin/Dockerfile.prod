@@ -56,7 +56,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # 安装运行时基础依赖
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat curl
 
 # 添加非 root 用户
 RUN addgroup --system --gid 1001 nodejs && \

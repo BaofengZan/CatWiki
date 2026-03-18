@@ -21,7 +21,7 @@ from urllib.parse import quote_plus
 from pydantic import Field, computed_field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-DEFAULT_VERSION = "1.0.2"
+DEFAULT_VERSION = "1.0.3"
 
 
 def get_project_version() -> str:

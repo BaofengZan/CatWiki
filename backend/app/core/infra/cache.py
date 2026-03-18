@@ -291,10 +291,14 @@ def generate_cache_key(prefix: str, *args, **kwargs) -> str:
     """
     生成稳定的哈希缓存键。
     支持基础类型及简单的集合类型（list/dict）。
+    同时自动注入当前租户 ID 以实现隔离。
     """
+    from app.core.infra.tenant import get_current_tenant
+
+    tenant_id = get_current_tenant()
 
     def normalize(v: Any) -> Any:
-        if isinstance(v, str | int | float | bool | None):
+        if isinstance(v, str | int | float | bool) or v is None:
             return v
         if isinstance(v, list | tuple | set):
             return [normalize(i) for i in v]
@@ -305,6 +309,7 @@ def generate_cache_key(prefix: str, *args, **kwargs) -> str:
         return f"__skipped_{type(v).__name__}__"
 
     key_data = {
+        "tenant_id": tenant_id,
         "prefix": prefix,
         "args": [normalize(a) for a in args],
         "kwargs": normalize(kwargs),
@@ -312,7 +317,7 @@ def generate_cache_key(prefix: str, *args, **kwargs) -> str:
 
     # 使用 JSON 序列化保证一致性后计算 MD5
     raw_str = json.dumps(key_data, sort_keys=True)
-    return f"{prefix}:{hashlib.md5(raw_str.encode()).hexdigest()[:16]}"
+    return f"{prefix}:t{tenant_id or 'all'}:{hashlib.md5(raw_str.encode()).hexdigest()[:16]}"
 
 
 def cached(ttl: int | None = None, key_prefix: str | None = None):

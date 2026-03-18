@@ -51,17 +51,14 @@ class LLMManager:
         purpose: str | None = None,
     ) -> ChatOpenAI:
         """根据租户获取模型实例 (带缓存)"""
-        from app.core.web.exceptions import BadRequestException
 
         # 1. 获取配置 (使用 Core 层的 Resolver 避免层级绕过)
         config = await ConfigResolver.resolve_section("chat", tenant_id=tenant_id)
 
         # 严格校验：如果处于 custom 模式，必须提供有效的配置，不回退到系统环境变量
-        api_key = config.get("api_key")
-        mode = config.get("mode", "platform")
+        ConfigResolver.validate_config("chat", config)
 
-        if mode == "custom" and not api_key:
-            raise BadRequestException("已开启自定义模型模式，但未在管理后台配置 API Key。")
+        api_key = config.get("api_key")
 
         # 处理模型覆盖
         effective_model = model_name or config.get("model") or "gpt-3.5-turbo"

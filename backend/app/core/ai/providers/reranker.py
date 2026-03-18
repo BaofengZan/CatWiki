@@ -46,6 +46,12 @@ class Reranker:
 
         # 构造最终执行所需的配置（按指纹隔离）
         if conf_hash not in self._instances:
+            from app.core.infra.config_resolver import ConfigResolver
+
+            # 统一校验：如果处于 custom 模式但没配 API Key，会直接抛出异常
+            # 注意：ConfigResolver.validate_config 内部会处理可选模块 (rerank) 的 enabled 状态
+            ConfigResolver.validate_config("rerank", rerank_conf)
+
             api_key = rerank_conf.get("api_key")
             base_url = rerank_conf.get("base_url")
             model = rerank_conf.get("model")
@@ -56,7 +62,7 @@ class Reranker:
                 "base_url": base_url,
                 "model": model,
                 "extra_body": extra_body,
-                "enabled": bool(api_key and base_url),
+                "enabled": rerank_conf.get("enabled", True),
                 "_hash": conf_hash,
             }
 
