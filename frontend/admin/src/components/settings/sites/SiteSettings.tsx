@@ -15,6 +15,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { useTranslations } from "next-intl"
 import { Button, Card, CardContent, CardHeader, CardTitle, CardDescription, Tabs, TabsContent, TabsList, TabsTrigger, ImageUpload } from "@/components/ui"
 import {
   Settings,
@@ -24,6 +25,7 @@ import {
   Bot,
   Users,
   Save,
+  Loader2,
 } from "lucide-react"
 import { toast } from "sonner"
 import { useSiteById, useUpdateSite } from "@/hooks"
@@ -36,12 +38,12 @@ import { mergeSiteBotConfig } from "@/lib/site-bot-config"
 import { useAIConfig } from "@/hooks"
 
 // 主题色配置
-const THEME_COLORS = [
-  { value: 'blue', label: '蓝色', className: 'bg-blue-500' },
-  { value: 'emerald', label: '绿色', className: 'bg-emerald-500' },
-  { value: 'purple', label: '紫色', className: 'bg-purple-500' },
-  { value: 'orange', label: '橙色', className: 'bg-orange-500' },
-  { value: 'slate', label: '灰色', className: 'bg-slate-800' },
+const THEME_COLORS_BASE = [
+  { value: 'blue', colorName: 'blue', className: 'bg-blue-500' },
+  { value: 'emerald', colorName: 'emerald', className: 'bg-emerald-500' },
+  { value: 'purple', colorName: 'purple', className: 'bg-purple-500' },
+  { value: 'orange', colorName: 'orange', className: 'bg-orange-500' },
+  { value: 'slate', colorName: 'slate', className: 'bg-slate-800' },
 ] as const
 
 interface SiteSettingsProps {
@@ -62,6 +64,8 @@ interface SiteSettingsSnapshot {
 }
 
 export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
+  const t = useTranslations("SiteSettings")
+  const createT = useTranslations("CreateSite")
   const [name, setName] = useState("")
   const [slug, setSlug] = useState("")
   const [description, setDescription] = useState("")
@@ -134,11 +138,11 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
 
   const handleSave = () => {
     if (!name.trim()) {
-      toast.error("请输入站点名称")
+      toast.error(createT("nameRequired"))
       return
     }
     if (!slug.trim()) {
-      toast.error("请输入站点唯一标识")
+      toast.error(createT("slugRequired"))
       return
     }
 
@@ -184,7 +188,7 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
           quickQuestions: updatedSite.quick_questions || [],
           botConfig: bConfig
         }
-        toast.success("站点配置已保存")
+        toast.success(t("saveSuccess"))
       }
     })
   }
@@ -208,7 +212,7 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
       <div className="flex items-center justify-center h-full">
         <div className="text-slate-500 flex items-center gap-2">
           <div className="h-4 w-4 bg-slate-200 animate-pulse rounded-full" />
-          加载站点配置...
+          {t("loading")}
         </div>
       </div>
     )
@@ -219,8 +223,8 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
       {/* Actions Bar - Replaces the Page Header */}
       <div className="flex items-center justify-between px-1 pb-4 shrink-0">
         <div>
-          <h2 className="text-lg font-bold text-slate-900">{name} 设置</h2>
-          <p className="text-xs text-slate-500">管理该站点的基础信息、界面风格及 AI 机器人配置。</p>
+          <h2 className="text-lg font-bold text-slate-900">{name} {t("title")}</h2>
+          <p className="text-xs text-slate-500">{t("description")}</p>
         </div>
 
         {isDirty && (
@@ -228,10 +232,10 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
             onClick={handleSave}
             disabled={updateSiteMutation.isPending}
             size="sm"
-            className="flex items-center gap-2 h-9 px-4 animate-in fade-in zoom-in duration-300"
+            className="flex items-center gap-2 h-9 px-4 animate-in fade-in duration-200"
           >
-            <Save className="h-4 w-4" />
-            {updateSiteMutation.isPending ? "保存中..." : "保存修改"}
+            {updateSiteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {updateSiteMutation.isPending ? t("saving") : t("save")}
           </Button>
         )}
       </div>
@@ -246,28 +250,28 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
                 className="w-full justify-start rounded-lg px-3 py-2.5 h-auto data-[state=active]:bg-primary/5 data-[state=active]:text-primary text-slate-600 hover:bg-slate-100/80 transition-all font-medium group"
               >
                 <Settings className="h-4 w-4 mr-2.5 opacity-70 group-data-[state=active]:opacity-100" />
-                基础配置
+                {t("tabs.basic")}
               </TabsTrigger>
               <TabsTrigger
                 value="questions"
                 className="w-full justify-start rounded-lg px-3 py-2.5 h-auto data-[state=active]:bg-primary/5 data-[state=active]:text-primary text-slate-600 hover:bg-slate-100/80 transition-all font-medium group"
               >
                 <MessageSquare className="h-4 w-4 mr-2.5 opacity-70 group-data-[state=active]:opacity-100" />
-                快速问题
+                {t("tabs.questions")}
               </TabsTrigger>
               <TabsTrigger
                 value="users"
                 className="w-full justify-start rounded-lg px-3 py-2.5 h-auto data-[state=active]:bg-primary/5 data-[state=active]:text-primary text-slate-600 hover:bg-slate-100/80 transition-all font-medium group"
               >
                 <Users className="h-4 w-4 mr-2.5 opacity-70 group-data-[state=active]:opacity-100" />
-                用户权限
+                {t("tabs.users")}
               </TabsTrigger>
               <TabsTrigger
                 value="bot"
                 className="w-full justify-start rounded-lg px-3 py-2.5 h-auto data-[state=active]:bg-primary/5 data-[state=active]:text-primary text-slate-600 hover:bg-slate-100/80 transition-all font-medium group"
               >
                 <Bot className="h-4 w-4 mr-2.5 opacity-70 group-data-[state=active]:opacity-100" />
-                AI 机器人
+                {t("tabs.bot")}
               </TabsTrigger>
             </TabsList>
           </div>
@@ -276,15 +280,15 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
           <div className="flex-1 overflow-y-auto pr-2 pb-10">
             <TabsContent value="basic" className="space-y-6 mt-0 animate-in fade-in-50 duration-300 data-[state=inactive]:hidden">
               <Card className="border-slate-200/60 shadow-none rounded-xl overflow-hidden">
-                <CardHeader className="border-b border-slate-50 pb-4">
+                <CardHeader className="border-b border-border/40 pb-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-blue-50 rounded-lg text-blue-600 border border-blue-100">
                       <Settings className="h-5 w-5" />
                     </div>
                     <div>
-                      <CardTitle className="text-base font-bold">基本配置</CardTitle>
+                      <CardTitle className="text-base font-bold">{t("basic.title")}</CardTitle>
                       <CardDescription className="text-xs">
-                        设置站点的名称、唯一标识等核心信息。
+                        {t("basic.description")}
                       </CardDescription>
                     </div>
                   </div>
@@ -293,11 +297,11 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
                   <div className="flex flex-col md:flex-row gap-8">
                     {/* 站点图标上传 */}
                     <div className="w-full md:w-32 space-y-2">
-                      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">站点图标</label>
+                      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">{t("basic.icon")}</label>
                       <ImageUpload
                         value={icon}
                         onChange={setIcon}
-                        text="更换"
+                        text={t("basic.change")}
                         aspect="aspect-square"
                         className="w-full"
                       />
@@ -307,16 +311,16 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
                     <div className="flex-1 space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <label className="text-sm font-semibold text-slate-700">站点名称</label>
+                          <label className="text-sm font-semibold text-slate-700">{t("basic.name")}</label>
                           <input
                             className="flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30"
-                            placeholder="例如：catWiki"
+                            placeholder={createT("namePlaceholder")}
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-sm font-semibold text-slate-700">站点唯一标识</label>
+                          <label className="text-sm font-semibold text-slate-700">{t("basic.slug")}</label>
                           <div className="flex items-center">
                             <span
                               className="inline-flex items-center px-3 h-9 rounded-l-lg border border-r-0 border-slate-200 bg-slate-50 text-slate-500 text-[10px] font-mono flex-1 min-w-0 overflow-hidden"
@@ -326,7 +330,7 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
                             </span>
                             <input
                               className="flex h-9 w-[35%] min-w-[80px] rounded-r-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30"
-                              placeholder="cat"
+                              placeholder={createT("slugPlaceholder")}
                               value={slug}
                               onChange={(e) => setSlug(e.target.value)}
                             />
@@ -334,10 +338,10 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-semibold text-slate-700">站点描述</label>
+                        <label className="text-sm font-semibold text-slate-700">{t("basic.desc")}</label>
                         <textarea
                           className="flex min-h-[80px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 resize-none"
-                          placeholder="简要介绍这个 Wiki 站点的主要内容..."
+                          placeholder={createT("descPlaceholder")}
                           value={description}
                           onChange={(e) => setDescription(e.target.value)}
                         />
@@ -349,34 +353,34 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card className="border-slate-200/60 shadow-none rounded-xl overflow-hidden">
-                  <CardHeader className="border-b border-slate-50 pb-4">
+                  <CardHeader className="border-b border-border/40 pb-4">
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-purple-50 rounded-lg text-purple-600 border border-purple-100">
                         <Palette className="h-5 w-5" />
                       </div>
                       <div>
-                        <CardTitle className="text-base font-bold">界面与风格</CardTitle>
-                        <CardDescription className="text-xs">自定义站点的视觉外观。</CardDescription>
+                        <CardTitle className="text-base font-bold">{t("style.title")}</CardTitle>
+                        <CardDescription className="text-xs">{t("style.description")}</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4 pt-6">
                     <div className="space-y-2">
-                      <label className="text-sm font-semibold text-slate-700">主题色</label>
+                      <label className="text-sm font-semibold text-slate-700">{createT("themeColor")}</label>
                       <div className="flex gap-2">
-                        {THEME_COLORS.map((color) => (
+                        {THEME_COLORS_BASE.map((color) => (
                           <div
                             key={color.value}
                             className={`w-8 h-8 rounded-full ${color.className} cursor-pointer ring-offset-2 transition-all ${themeColor === color.value ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-2 ring-slate-300'
                               }`}
                             onClick={() => setThemeColor(color.value)}
-                            title={color.label}
+                            title={createT(`colors.${color.colorName}` as any)}
                           />
                         ))}
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-semibold text-slate-700">布局模式</label>
+                      <label className="text-sm font-semibold text-slate-700">{createT("layoutMode")}</label>
                       <div className="grid grid-cols-2 gap-2">
                         <div
                           className={`border rounded-xl p-3 text-center text-xs font-bold cursor-pointer transition-all ${layoutMode === 'sidebar'
@@ -385,13 +389,13 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
                             }`}
                           onClick={() => setLayoutMode('sidebar')}
                         >
-                          侧边栏目录
+                          {createT("sidebarLayout")}
                         </div>
                         <div
                           className="border border-slate-200 rounded-xl p-3 text-center text-xs font-bold text-slate-400 bg-slate-50/50 cursor-not-allowed opacity-50"
-                          title="暂不支持顶部导航"
+                          title={createT("notSupported")}
                         >
-                          顶部导航
+                          {createT("topNav")}
                         </div>
                       </div>
                     </div>
@@ -399,22 +403,22 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
                 </Card>
 
                 <Card className="border-slate-200/60 shadow-none rounded-xl overflow-hidden">
-                  <CardHeader className="border-b border-slate-50 pb-4">
+                  <CardHeader className="border-b border-border/40 pb-4">
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600 border border-emerald-100">
                         <ShieldCheck className="h-5 w-5" />
                       </div>
                       <div>
-                        <CardTitle className="text-base font-bold">访问控制</CardTitle>
-                        <CardDescription className="text-xs">管理站点的开放状态。</CardDescription>
+                        <CardTitle className="text-base font-bold">{t("access.title")}</CardTitle>
+                        <CardDescription className="text-xs">{t("access.description")}</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4 pt-6">
                     <div className="flex items-center justify-between p-3 bg-slate-50/50 border border-slate-100 rounded-xl">
                       <div className="space-y-0.5">
-                        <label className="text-sm font-semibold text-slate-900">启用站点</label>
-                        <p className="text-xs text-slate-500">启用后站点将可以正常访问。</p>
+                        <label className="text-sm font-semibold text-slate-900">{createT("enableSite")}</label>
+                        <p className="text-xs text-slate-500">{createT("enableTip")}</p>
                       </div>
                       <div
                         className={`w-11 h-6 ${isActive ? 'bg-primary' : 'bg-slate-200'} rounded-full relative cursor-pointer transition-colors`}

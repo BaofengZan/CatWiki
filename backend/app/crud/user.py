@@ -121,34 +121,18 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
 
     async def get(self, db: AsyncSession, id: Any) -> User | None:
         """获取用户 (带缓存)"""
-        from app.core.infra.cache import get_cache
-
-        cache = get_cache()
-        cache_key = f"user:id:{id}"
-
         async def _fetch():
             return await super(CRUDUser, self).get(db, id)
 
-        user = await cache.get_or_set(cache_key, _fetch, ttl=600)
-        if user and db:
-            user = await db.merge(user, load=False)
-        return user
+        return await self._cached_get(db, f"user:id:{id}", _fetch, ttl=600)
 
     async def get_by_email(self, db: AsyncSession, *, email: str) -> User | None:
         """根据邮箱获取用户 (带缓存)"""
-        from app.core.infra.cache import get_cache
-
-        cache = get_cache()
-        cache_key = f"user:email:{email}"
-
         async def _fetch():
             result = await db.execute(select(self.model).where(self.model.email == email))
             return result.scalar_one_or_none()
 
-        user = await cache.get_or_set(cache_key, _fetch, ttl=600)
-        if user and db:
-            user = await db.merge(user, load=False)
-        return user
+        return await self._cached_get(db, f"user:email:{email}", _fetch, ttl=600)
 
     async def list(
         self,
@@ -241,12 +225,6 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             await db.flush()
         await db.refresh(db_user)
 
-        # 清理可能存在的空缓存 (防止初始化前尝试登录导致的缓存击穿)
-        from app.core.infra.cache import get_cache
-
-        cache = get_cache()
-        await cache.delete(f"user:email:{db_user.email}")
-
         return db_user
 
     async def invite(
@@ -281,12 +259,6 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             await db.refresh(db_user)
         else:
             await db.flush()
-
-        # 清理可能存在的空缓存
-        from app.core.infra.cache import get_cache
-
-        cache = get_cache()
-        await cache.delete(f"user:email:{db_user.email}")
 
         return db_user, generated_password
 

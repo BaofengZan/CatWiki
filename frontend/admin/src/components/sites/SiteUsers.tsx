@@ -14,6 +14,7 @@
 
 "use client"
 
+import { useTranslations, useLocale } from "next-intl"
 import { useState } from "react"
 import {
   Table,
@@ -100,6 +101,8 @@ function parsePasswordResponse(data: unknown): { password: string } | null {
 }
 
 export function SiteUsers({ siteId, siteName }: SiteUsersProps) {
+  const t = useTranslations("SiteUsersPanel")
+  const locale = useLocale()
   const [page, setPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState("")
   const debouncedSearchTerm = useDebounce(searchTerm, 500)
@@ -129,7 +132,7 @@ export function SiteUsers({ siteId, siteName }: SiteUsersProps) {
 
   // 处理移除站点权限（如果移除当前站点，用户就不再出现在这个列表里了，类似于删除）
   const handleRemoveFromSite = async (userId: number, currentSites: number[]) => {
-    if (!confirm("确定要将该用户从本站点移除吗？")) {
+    if (!confirm(t("removeConfirm"))) {
       return
     }
 
@@ -141,7 +144,7 @@ export function SiteUsers({ siteId, siteName }: SiteUsersProps) {
       managed_site_ids: newSites
     }, {
       onSuccess: () => {
-        toast.success("已移除用户站点权限")
+        toast.success(t("removeSuccess"))
       }
     })
   }
@@ -150,6 +153,8 @@ export function SiteUsers({ siteId, siteName }: SiteUsersProps) {
     updateUserRoleMutation.mutate({
       userId,
       role: newRole
+    }, {
+      onSuccess: () => toast.success(t("roleUpdated"))
     })
   }
 
@@ -157,12 +162,14 @@ export function SiteUsers({ siteId, siteName }: SiteUsersProps) {
     updateUserStatusMutation.mutate({
       userId,
       status
+    }, {
+      onSuccess: () => toast.success(t("statusUpdated"))
     })
   }
 
 
   const handleResetPassword = async (userId: number, userName: string, userEmail: string) => {
-    if (!confirm(`确定要重置用户"${userName}"的密码吗？`)) {
+    if (!confirm(t("resetConfirm", { name: userName }))) {
       return
     }
 
@@ -173,18 +180,18 @@ export function SiteUsers({ siteId, siteName }: SiteUsersProps) {
           const { password } = parsed
           toast.success(
             <div className="space-y-2">
-              <div className="font-semibold">密码重置成功！</div>
+              <div className="font-semibold">{t("resetSuccess")}</div>
               <div className="text-sm">
-                <div>用户: {userName} ({userEmail})</div>
+                <div>{t("user")}: {userName} ({userEmail})</div>
                 <div className="flex items-center gap-2 mt-1">
-                  <span>新密码: </span>
+                  <span>{t("newPassword")}: </span>
                   <code className="px-2 py-1 bg-slate-800 text-white rounded font-mono text-xs">
                     {password}
                   </code>
                 </div>
               </div>
               <div className="text-xs text-muted-foreground mt-2">
-                请将此密码告知用户，建议用户尽快修改密码
+                {t("resetTip")}
               </div>
             </div>,
             { duration: 15000 }
@@ -210,28 +217,28 @@ export function SiteUsers({ siteId, siteName }: SiteUsersProps) {
 
   return (
     <div className="space-y-6 w-full">
-      <Card className="border-slate-200/60 shadow-sm rounded-2xl overflow-hidden">
-        <CardHeader className="border-b border-slate-50 pb-4">
+      <Card className="border-slate-200/60 shadow-sm overflow-hidden">
+        <CardHeader className="border-b border-border/40 pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-primary/10 rounded-lg text-primary border border-primary/20">
                 <Users className="h-5 w-5" />
               </div>
               <div>
-                <CardTitle className="text-xl font-bold">站点用户管理</CardTitle>
+                <CardTitle className="text-xl font-bold">{t("title")}</CardTitle>
                 <CardDescription>
-                  管理当前站点的成员及其权限级别。
+                  {t("description")}
                 </CardDescription>
               </div>
             </div>
 
             <Button
-              className="flex items-center gap-2 rounded-xl shadow-lg shadow-primary/20"
+              className="flex items-center gap-2"
               size="sm"
               onClick={() => setIsCreating(true)}
             >
               <Plus className="h-4 w-4" />
-              添加成员
+              {t("addMember")}
             </Button>
           </div>
         </CardHeader>
@@ -240,7 +247,7 @@ export function SiteUsers({ siteId, siteName }: SiteUsersProps) {
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="搜索用户名或邮箱..."
+                placeholder={t("searchPlaceholder")}
                 className="pl-9 h-9 bg-white"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -253,17 +260,17 @@ export function SiteUsers({ siteId, siteName }: SiteUsersProps) {
             </div>
           ) : users.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              暂无用户数据
+              {t("empty")}
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="pl-6">用户信息</TableHead>
-                  <TableHead>角色</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead>最后登录</TableHead>
-                  <TableHead className="text-right pr-6">操作</TableHead>
+                  <TableHead className="pl-6">{t("info")}</TableHead>
+                  <TableHead>{t("role")}</TableHead>
+                  <TableHead>{t("status")}</TableHead>
+                  <TableHead>{t("lastLogin")}</TableHead>
+                  <TableHead className="text-right pr-6">{t("actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -296,9 +303,9 @@ export function SiteUsers({ siteId, siteName }: SiteUsersProps) {
                                 "bg-muted text-muted-foreground"
                         )}
                       >
-                        {user.role === UserRole.ADMIN ? "系统管理员" :
-                          user.role === UserRole.TENANT_ADMIN ? "组织管理员" :
-                            user.role === UserRole.SITE_ADMIN ? "站点管理员" : user.role}
+                        {user.role === UserRole.ADMIN ? t("roleSysAdmin") :
+                          user.role === UserRole.TENANT_ADMIN ? t("roleTenantAdmin") :
+                            user.role === UserRole.SITE_ADMIN ? t("roleSiteAdmin") : user.role}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -308,37 +315,37 @@ export function SiteUsers({ siteId, siteName }: SiteUsersProps) {
                           user.status === UserStatus.ACTIVE ? "bg-emerald-500" : "bg-slate-300"
                         )} />
                         <span className="text-xs text-muted-foreground">
-                          {user.status === UserStatus.ACTIVE ? "正常" : "禁用"}
+                          {user.status === UserStatus.ACTIVE ? t("active") : t("disabled")}
                         </span>
 
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {user.last_login_at
-                        ? new Date(user.last_login_at).toLocaleString('zh-CN', {
+                        ? new Date(user.last_login_at).toLocaleString(locale, {
                           month: 'numeric',
                           day: 'numeric',
                           hour: '2-digit',
                           minute: '2-digit'
                         })
-                        : "从未登录"
+                        : t("neverLoggedIn")
                       }
                     </TableCell>
                     <TableCell className="text-right pr-6">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button variant="ghost" size="icon-sm">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-56">
-                          <DropdownMenuLabel>用户操作</DropdownMenuLabel>
+                          <DropdownMenuLabel>{t("userActions")}</DropdownMenuLabel>
                           <DropdownMenuSeparator />
 
                           <DropdownMenuSub>
                             <DropdownMenuSubTrigger className="flex items-center gap-2 px-3 py-2 cursor-pointer">
                               <Shield className="h-4 w-4 text-muted-foreground" />
-                              <span>修改角色</span>
+                              <span>{t("changeRole")}</span>
                             </DropdownMenuSubTrigger>
                             <DropdownMenuPortal>
                               <DropdownMenuSubContent className="w-48">
@@ -347,7 +354,7 @@ export function SiteUsers({ siteId, siteName }: SiteUsersProps) {
                                     onSelect={() => updateRole(user.id, UserRole.SITE_ADMIN)}
                                     className="flex items-center justify-between"
                                   >
-                                    <span>站点管理员</span>
+                                    <span>{t("roleSiteAdmin")}</span>
                                     {user.role === UserRole.SITE_ADMIN && <Check className="h-4 w-4 text-primary" />}
                                   </DropdownMenuItem>
                                 )}
@@ -362,14 +369,14 @@ export function SiteUsers({ siteId, siteName }: SiteUsersProps) {
                             onSelect={() => handleResetPassword(user.id, user.name, user.email)}
                           >
                             <KeyRound className="h-4 w-4 text-blue-500" />
-                            <span>重置密码</span>
+                            <span>{t("resetPassword")}</span>
                           </DropdownMenuItem>
 
                           <DropdownMenuItem
                             className="text-orange-600 flex items-center gap-2"
                             onSelect={() => {
                               const newStatus = user.status === UserStatus.ACTIVE ? UserStatus.INACTIVE : UserStatus.ACTIVE
-                              if (confirm(`确定要${newStatus === UserStatus.INACTIVE ? '禁用' : '启用'}该账户吗？`)) {
+                              if (confirm(newStatus === UserStatus.INACTIVE ? t("disableConfirm") : t("enableConfirm"))) {
                                 updateStatus(user.id, newStatus)
                               }
                             }}
@@ -377,7 +384,7 @@ export function SiteUsers({ siteId, siteName }: SiteUsersProps) {
                             <div className="w-4 h-4 flex items-center justify-center">
                               <span className={cn("w-2 h-2 rounded-full", user.status === UserStatus.ACTIVE ? "bg-orange-500" : "bg-emerald-500")} />
                             </div>
-                            {user.status === UserStatus.ACTIVE ? '禁用该账户' : '启用该账户'}
+                            {user.status === UserStatus.ACTIVE ? t("disableAccount") : t("enableAccount")}
                           </DropdownMenuItem>
 
 
@@ -387,7 +394,7 @@ export function SiteUsers({ siteId, siteName }: SiteUsersProps) {
                             onSelect={() => handleRemoveFromSite(user.id, user.managed_site_ids)}
                           >
                             <Trash2 className="h-4 w-4" />
-                            <span>从本站点移除</span>
+                            <span>{t("removeFromSite")}</span>
                           </DropdownMenuItem>
 
                         </DropdownMenuContent>

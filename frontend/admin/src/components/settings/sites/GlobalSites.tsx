@@ -17,6 +17,8 @@
 import { LoadingState } from "@/components/ui/loading-state"
 import { EmptyState } from "@/components/ui/empty-state"
 import { useState, useEffect } from "react"
+import { useTranslations } from "next-intl"
+import { toast } from "sonner"
 import Link from "next/link"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
@@ -46,6 +48,7 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation"
 
 export function GlobalSites() {
   const [mounted, setMounted] = useState(false)
+  const t = useTranslations("Sites")
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
@@ -66,13 +69,13 @@ export function GlobalSites() {
 
   // 删除站点
   const handleDelete = (id: number, name: string) => {
-    if (!confirm(`确定要删除站点"${name}"吗?此操作不可恢复。`)) {
+    if (!confirm(t("deleteConfirm", { name }))) {
       return
     }
 
     deleteSiteMutation.mutate(id, {
       onSuccess: async () => {
-        // 刷新站点列表
+        toast.success(t("deleteSuccess"))
         await refetchSites()
       }
     })
@@ -121,8 +124,8 @@ export function GlobalSites() {
               <Globe className="h-6 w-6" />
             </div>
             <div className="space-y-1">
-              <h2 className="text-xl font-bold tracking-tight text-slate-900">站点管理</h2>
-              <p className="text-sm text-slate-500 font-medium">全局管理您的所有 Wiki 知识库站点。</p>
+              <h2 className="text-xl font-bold tracking-tight text-slate-900">{t("title")}</h2>
+              <p className="text-sm text-slate-500 font-medium">{t("description")}</p>
             </div>
           </div>
           <Button
@@ -131,24 +134,24 @@ export function GlobalSites() {
             onClick={handleStartCreate}
           >
             <Plus className="h-4 w-4" />
-            创建站点
+            {t("addSite")}
           </Button>
         </div>
 
         {sites.length === 0 ? (
           <EmptyState
             icon={Globe}
-            title="暂无站点"
-            description="暂无站点，点击上方按钮创建第一个站点"
+            title={t("empty")}
+            description={t("emptyDesc")}
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
             {sites.map((site: Site) => (
 
-              <Card key={site.id} className="group hover:shadow-lg transition-all duration-300 border-border/60 rounded-2xl overflow-hidden bg-card/50 hover:bg-card">
+              <Card key={site.id} className="group hover:shadow-lg transition-shadow border-border/60 overflow-hidden bg-card/50 hover:bg-card">
                 <CardHeader className="pb-3 pt-4 px-4">
                   <div className="flex justify-between items-start">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary group-hover:bg-white group-hover:text-primary transition-all duration-300 overflow-hidden flex items-center justify-center border border-transparent group-hover:border-primary/20 shadow-sm">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary group-hover:bg-white group-hover:text-primary transition-colors overflow-hidden flex items-center justify-center border border-transparent group-hover:border-primary/20 shadow-sm">
                       {site.icon ? (
                         <Image src={site.icon} alt={site.name} width={40} height={40} className="w-full h-full object-cover" unoptimized />
                       ) : (
@@ -157,7 +160,7 @@ export function GlobalSites() {
                     </div>
                     <div className="flex gap-1">
                       <Link href={`?modal=site-settings&siteId=${site.id}`} scroll={false}>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title="站点设置">
+                        <Button variant="ghost" size="icon-xs" className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title={t("siteSettings")}>
                           <Edit2 className="h-3.5 w-3.5" />
                         </Button>
                       </Link>
@@ -183,28 +186,28 @@ export function GlobalSites() {
                         "text-[10px] px-1.5 py-0 h-4 font-bold tracking-tight border-none",
                         site.status === "active" ? "bg-emerald-500/10 text-emerald-600 shadow-sm shadow-emerald-500/10" : "bg-muted text-muted-foreground"
                       )}>
-                        {site.status === "active" ? "已激活" : "已禁用"}
+                        {site.status === "active" ? t("status.active") : t("status.inactive")}
                       </Badge>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="px-4 pb-4">
                   <p className="text-xs text-muted-foreground/80 line-clamp-2 h-8 mb-4 leading-relaxed">
-                    {site.description || "该站点暂无详细描述，您可以在编辑页面中添加相关说明。"}
+                    {site.description || t("noDescription")}
                   </p>
 
                   <div className="grid grid-cols-2 gap-3">
                     <a href={`${env.NEXT_PUBLIC_CLIENT_URL}/${site.tenant_slug || 'default'}/${site.slug || site.id}`} target="_blank" rel="noopener noreferrer">
-                      <Button variant="outline" size="sm" className="w-full h-9 text-xs font-bold flex items-center justify-center gap-2 border-border/60 hover:bg-slate-100 hover:text-slate-900 transition-all duration-300 shadow-sm">
+                      <Button variant="outline" size="sm" className="w-full flex items-center justify-center gap-2">
                         <BookOpen className="h-3.5 w-3.5" />
-                        进入站点
+                        {t("enterSite")}
                         <ArrowUpRight className="h-3.5 w-3.5 opacity-50" />
                       </Button>
                     </a>
                     <Link href={`/${site.slug || site.id}`}>
-                      <Button size="sm" className="w-full h-9 text-xs font-bold flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300 shadow-sm shadow-primary/10">
+                      <Button size="sm" className="w-full flex items-center justify-center gap-2">
                         <LayoutGrid className="h-3.5 w-3.5" />
-                        内容管理
+                        {t("contentManagement")}
                       </Button>
                     </Link>
                   </div>

@@ -28,7 +28,7 @@ interface TagsInputProps {
   className?: string
 }
 
-export function TagsInput({ value = [], onChange, placeholder = "添加标签...", className }: TagsInputProps) {
+export function TagsInput({ value = [], onChange, placeholder = "Add tags...", className }: TagsInputProps) {
   const [inputValue, setInputValue] = React.useState("")
   const inputRef = React.useRef<HTMLInputElement>(null)
 

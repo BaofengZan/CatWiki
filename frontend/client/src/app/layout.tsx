@@ -23,30 +23,38 @@ import { ReactQueryProvider } from '@/providers/ReactQueryProvider'
 import { StatePersistence } from "@/components/layout"
 import './globals.css'
 
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages, getLocale } from 'next-intl/server';
+
 export const metadata: Metadata = {
-  title: 'CatWiki - 企业级AI知识库平台',
-  description: 'CatWiki - 企业级全栈 AI 知识库平台，集成了现代化的内容管理、深度 AI 智能问答与极致的用户交互体验。',
+  title: 'CatWiki - AI Knowledge Base',
+  description: 'CatWiki - Enterprise AI Knowledge Base Platform',
   icons: {
     icon: '/favicon.ico',
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="zh-CN">
+    <html lang={locale}>
       <body className={inter.className}>
-        <ReactQueryProvider>
-          {children}
-          <Toaster position="top-center" />
-          <footer id="cw-sys-mount" className="fixed bottom-0 left-0 right-0 py-2 text-center text-[9px] text-muted-foreground/30 font-medium tracking-widest uppercase pointer-events-none z-50">
-            Powered by <a href="https://catwiki.ai" target="_blank" className="hover:text-primary transition-colors pointer-events-auto">CatWiki</a>
-          </footer>
-          <StatePersistence />
-        </ReactQueryProvider>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <ReactQueryProvider>
+            {children}
+            <Toaster position="top-center" />
+            <footer id="cw-sys-mount" className="fixed bottom-0 left-0 right-0 py-2 text-center text-[9px] text-muted-foreground/30 font-medium tracking-widest uppercase pointer-events-none z-50">
+              Powered by <a href="https://catwiki.ai" target="_blank" className="hover:text-primary transition-colors pointer-events-auto">CatWiki</a>
+            </footer>
+            <StatePersistence />
+          </ReactQueryProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   )

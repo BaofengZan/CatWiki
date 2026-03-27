@@ -86,15 +86,14 @@ class ChatSessionService:
                 )
                 self.db.add(session)
                 try:
-                    # 自动处理提交
+                    await self.db.flush()
                     logger.info(
                         f"✨ [ChatSession] Created: thread_id={thread_id}, site_id={site_id}"
                     )
                 except IntegrityError as ie:
-                    # 并发冲突：可能在查询后被其他请求创建了，也可能是其他约束冲突
-                    # 装饰器会处理回滚
+                    # 并发冲突：可能在查询后被其他请求创建了
+                    await self.db.rollback()
                     if _retry_count >= 1:
-                        # 超过重试次数，可能是非并发导致的约束错误（如 tenant_id IS NULL）
                         logger.error(
                             f"❌ [ChatSession] IntegrityError persisting after retry: {ie}"
                         )

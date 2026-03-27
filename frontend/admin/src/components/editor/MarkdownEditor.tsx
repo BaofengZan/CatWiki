@@ -14,6 +14,8 @@
 
 "use client"
 
+import { useTranslations, useLocale } from 'next-intl'
+import { logger } from '@/lib/logger'
 import { MdEditor } from 'md-editor-rt'
 import 'md-editor-rt/lib/style.css'
 import styles from './MarkdownEditor.module.css'
@@ -35,6 +37,9 @@ interface MarkdownEditorProps {
  * 通过 next/dynamic 懒加载此组件，可以将编辑器代码从主 bundle 中分离
  */
 export function MarkdownEditor({ value, onChange, placeholder }: MarkdownEditorProps) {
+  const t = useTranslations('Editor')
+  const locale = useLocale()
+
   /**
    * 处理图片上传
    * @param files 上传的文件数组
@@ -47,13 +52,13 @@ export function MarkdownEditor({ value, onChange, placeholder }: MarkdownEditorP
       for (const file of files) {
         // 验证文件类型
         if (!file.type.startsWith('image/')) {
-          toast.error(`${file.name} 不是图片文件`)
+          toast.error(t("notImageFile", { name: file.name }))
           continue
         }
 
         // 验证文件大小（原始大小不超过 10MB）
         if (file.size > 10 * 1024 * 1024) {
-          toast.error(`${file.name} 文件过大，请选择小于 10MB 的图片`)
+          toast.error(t("fileTooLarge", { name: file.name }))
           continue
         }
 
@@ -80,27 +85,27 @@ export function MarkdownEditor({ value, onChange, placeholder }: MarkdownEditorP
             },
           })
           if (!uploadRes.url) {
-            throw new Error('上传响应缺少 URL')
+            throw new Error(t("uploadMissingUrl"))
           }
 
           const imageUrl = uploadRes.url
           uploadedUrls.push(imageUrl)
-          console.log('图片上传成功:', {
+          logger.debug('图片上传成功:', {
             originalName: file.name,
             url: imageUrl,
             size: uploadRes.size
           })
-          toast.success(`${file.name} 上传成功`)
+          toast.success(t("uploadSuccess", { name: file.name }))
 
         } catch (error) {
-          toast.error(`${file.name} 上传失败`)
+          toast.error(t("uploadFailed", { name: file.name }))
         }
       }
 
       // 调用回调函数，传入上传成功的 URL 数组
       callback(uploadedUrls)
     } catch (error) {
-      toast.error('图片上传失败')
+      toast.error(t("imageUploadFailed"))
       callback([])
     }
   }
@@ -111,8 +116,8 @@ export function MarkdownEditor({ value, onChange, placeholder }: MarkdownEditorP
         modelValue={value}
 
         onChange={onChange}
-        language="zh-CN"
-        placeholder={placeholder || "请输入文档内容（支持 Markdown 语法）\n\n💡 提示：\n- 可以直接粘贴图片\n- 可以拖拽图片到编辑器\n- 点击工具栏的图片按钮上传"}
+        language={locale === 'zh' ? 'zh-CN' : 'en'}
+        placeholder={placeholder || t("placeholder")}
         toolbarsExclude={['github']}
         showCodeRowNumber
         previewTheme="github"

@@ -15,6 +15,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { useTranslations } from 'next-intl'
 import { useRouter, useParams } from "next/navigation"
 import { Button, Card, CardContent, CardHeader, CardTitle, CardDescription, Tabs, TabsContent, TabsList, TabsTrigger, ImageUpload } from "@/components/ui"
 import {
@@ -25,7 +26,8 @@ import {
   ShieldCheck,
   MessageSquare,
   Bot,
-  Users
+  Users,
+  Loader2
 } from "lucide-react"
 import { toast } from "sonner"
 import { useSiteById, useUpdateSite } from "@/hooks"
@@ -36,18 +38,19 @@ import { initialConfigs, type BotConfig } from "@/types/settings"
 import { env } from "@/lib/env"
 import { mergeSiteBotConfig } from "@/lib/site-bot-config"
 
-// 主题色配置
-const THEME_COLORS = [
-  { value: 'blue', label: '蓝色', className: 'bg-blue-500' },
-  { value: 'emerald', label: '绿色', className: 'bg-emerald-500' },
-  { value: 'purple', label: '紫色', className: 'bg-purple-500' },
-  { value: 'orange', label: '橙色', className: 'bg-orange-500' },
-  { value: 'slate', label: '灰色', className: 'bg-slate-800' },
-] as const
-
 export default function EditSitePage() {
   const router = useRouter()
+  const t = useTranslations('SiteEdit')
+  const tf = useTranslations('SiteForm')
   const params = useParams()
+
+  const THEME_COLORS = [
+    { value: 'blue', label: tf('colors.blue'), className: 'bg-blue-500' },
+    { value: 'emerald', label: tf('colors.green'), className: 'bg-emerald-500' },
+    { value: 'purple', label: tf('colors.purple'), className: 'bg-purple-500' },
+    { value: 'orange', label: tf('colors.orange'), className: 'bg-orange-500' },
+    { value: 'slate', label: tf('colors.gray'), className: 'bg-slate-800' },
+  ]
   const siteId = parseInt(params.id as string)
 
   const [name, setName] = useState("")
@@ -129,11 +132,11 @@ export default function EditSitePage() {
 
   const handleSave = () => {
     if (!name.trim()) {
-      toast.error("请输入站点名称")
+      toast.error(tf("errorName"))
       return
     }
     if (!slug.trim()) {
-      toast.error("请输入站点唯一标识")
+      toast.error(tf("errorSlug"))
       return
     }
 
@@ -165,7 +168,7 @@ export default function EditSitePage() {
           quickQuestions: cleanedQuestions,
           botConfig
         }
-        toast.success("站点配置已保存")
+        toast.success(tf("saveSuccess"))
       }
     })
   }
@@ -187,7 +190,7 @@ export default function EditSitePage() {
   if (!mounted || loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="text-slate-500">加载中...</div>
+        <div className="text-slate-500">{t("loading")}</div>
       </div>
     )
   }
@@ -205,18 +208,18 @@ export default function EditSitePage() {
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">编辑站点</h1>
-            <p className="text-slate-500 text-sm">管理该站点的基础信息、界面风格及 AI 机器人配置。</p>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("title")}</h1>
+            <p className="text-muted-foreground text-sm">{t("description")}</p>
           </div>
         </div>
         {isDirty && (
           <Button
             onClick={handleSave}
             disabled={updateSiteMutation.isPending}
-            className="flex items-center gap-2 h-11 px-8 rounded-xl shadow-lg animate-in fade-in zoom-in duration-300"
+            className="flex items-center gap-2 h-11 px-8 animate-in fade-in duration-200"
           >
-            <Save className="h-4 w-4" />
-            {updateSiteMutation.isPending ? "保存中..." : "保存当前修改"}
+            {updateSiteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {updateSiteMutation.isPending ? t("saving") : t("save")}
           </Button>
         )}
       </div>
@@ -225,7 +228,7 @@ export default function EditSitePage() {
         <div className="grid grid-cols-12 gap-8 items-start">
           {/* 左侧导航 */}
           <div className="col-span-3">
-            <Card className="border-slate-200/60 shadow-sm bg-muted/30 rounded-2xl overflow-hidden p-2">
+            <Card className="border-slate-200/60 shadow-sm bg-muted/30 overflow-hidden p-2">
               <TabsList className="grid grid-cols-1 h-auto bg-transparent gap-1 p-0">
                 <TabsTrigger
                   value="basic"
@@ -234,7 +237,7 @@ export default function EditSitePage() {
                   <div className="p-1.5 rounded-lg bg-muted text-muted-foreground group-data-[state=active]:bg-primary/10 group-data-[state=active]:text-primary mr-3 transition-colors">
                     <Settings className="h-4 w-4" />
                   </div>
-                  基础配置
+                  {t("tabs.basic")}
                 </TabsTrigger>
                 <TabsTrigger
                   value="questions"
@@ -243,7 +246,7 @@ export default function EditSitePage() {
                   <div className="p-1.5 rounded-lg bg-muted text-muted-foreground group-data-[state=active]:bg-primary/10 group-data-[state=active]:text-primary mr-3 transition-colors">
                     <MessageSquare className="h-4 w-4" />
                   </div>
-                  快速问题
+                  {t("tabs.questions")}
                 </TabsTrigger>
                 <TabsTrigger
                   value="users"
@@ -252,7 +255,7 @@ export default function EditSitePage() {
                   <div className="p-1.5 rounded-lg bg-muted text-muted-foreground group-data-[state=active]:bg-primary/10 group-data-[state=active]:text-primary mr-3 transition-colors">
                     <Users className="h-4 w-4" />
                   </div>
-                  用户权限
+                  {t("tabs.users")}
                 </TabsTrigger>
                 <TabsTrigger
                   value="bot"
@@ -261,7 +264,7 @@ export default function EditSitePage() {
                   <div className="p-1.5 rounded-lg bg-muted text-muted-foreground group-data-[state=active]:bg-primary/10 group-data-[state=active]:text-primary mr-3 transition-colors">
                     <Bot className="h-4 w-4" />
                   </div>
-                  AI 机器人
+                  {t("tabs.bot")}
                 </TabsTrigger>
               </TabsList>
             </Card>
@@ -270,16 +273,16 @@ export default function EditSitePage() {
           {/* 右侧内容 */}
           <div className="col-span-9 min-w-0">
             <TabsContent value="basic" className="space-y-6 mt-0 animate-in fade-in-50 duration-300">
-              <Card className="border-slate-200/60 shadow-sm rounded-2xl overflow-hidden">
-                <CardHeader className="border-b border-slate-50 pb-4">
+              <Card className="border-slate-200/60 shadow-sm overflow-hidden">
+                <CardHeader className="border-b border-border/40 pb-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-blue-50 rounded-lg text-blue-600 border border-blue-100">
                       <Settings className="h-5 w-5" />
                     </div>
                     <div>
-                      <CardTitle className="text-xl font-bold">基本配置</CardTitle>
+                      <CardTitle className="text-xl font-bold">{tf("basicConfig")}</CardTitle>
                       <CardDescription>
-                        设置站点的名称、唯一标识等核心信息。
+                        {tf("basicConfigDesc")}
                       </CardDescription>
                     </div>
                   </div>
@@ -288,38 +291,38 @@ export default function EditSitePage() {
                   <div className="flex flex-col md:flex-row gap-8">
                     {/* 站点图标上传 */}
                     <div className="w-full md:w-48 space-y-2">
-                      <label className="text-sm font-semibold text-slate-700 block">站点图标</label>
+                      <label className="text-sm font-semibold text-slate-700 block">{tf("siteIcon")}</label>
                       <ImageUpload
                         value={icon}
                         onChange={setIcon}
-                        text="上传图标"
+                        text={tf("uploadIcon")}
                         aspect="aspect-square"
                         className="w-full"
                       />
-                      <p className="text-[10px] text-slate-400 text-center">建议 200x200px <br />支持 JPG/PNG/WebP</p>
+                      <p className="text-[10px] text-slate-400 text-center">{tf("iconHint")}</p>
                     </div>
 
                     {/* 站点基本信息字段 */}
                     <div className="flex-1 space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <label className="text-sm font-semibold text-slate-700">站点名称</label>
+                          <label className="text-sm font-semibold text-slate-700">{tf("siteName")}</label>
                           <input
                             className="flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30"
-                            placeholder="例如：catWiki"
+                            placeholder={tf("siteNamePlaceholder")}
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-sm font-semibold text-slate-700">站点唯一标识</label>
+                          <label className="text-sm font-semibold text-slate-700">{tf("siteSlug")}</label>
                           <div className="flex items-center">
                             <span className="inline-flex items-center px-3 h-10 rounded-l-xl border border-r-0 border-slate-200 bg-slate-50 text-slate-500 text-sm font-mono whitespace-nowrap overflow-hidden max-w-[120px]">
                               /{slug}
                             </span>
                             <input
                               className="flex h-10 w-full rounded-r-xl border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30"
-                              placeholder="cat"
+                              placeholder={tf("siteSlugPlaceholder")}
                               value={slug}
                               onChange={(e) => setSlug(e.target.value)}
                             />
@@ -327,10 +330,10 @@ export default function EditSitePage() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-semibold text-slate-700">站点描述</label>
+                        <label className="text-sm font-semibold text-slate-700">{tf("siteDescription")}</label>
                         <textarea
                           className="flex min-h-[100px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30"
-                          placeholder="简要介绍这个 Wiki 站点的主要内容..."
+                          placeholder={tf("siteDescriptionPlaceholder")}
                           value={description}
                           onChange={(e) => setDescription(e.target.value)}
                         />
@@ -341,21 +344,21 @@ export default function EditSitePage() {
               </Card>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card className="border-slate-200/60 shadow-sm rounded-2xl overflow-hidden">
-                  <CardHeader className="border-b border-slate-50 pb-4">
+                <Card className="border-slate-200/60 shadow-sm overflow-hidden">
+                  <CardHeader className="border-b border-border/40 pb-4">
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-purple-50 rounded-lg text-purple-600 border border-purple-100">
                         <Palette className="h-5 w-5" />
                       </div>
                       <div>
-                        <CardTitle className="text-xl font-bold">界面与风格</CardTitle>
-                        <CardDescription>自定义站点的视觉外观。</CardDescription>
+                        <CardTitle className="text-xl font-bold">{tf("styleConfig")}</CardTitle>
+                        <CardDescription>{tf("styleConfigDesc")}</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4 pt-6">
                     <div className="space-y-2">
-                      <label className="text-sm font-semibold text-slate-700">主题色</label>
+                      <label className="text-sm font-semibold text-slate-700">{tf("themeColor")}</label>
                       <div className="flex gap-2">
                         {THEME_COLORS.map((color) => (
                           <div
@@ -369,7 +372,7 @@ export default function EditSitePage() {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-semibold text-slate-700">布局模式</label>
+                      <label className="text-sm font-semibold text-slate-700">{tf("layoutMode")}</label>
                       <div className="grid grid-cols-2 gap-2">
                         <div
                           className={`border rounded-xl p-3 text-center text-xs font-bold cursor-pointer transition-all ${layoutMode === 'sidebar'
@@ -378,36 +381,36 @@ export default function EditSitePage() {
                             }`}
                           onClick={() => setLayoutMode('sidebar')}
                         >
-                          侧边栏目录
+                          {tf("layoutSidebar")}
                         </div>
                         <div
                           className="border border-slate-200 rounded-xl p-3 text-center text-xs font-bold text-slate-400 bg-slate-50/50 cursor-not-allowed opacity-50"
-                          title="暂不支持顶部导航"
+                          title={tf("layoutTopNavUnsupported")}
                         >
-                          顶部导航
+                          {tf("layoutTopNav")}
                         </div>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="border-slate-200/60 shadow-sm rounded-2xl overflow-hidden">
-                  <CardHeader className="border-b border-slate-50 pb-4">
+                <Card className="border-slate-200/60 shadow-sm overflow-hidden">
+                  <CardHeader className="border-b border-border/40 pb-4">
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600 border border-emerald-100">
                         <ShieldCheck className="h-5 w-5" />
                       </div>
                       <div>
-                        <CardTitle className="text-xl font-bold">访问控制</CardTitle>
-                        <CardDescription>管理站点的开放状态。</CardDescription>
+                        <CardTitle className="text-xl font-bold">{tf("accessControl")}</CardTitle>
+                        <CardDescription>{tf("accessControlDesc")}</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4 pt-6">
                     <div className="flex items-center justify-between p-3 bg-slate-50/50 border border-slate-100 rounded-xl">
                       <div className="space-y-0.5">
-                        <label className="text-sm font-semibold text-slate-900">启用站点</label>
-                        <p className="text-xs text-slate-500">启用后站点将可以正常访问。</p>
+                        <label className="text-sm font-semibold text-slate-900">{tf("enableSite")}</label>
+                        <p className="text-xs text-slate-500">{tf("enableSiteHint")}</p>
                       </div>
                       <div
                         className={`w-11 h-6 ${isActive ? 'bg-primary' : 'bg-slate-200'} rounded-full relative cursor-pointer transition-colors`}

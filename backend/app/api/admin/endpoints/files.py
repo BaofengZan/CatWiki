@@ -20,6 +20,7 @@
 from fastapi import APIRouter, Depends, File, Query, UploadFile
 from fastapi.responses import Response
 
+from app.core.common.i18n import _
 from app.core.web.deps import get_current_user_with_tenant
 from app.models.user import User
 from app.schemas.response import ApiResponse, PaginatedResponse
@@ -37,7 +38,7 @@ async def upload_file(
 ) -> ApiResponse[dict]:
     """上传文件到 RustFS"""
     data = await service.upload_file(file, folder, current_user)
-    return ApiResponse.ok(data=data, msg="文件上传成功")
+    return ApiResponse.ok(data=data, msg=_("file.upload_success"))
 
 
 @router.post(":batchUpload", response_model=ApiResponse[dict], operation_id="batchUploadAdminFiles")
@@ -51,7 +52,7 @@ async def upload_multiple_files(
     data = await service.batch_upload_files(files, folder, current_user)
     return ApiResponse.ok(
         data=data,
-        msg=f"批量上传完成，成功 {data['success_count']} 个，失败 {data['error_count']} 个",
+        msg=_("file.batch_upload_done", success=data["success_count"], fail=data["error_count"]),
     )
 
 
@@ -80,7 +81,7 @@ async def delete_file(
 ) -> ApiResponse[None]:
     """删除文件"""
     await service.delete_file(object_name)
-    return ApiResponse.ok(msg="文件删除成功")
+    return ApiResponse.ok(msg=_("file.delete_success"))
 
 
 @router.get("", response_model=ApiResponse[PaginatedResponse[dict]], operation_id="listAdminFiles")
@@ -96,7 +97,7 @@ async def list_files(
     files, paginator = await service.list_files(prefix, recursive, page, size)
     return ApiResponse.ok(
         data=PaginatedResponse(list=files, pagination=paginator.to_pagination_info()),
-        msg="获取成功",
+        msg=_("api.success.get"),
     )
 
 
@@ -110,7 +111,7 @@ async def get_file_info(
 ) -> ApiResponse[dict]:
     """获取文件信息"""
     data = await service.get_file_info(object_name)
-    return ApiResponse.ok(data=data, msg="获取成功")
+    return ApiResponse.ok(data=data, msg=_("api.success.get"))
 
 
 @router.get(
@@ -132,5 +133,5 @@ async def get_presigned_url(
             "url": url,
             "expires_hours": expires_hours,
         },
-        msg="获取成功",
+        msg=_("api.success.get"),
     )

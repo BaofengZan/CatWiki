@@ -120,6 +120,18 @@ class InMemoryCache(BaseCache):
         self._hits = 0
         self._misses = 0
         self._locks: dict[str, asyncio.Lock] = {}
+        self._cleanup_counter = 0  # 写操作计数器，用于触发主动清理
+
+    def _maybe_cleanup_expired(self) -> None:
+        """每 100 次写操作主动清理过期条目，避免内存泄漏"""
+        self._cleanup_counter += 1
+        if self._cleanup_counter < 100:
+            return
+        self._cleanup_counter = 0
+        now = time.time()
+        expired = [k for k, (_, exp) in self._data.items() if now >= exp]
+        for k in expired:
+            del self._data[k]
 
     async def get(self, key: str, default: Any = None) -> Any | None:
         if key in self._data:
@@ -145,6 +157,7 @@ class InMemoryCache(BaseCache):
             self._data.popitem(last=False)
 
         self._data[key] = (value, expire_time)
+        self._maybe_cleanup_expired()
 
     async def delete(self, key: str) -> None:
         self._data.pop(key, None)
@@ -257,6 +270,25 @@ class RedisCache(BaseCache):
             "status": "connected" if self.client else "disconnected",
         }
 
+    async def async_stats(self) -> dict[str, Any]:
+        """异步获取 Redis 详细统计信息（含命中率）"""
+        try:
+            info = await self.client.info("stats")
+            hits = info.get("keyspace_hits", 0)
+            misses = info.get("keyspace_misses", 0)
+            total = hits + misses
+            return {
+                "backend": "redis",
+                "prefix": self.prefix,
+                "status": "connected",
+                "hits": hits,
+                "misses": misses,
+                "hit_rate": f"{(hits / total * 100):.2f}%" if total > 0 else "0%",
+            }
+        except Exception as e:
+            logger.error(f"Redis async_stats failed: {e}")
+            return self.stats()
+
     async def close(self) -> None:
         if self.client:
             await self.client.aclose()
@@ -320,14 +352,14 @@ def generate_cache_key(prefix: str, *args, **kwargs) -> str:
     return f"{prefix}:t{tenant_id or 'all'}:{hashlib.md5(raw_str.encode()).hexdigest()[:16]}"
 
 
-def cached(ttl: int | None = None, key_prefix: str | None = None):
+def cached(ttl: int | None = None, key_prefix: str | None = None, cache_none: bool = False):
     """
     通用异步缓存装饰器。
 
     支持功能：
-    - 正确缓存 None 结果。
     - 并发降级保护（业务执行不因缓存报错而挂掉）。
     - 稳定哈希键生成。
+    - cache_none: 是否缓存 None 结果，默认 False 避免缓存穿透反转。
     """
     cache_ttl = ttl if ttl is not None else settings.CACHE_DEFAULT_TTL
 
@@ -351,11 +383,12 @@ def cached(ttl: int | None = None, key_prefix: str | None = None):
             # 2. 执行业务逻辑
             result = await func(*args, **kwargs)
 
-            # 3. 异步回写
-            try:
-                await cache.set(cache_key, result, ttl=cache_ttl)
-            except Exception as e:
-                logger.warning(f"Cache write error: {e}")
+            # 3. 回写（默认不缓存 None，避免缓存穿透反转）
+            if result is not None or cache_none:
+                try:
+                    await cache.set(cache_key, result, ttl=cache_ttl)
+                except Exception as e:
+                    logger.warning(f"Cache write error: {e}")
 
             return result
 

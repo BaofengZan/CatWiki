@@ -20,6 +20,7 @@
 "use client"
 
 import { Badge } from "@/components/ui/badge"
+import { useTranslations } from "next-intl"
 import { Settings, Globe } from "lucide-react"
 import { useSettings } from "@/contexts/SettingsContext"
 import { type SettingsTabId } from "@/types/settings"
@@ -31,6 +32,7 @@ interface ManualModeConfigProps {
 }
 
 export function ManualModeConfig({ onSelectModel, activeTab }: ManualModeConfigProps) {
+  const t = useTranslations("Models")
   const { savedConfigs, platformFallback, platformDefaults } = useSettings()
 
   return (
@@ -38,10 +40,10 @@ export function ManualModeConfig({ onSelectModel, activeTab }: ManualModeConfigP
       <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6">
         <h3 className="text-lg font-bold text-slate-900 mb-2 flex items-center gap-2">
           <Settings className="h-5 w-5 text-blue-500" />
-          选择要配置的模型
+          {t("selectModel")}
         </h3>
         <p className="text-sm text-slate-500 mb-4">
-          点击下方卡片进入对应模型的详细配置页面
+          {t("selectModelDesc")}
         </p>
         <div className="grid grid-cols-2 gap-4">
           {MODEL_TYPES_LIST.map((item) => {
@@ -55,9 +57,8 @@ export function ManualModeConfig({ onSelectModel, activeTab }: ManualModeConfigP
             const isConfigured = isPlatform || !!(conf.provider && conf.model && conf.api_key && conf.base_url)
 
             // 获取展示用的 Provider 名称
-            const displayProvider = isPlatform 
-              ? (platformDefaults?.[type]?.provider || "平台默认")
-              : (conf.provider || "未设置")
+            const raw = isPlatform ? platformDefaults?.[type]?.provider : conf.provider
+            const displayProvider = (raw === "openai" || raw === "openai-compatible") ? "OpenAI Compatible" : (raw || t(isPlatform ? "platformDefault" : "notSet"))
 
             return (
               <button
@@ -78,14 +79,14 @@ export function ManualModeConfig({ onSelectModel, activeTab }: ManualModeConfigP
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-slate-900">{item.title}</h3>
+                        <h3 className="font-bold text-slate-900">{t(`${item.id}Title`)}</h3>
                         {isPlatform && (
                           <Badge
                             variant="secondary"
                             className="text-[10px] px-1.5 py-0.5 h-5 bg-indigo-100 text-indigo-700 border-indigo-200 flex items-center gap-1"
                           >
                             <Globe className="h-3 w-3" />
-                            平台共享
+                            {t("platformShared")}
                           </Badge>
                         )}
                         <Badge
@@ -97,19 +98,19 @@ export function ManualModeConfig({ onSelectModel, activeTab }: ManualModeConfigP
                               : "bg-slate-100 text-slate-600 border-slate-200"
                             }`}
                         >
-                          {item.recommended ? "推荐开启" : item.required ? "必选" : "可选"}
+                          {item.recommended ? t("recommended") : item.required ? t("requiredStatus") : t("optionalStatus")}
                         </Badge>
                       </div>
                       <p className="text-[10px] text-slate-400 uppercase tracking-wider">{item.subtitle}</p>
                     </div>
                   </div>
                 </div>
-                <p className="text-xs text-slate-600 mb-3">{item.description}</p>
+                <p className="text-xs text-slate-600 mb-3">{t(`${item.id}Desc`)}</p>
                 <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                   <div className="flex items-center gap-2">
                     <div className={`h-2 w-2 rounded-full ${isConfigured ? "bg-emerald-500" : "bg-slate-300"}`} />
                     <span className="text-[10px] text-slate-400">
-                      {isConfigured ? "已配置" : "未配置"}
+                      {isConfigured ? t("configuredStatus") : t("notConfiguredStatus")}
                     </span>
                   </div>
                   <Badge variant="secondary" className="text-[10px] bg-slate-100">

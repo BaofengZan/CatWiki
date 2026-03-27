@@ -18,6 +18,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { Search, X, Bot, FileText, Sparkles, Command, ArrowRight } from "lucide-react"
 import { type MenuItem } from "@/types"
 import { cn } from "@/lib/utils"
+import { useTranslations } from "next-intl"
 
 interface SearchBarProps {
   items: MenuItem[]
@@ -40,6 +41,7 @@ function flattenMenuItems(items: MenuItem[]): MenuItem[] {
 }
 
 export function SearchBar({ items, onSelect, onAskAI }: SearchBarProps) {
+  const t = useTranslations("SearchBar")
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<MenuItem[]>([])
   const [isOpen, setIsOpen] = useState(false)
@@ -122,19 +124,19 @@ export function SearchBar({ items, onSelect, onAskAI }: SearchBarProps) {
           <Search className="h-4 w-4 text-slate-400 mr-2 md:mr-3 shrink-0" />
           <input
             className="flex-1 bg-transparent border-none outline-none text-sm md:text-[15px] py-1.5 placeholder:text-slate-400"
-            placeholder={searchMode === "chat" ? "向 AI 提问..." : searchMode === "articles" ? "检索文档..." : "搜索或提问..."}
+            placeholder={searchMode === "chat" ? t("placeholderAI") : searchMode === "articles" ? t("placeholderDoc") : t("placeholderAll")}
             value={query || ""}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             onFocus={() => query && setIsOpen(true)}
-            aria-label="搜索文档或向 AI 提问"
+            aria-label={t("ariaSearch")}
           />
           <div className="flex items-center gap-2">
             {query && (
               <button
                 onClick={() => setQuery("")}
                 className="p-1 hover:bg-slate-100 rounded-md shrink-0"
-                aria-label="清除搜索"
+                aria-label={t("ariaClear")}
               >
                 <X className="h-4 w-4 text-slate-400" />
               </button>
@@ -158,7 +160,7 @@ export function SearchBar({ items, onSelect, onAskAI }: SearchBarProps) {
                 searchMode === "all" ? "bg-white text-primary shadow-sm" : "text-slate-500 hover:bg-white/50"
               )}
             >
-              全部
+              {t("tabAll")}
             </button>
             <button
               onClick={() => { setSearchMode("chat"); setSelectedIndex(0); }}
@@ -168,7 +170,7 @@ export function SearchBar({ items, onSelect, onAskAI }: SearchBarProps) {
               )}
             >
               <Sparkles className="h-3 w-3 md:h-3.5 md:w-3.5" />
-              <span className="hidden sm:inline">AI 对话</span>
+              <span className="hidden sm:inline">{t("tabAI")}</span>
               <span className="sm:hidden">AI</span>
             </button>
             <button
@@ -179,7 +181,7 @@ export function SearchBar({ items, onSelect, onAskAI }: SearchBarProps) {
               )}
             >
               <FileText className="h-3 w-3 md:h-3.5 md:w-3.5" />
-              文档
+              {t("tabDoc")}
             </button>
           </div>
 
@@ -199,14 +201,14 @@ export function SearchBar({ items, onSelect, onAskAI }: SearchBarProps) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 md:gap-2">
-                    <span className="font-semibold text-xs md:text-sm">AI 智能对话</span>
+                    <span className="font-semibold text-xs md:text-sm">{t("aiSmartChat")}</span>
                     <span className={cn("text-[9px] md:text-[10px] px-1 md:px-1.5 py-0.5 rounded-full uppercase tracking-wider font-bold",
                       selectedIndex === 0 ? "bg-white/20 text-white" : "bg-primary/10 text-primary")}>
                       Beta
                     </span>
                   </div>
                   <p className={cn("text-[11px] md:text-xs mt-0.5 opacity-80 truncate", selectedIndex === 0 ? "text-white" : "text-slate-500")}>
-                    立即询问 AI：&quot;{query}&quot;
+                    {t("askAI", { query })}
                   </p>
                 </div>
                 <ArrowRight className={cn("h-4 w-4 opacity-50 shrink-0", selectedIndex === 0 ? "block" : "hidden")} />
@@ -220,7 +222,7 @@ export function SearchBar({ items, onSelect, onAskAI }: SearchBarProps) {
             {(searchMode === "all" || searchMode === "articles") && results.length > 0 && (
               <div className="py-1">
                 <div className="px-3 md:px-4 py-1.5 md:py-2 text-[10px] md:text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-                  {searchMode === "articles" ? "检索到的文章" : "AI 检索到的文章"}
+                  {searchMode === "articles" ? t("searchResultDoc") : t("aiSearchResultDoc")}
                 </div>
                 {results.map((item, index) => (
                   <div
@@ -246,7 +248,7 @@ export function SearchBar({ items, onSelect, onAskAI }: SearchBarProps) {
                 <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-100 rounded-xl md:rounded-2xl flex items-center justify-center mx-auto mb-2 md:mb-3">
                   <Search className="h-5 w-5 md:h-6 md:w-6 text-slate-300" />
                 </div>
-                <p className="text-xs md:text-sm text-slate-500">未找到相关文档</p>
+                <p className="text-xs md:text-sm text-slate-500">{t("noDocFound")}</p>
               </div>
             )}
           </div>
@@ -255,17 +257,17 @@ export function SearchBar({ items, onSelect, onAskAI }: SearchBarProps) {
             <div className="hidden md:flex items-center gap-4">
               <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
                 <kbd className="px-1.5 py-0.5 bg-white border border-slate-200 rounded shadow-sm text-slate-500">↑↓</kbd>
-                <span>选择</span>
+                <span>{t("select")}</span>
               </div>
               <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
                 <kbd className="px-1.5 py-0.5 bg-white border border-slate-200 rounded shadow-sm text-slate-500">Enter</kbd>
-                <span>确认</span>
+                <span>{t("confirm")}</span>
               </div>
             </div>
             <div className="text-[10px] md:text-[11px] text-primary/60 font-medium flex items-center gap-1 mx-auto md:mx-0">
               <Bot className="h-3 w-3" />
               <span className="hidden md:inline">{searchMode === "chat" ? "AI Chat Mode" : searchMode === "articles" ? "RAG Search Mode" : "AI Powered Search"}</span>
-              <span className="md:hidden">AI 驱动</span>
+              <span className="md:hidden">{t("aiPowered")}</span>
             </div>
           </div>
         </div>

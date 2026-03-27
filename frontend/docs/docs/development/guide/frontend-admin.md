@@ -93,6 +93,7 @@ const fetchSites = async () => {
 
 ## 📚 相关文档
 
+- [Admin 设计语言规范](/development/guide/style-guide)
 - [SDK 使用指南](/development/tech/sdk-usage)
 - [API 概览](/development/api/overview)
 - [后端开发指南](/development/guide/backend)

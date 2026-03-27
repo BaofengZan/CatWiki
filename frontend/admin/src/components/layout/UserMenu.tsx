@@ -16,6 +16,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import {
   User,
   Settings,
@@ -37,6 +38,7 @@ import { toast } from "sonner"
 import { ChangePasswordModal } from "@/components/settings/users/ChangePasswordModal"
 
 export function UserMenu() {
+  const t = useTranslations("UserMenu")
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
@@ -48,27 +50,27 @@ export function UserMenu() {
   const user = mounted ? getUserInfo() : null
 
   const handleLogout = () => {
-    if (confirm('确定要退出登录吗？')) {
-      toast.success('已退出登录')
+    if (confirm(t("logoutConfirm"))) {
+      toast.success(t("logoutSuccess"))
       logout()
     }
   }
 
   // 获取显示的名称
-  const displayName = user?.name || "管理员"
+  const displayName = user?.name || t("admin")
   const initials = displayName.substring(0, 2).toUpperCase()
 
   // 获取显示的职业/角色
   const getRoleLabel = (role?: string) => {
     switch (role) {
       case UserRole.ADMIN:
-        return '系统管理员'
+        return t("sysAdmin")
       case UserRole.TENANT_ADMIN:
-        return '组织管理员'
+        return t("tenantAdmin")
       case UserRole.SITE_ADMIN:
-        return '站点管理员'
+        return t("siteAdmin")
       default:
-        return '普通用户'
+        return t("regularUser")
     }
   }
 
@@ -104,7 +106,7 @@ export function UserMenu() {
             onSelect={() => setShowPasswordModal(true)}
           >
             <Lock className="h-4 w-4 opacity-70" />
-            <span className="text-sm">修改密码</span>
+            <span className="text-sm">{t("changePassword")}</span>
           </DropdownMenuItem>
 
           <DropdownMenuSeparator className="mx-1 my-1.5 bg-slate-50" />
@@ -114,7 +116,7 @@ export function UserMenu() {
             onSelect={handleLogout}
           >
             <LogOut className="h-4 w-4 opacity-70" />
-            <span className="text-sm">退出登录</span>
+            <span className="text-sm">{t("logout")}</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

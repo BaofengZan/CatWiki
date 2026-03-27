@@ -141,7 +141,7 @@ async function wrapResponse<
   }
 >(
   promise: PromiseLike<R>,
-  defaultMsg = '操作失败'
+  defaultMsg = 'Operation failed'
 ): Promise<T> {
   try {
     const response = await promise as {
@@ -203,11 +203,11 @@ function parseBooleanField(value: FormDataEntryValue | null): boolean | undefine
 
 function parseRequiredIntField(fieldName: string, value: FormDataEntryValue | null): number {
   if (typeof value !== 'string' || value.trim() === '') {
-    throw new Error(`导入参数缺失: ${fieldName}`)
+    throw new Error(`Missing required field: ${fieldName}`)
   }
   const parsed = Number(value)
   if (!Number.isInteger(parsed) || parsed <= 0) {
-    throw new Error(`导入参数非法: ${fieldName}`)
+    throw new Error(`Invalid field: ${fieldName}`)
   }
   return parsed
 }
@@ -221,7 +221,7 @@ function toImportDocumentBody(
 
   const file = payload.get('file')
   if (!(file instanceof Blob)) {
-    throw new Error('导入参数缺失: file')
+    throw new Error('Missing required field: file')
   }
 
   const body: Models.Body_importDocument = {
@@ -424,7 +424,7 @@ const systemConfigApi = {
     scope: 'platform' | 'tenant' = 'tenant'
   ) => {
     if (!isModelType(modelType)) {
-      throw new Error(`不支持的模型类型: ${modelType}`)
+      throw new Error(`Unsupported model type: ${modelType}`)
     }
     return wrapResponse<Models.ApiResponse_dict_['data']>(client.adminSystemConfigs.testModelConnection({
       requestBody: {

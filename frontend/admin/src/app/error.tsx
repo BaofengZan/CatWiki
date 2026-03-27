@@ -16,6 +16,7 @@
 
 import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { useTranslations } from 'next-intl'
 
 export default function Error({
   error,
@@ -24,19 +25,20 @@ export default function Error({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const t = useTranslations('ErrorPage')
   useEffect(() => {
     // 在生产环境中，可以发送到错误监控服务
     console.error('应用错误:', error)
   }, [error])
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+    <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-slate-50/50">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">出错了</h2>
-        <p className="text-slate-600 mb-4">
-          {error.message || '页面加载时发生错误'}
+        <h2 className="text-2xl font-bold text-foreground mb-2">{t("title")}</h2>
+        <p className="text-muted-foreground mb-4">
+          {error.message || t("description")}
         </p>
-        <Button onClick={reset}>重新尝试</Button>
+        <Button onClick={reset}>{t("retry")}</Button>
       </div>
     </div>
   )

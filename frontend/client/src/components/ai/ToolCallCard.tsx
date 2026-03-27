@@ -18,20 +18,18 @@ import { Search, CheckCircle2, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { ToolCall } from "@/types"
 
+import { useTranslations } from "next-intl"
+
 interface ToolCallCardProps {
   toolCalls: ToolCall[]
   className?: string
-}
-
-// 工具名称映射
-const TOOL_DISPLAY_NAMES: Record<string, string> = {
-  search_knowledge_base: "搜索知识库",
 }
 
 /**
  * Tool Call 展示组件 - 简洁胶囊式设计
  */
 export function ToolCallCard({ toolCalls, className }: ToolCallCardProps) {
+  const t = useTranslations("ToolCall")
   if (!toolCalls || toolCalls.length === 0) return null
 
   return (
@@ -40,7 +38,7 @@ export function ToolCallCard({ toolCalls, className }: ToolCallCardProps) {
         // 按照 OpenAI 标准结构提取信息
         const func = tc.function
         const name = func?.name || tc.name || "unknown"
-        const displayName = TOOL_DISPLAY_NAMES[name] || name
+        const displayName = t(name as any) || name
 
         // 解析查询参数
         let query = ""

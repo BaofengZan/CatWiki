@@ -1,6 +1,7 @@
 "use client"
 
 import React from 'react'
+import { useTranslations } from 'next-intl'
 import { useTasks } from '@/contexts/TaskContext'
 
 import { Button } from '@/components/ui/button'
@@ -12,6 +13,7 @@ import { cn } from '@/lib/utils'
 
 export function TaskQueuePanel() {
   const { tasks, isPanelOpen, setPanelOpen, minimizePanel, togglePanel, removeTask, clearFinishedTasks } = useTasks()
+  const t = useTranslations('TaskQueue')
 
   if (tasks.length === 0) return null
 
@@ -42,11 +44,11 @@ export function TaskQueuePanel() {
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'completed': return '完成'
-      case 'failed': return '失败'
-      case 'pending': return '排队中'
-      case 'processing': return '解析中'
-      case 'running': return '解析中'
+      case 'completed': return t("completed")
+      case 'failed': return t("failed")
+      case 'pending': return t("pending")
+      case 'processing': return t("processing")
+      case 'running': return t("processing")
       default: return status
     }
   }
@@ -73,7 +75,7 @@ export function TaskQueuePanel() {
                   </span>
                 )}
               </div>
-              <span className="text-slate-700">文档处理任务 ({completed + failed}/{total})</span>
+              <span className="text-slate-700">{t("documentProcessing")} ({completed + failed}/{total})</span>
               <ChevronUp className="h-4 w-4 text-slate-400" />
             </div>
           </motion.div>
@@ -93,7 +95,7 @@ export function TaskQueuePanel() {
               <div className="flex items-center gap-2">
                 {processing > 0 ? <Loader2 className="h-4 w-4 text-blue-500 animate-spin" /> : <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
                 <span className="font-semibold text-sm text-slate-800">
-                  {processing > 0 ? '正在处理文档...' : '处理完成'}
+                  {processing > 0 ? t("processingDocuments") : t("processingComplete")}
                 </span>
                 <span className="text-xs text-slate-500 ml-1">({completed + failed}/{total})</span>
               </div>
@@ -122,7 +124,7 @@ export function TaskQueuePanel() {
 
             <div className="max-h-[300px] overflow-y-auto p-2 space-y-1 custom-scrollbar">
               {tasks.map((task) => {
-                const filename = task.payload?.filename || task.payload?.original_filename || `任务 ${task.id}`
+                const filename = task.payload?.filename || task.payload?.original_filename || t("taskFallback", { id: task.id })
                 return (
                   <div key={task.id} className="flex flex-col p-2 bg-white hover:bg-slate-50 rounded-lg group transition-colors">
                     <div className="flex items-start justify-between gap-2">
@@ -166,7 +168,7 @@ export function TaskQueuePanel() {
             {processing === 0 && (
               <div className="px-4 py-2 border-t border-slate-100 bg-slate-50 flex justify-end">
                 <Button variant="ghost" size="sm" className="h-8 text-xs font-medium text-slate-500 hover:text-slate-900" onClick={clearFinishedTasks}>
-                  清除全部记录
+                  {t("clearAll")}
                 </Button>
               </div>
             )}

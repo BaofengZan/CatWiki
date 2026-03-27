@@ -52,6 +52,32 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
                 query = query.where(getattr(self.model, key) == value)
         return query
 
+
+    async def _cached_get(
+        self, db: AsyncSession, cache_key: str, fetch_fn, ttl: int = 600
+    ) -> ModelType | None:
+        """
+        缓存安全的查询辅助方法。
+        缓存存储 dict（而非 ORM 实例），取出后重建为 ORM 实例并 merge 到当前 session。
+        """
+        from app.core.infra.cache import get_cache
+
+        cache = get_cache()
+        cached = await cache.get(cache_key)
+
+        if cached is not None:
+            from sqlalchemy.orm import make_transient_to_detached
+            instance = self.model(**cached)
+            make_transient_to_detached(instance)
+            return await db.merge(instance, load=False)
+
+        result = await fetch_fn()
+
+        if result is not None:
+            await cache.set(cache_key, result.to_dict(), ttl=ttl)
+
+        return result
+
     async def get(self, db: AsyncSession, id: Any) -> ModelType | None:
         """
         根据 ID 获取记录
@@ -189,7 +215,8 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             if hasattr(db_obj, field):
                 setattr(db_obj, field, value)
 
-        db.add(db_obj)
+        # 使用 merge 而非 add，安全处理 detached 实例（如从缓存返回的对象）
+        db_obj = await db.merge(db_obj)
         if auto_commit:
             await db.commit()
             await db.refresh(db_obj)

@@ -25,11 +25,13 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Lock, Eye, EyeOff, Shield } from "lucide-react"
+import { Lock, Eye, EyeOff, Shield, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { api } from "@/lib/api-client"
 import { getUserInfo } from "@/lib/auth"
 import { logError } from "@/lib/error-handler"
+
+import { useTranslations } from "next-intl"
 
 interface ChangePasswordModalProps {
   open: boolean
@@ -37,6 +39,7 @@ interface ChangePasswordModalProps {
 }
 
 export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalProps) {
+  const t = useTranslations("ChangePassword")
   const [oldPassword, setOldPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -47,22 +50,22 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
 
   const handleChangePassword = async () => {
     if (!oldPassword || !newPassword || !confirmPassword) {
-      toast.error("请填写所有字段")
+      toast.error(t("errorFillAll"))
       return
     }
 
     if (newPassword.length < 6) {
-      toast.error("新密码至少需要6位")
+      toast.error(t("errorMinLength"))
       return
     }
 
     if (newPassword !== confirmPassword) {
-      toast.error("两次输入的新密码不一致")
+      toast.error(t("errorMismatch"))
       return
     }
 
     if (oldPassword === newPassword) {
-      toast.error("新密码不能与旧密码相同")
+      toast.error(t("errorSameAsOld"))
       return
     }
 
@@ -71,7 +74,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
     try {
       const user = getUserInfo()
       if (!user) {
-        toast.error("未找到用户信息，请重新登录")
+        toast.error(t("errorNoUser"))
         return
       }
 
@@ -80,13 +83,13 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
         new_password: newPassword,
       })
 
-      toast.success("密码修改成功！")
+      toast.success(t("success"))
 
       // 重置并关闭
       handleClose()
     } catch (error: unknown) {
-      logError("修改密码", error)
-      toast.error(error instanceof Error ? error.message : "密码修改失败")
+      logError(t("title"), error)
+      toast.error(error instanceof Error ? error.message : t("failed"))
     } finally {
 
       setLoading(false)
@@ -102,27 +105,27 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] rounded-2xl">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold flex items-center gap-2">
             <Lock className="h-5 w-5 text-primary" />
-            修改密码
+            {t("title")}
           </DialogTitle>
           <DialogDescription>
-            请输入当前密码及新密码以更新账户安全设置。
+            {t("description")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="old-password">当前密码</Label>
+            <Label htmlFor="old-password">{t("currentPassword")}</Label>
             <div className="relative">
               <Input
                 id="old-password"
                 type={showOldPassword ? "text" : "password"}
                 value={oldPassword}
                 onChange={(e) => setOldPassword(e.target.value)}
-                placeholder="当前密码"
+                placeholder={t("placeholderCurrent")}
                 className="pr-10"
               />
               <button
@@ -136,14 +139,14 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="new-password">新密码</Label>
+            <Label htmlFor="new-password">{t("newPassword")}</Label>
             <div className="relative">
               <Input
                 id="new-password"
                 type={showNewPassword ? "text" : "password"}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="至少6位字符"
+                placeholder={t("placeholderNew")}
                 className="pr-10"
               />
               <button
@@ -157,14 +160,14 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirm-password">确认新密码</Label>
+            <Label htmlFor="confirm-password">{t("confirmNewPassword")}</Label>
             <div className="relative">
               <Input
                 id="confirm-password"
                 type={showConfirmPassword ? "text" : "password"}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="再次输入新密码"
+                placeholder={t("placeholderConfirm")}
                 className="pr-10"
               />
               <button
@@ -180,21 +183,22 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
           <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3 flex items-start gap-3">
             <Shield className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
             <div className="text-[11px] text-blue-700 leading-relaxed">
-              建议使用大写字母、小写字母、数字及符号的组合以提高安全性。
+              {t("securityTip")}
             </div>
           </div>
         </div>
 
         <div className="flex gap-3 pt-2">
-          <Button variant="outline" className="flex-1 rounded-xl" onClick={() => onOpenChange(false)}>
-            取消
+          <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
+            {t("cancel")}
           </Button>
           <Button
-            className="flex-1 rounded-xl"
+            className="flex-1 flex items-center justify-center gap-2"
             onClick={handleChangePassword}
             disabled={loading || !oldPassword || !newPassword || !confirmPassword}
           >
-            {loading ? "修改中..." : "确认修改"}
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+            {loading ? t("updating") : t("confirm")}
           </Button>
         </div>
       </DialogContent>

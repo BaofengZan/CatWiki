@@ -24,6 +24,7 @@ from app.core.infra.config import (
     AI_VL_CONFIG_KEY,
 )
 from app.core.infra.tenant import temporary_tenant_context
+from app.core.web.exceptions import BadRequestException, CatWikiError
 from app.crud.system_config import crud_system_config
 from app.db.database import AsyncSessionLocal
 
@@ -79,9 +80,9 @@ class ConfigResolver:
     @classmethod
     async def resolve_section(cls, section: str, tenant_id: int | None = None) -> dict[str, Any]:
         """Resolve a specific configuration section (e.g., 'chat', 'embedding')."""
+
         # 1. Tenant Level
         if tenant_id:
-            from app.core.web.exceptions import CatWikiError
             from app.crud.tenant import crud_tenant
 
             async with AsyncSessionLocal() as db:
@@ -174,12 +175,7 @@ class ConfigResolver:
 
     @staticmethod
     def validate_config(section: str, config: dict[str, Any]) -> None:
-        """[✨ 亮点] 统一 AI 配置校验逻辑
-
-        适用于所有 AI 模块 (Chat, Embedding, Rerank, VL)。
-        如果配置在 custom 模式下缺失核心参数 (API Key)，则抛出 BadRequestException。
-        """
-        from app.core.web.exceptions import BadRequestException
+        """[✨ 亮点] 统一 AI 配置校验逻辑"""
 
         mode = config.get("mode", "platform")
         api_key = config.get("api_key")

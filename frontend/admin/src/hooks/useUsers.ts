@@ -83,7 +83,6 @@ export function useCreateUser() {
   return useAdminMutation({
     mutationFn: (data: UserCreate) => api.user.create(data),
     invalidateKeys: [userKeys.lists()],
-    successMsg: '用户创建成功',
   })
 }
 
@@ -108,7 +107,6 @@ export function useUpdateUser() {
     mutationFn: ({ userId, data }: { userId: number; data: UserUpdate }) =>
       api.user.update(userId, data),
     invalidateKeys: [userKeys.all],
-    successMsg: '用户更新成功',
   })
 }
 
@@ -121,7 +119,6 @@ export function useUpdateUserRole() {
       api.user.update(userId, { role }),
 
     invalidateKeys: [userKeys.all],
-    successMsg: '用户角色更新成功',
   })
 }
 
@@ -133,7 +130,6 @@ export function useUpdateUserSites() {
     mutationFn: ({ userId, managed_site_ids }: { userId: number; managed_site_ids: number[] }) =>
       api.user.update(userId, { managed_site_ids }),
     invalidateKeys: [userKeys.all],
-    successMsg: '用户站点权限更新成功',
   })
 }
 
@@ -146,7 +142,6 @@ export function useUpdateUserStatus() {
       api.user.update(userId, { status }),
 
     invalidateKeys: [userKeys.all],
-    successMsg: (res: UserResponse) => res.status === 'inactive' ? '用户已禁用' : '用户已启用',
   })
 }
 
@@ -156,7 +151,6 @@ export function useUpdateUserStatus() {
 export function useResetUserPassword() {
   return useAdminMutation({
     mutationFn: (userId: number) => api.user.resetPassword(userId),
-    successMsg: '密码重置成功',
   })
 }
 
@@ -167,7 +161,6 @@ export function useDeleteUser() {
   return useAdminMutation({
     mutationFn: (userId: number) => api.user.delete(userId),
     invalidateKeys: [userKeys.lists()],
-    successMsg: '用户删除成功',
   })
 }
 

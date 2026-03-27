@@ -18,6 +18,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { FileQuestion, Home, ArrowLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useTranslations } from "next-intl"
 
 interface NotFoundStateProps {
   title?: string
@@ -31,12 +32,15 @@ interface NotFoundStateProps {
  * 404 / 不存在状态展示组件
  */
 export function NotFoundState({
-  title = "页面不存在",
-  description = "抱歉，您访问的页面不存在或已被移除。",
+  title,
+  description,
   showHome = true,
   showBack = false,
   className
 }: NotFoundStateProps) {
+  const t = useTranslations("NotFoundState")
+  const displayTitle = title || t("title")
+  const displayDescription = description || t("description")
   return (
     <div className={cn(
       "min-h-[70vh] flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500",
@@ -51,10 +55,10 @@ export function NotFoundState({
 
       <div className="max-w-md space-y-3">
         <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
-          {title}
+          {displayTitle}
         </h2>
         <p className="text-slate-500 text-sm md:text-base leading-relaxed">
-          {description}
+          {displayDescription}
         </p>
       </div>
 
@@ -67,7 +71,7 @@ export function NotFoundState({
             onClick={() => window.history.back()}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            返回上一页
+            {t("back")}
           </Button>
         )}
         
@@ -78,7 +82,7 @@ export function NotFoundState({
               className="rounded-xl h-12 px-8 min-w-[160px] shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all font-bold"
             >
               <Home className="mr-2 h-4 w-4" />
-              回到首页
+              {t("home")}
             </Button>
           </Link>
         )}

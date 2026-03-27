@@ -20,6 +20,7 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ChevronRight, Cpu } from "lucide-react"
@@ -32,11 +33,12 @@ interface ModelDetailCardProps {
 }
 
 export function ModelDetailCard({ modelType, onBack }: ModelDetailCardProps) {
+  const t = useTranslations("Models")
   const info = MODEL_META[modelType]
   const Icon = info.icon
 
   return (
-    <Card className="border-border/50 shadow-sm min-h-[500px] rounded-2xl overflow-hidden transition-all duration-300">
+    <Card className="border-border/50 shadow-sm min-h-[500px] overflow-hidden transition-all duration-300">
       <CardHeader className="border-b border-border/40 bg-muted/20 pb-6 px-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -45,7 +47,7 @@ export function ModelDetailCard({ modelType, onBack }: ModelDetailCardProps) {
               size="icon"
               onClick={onBack}
               className="h-10 w-10 hover:bg-background/80 shadow-sm border border-border/50 bg-background/50 transition-all"
-              title="返回模型设置"
+              title={t("backToModels")}
             >
               <ChevronRight className="h-5 w-5 rotate-180" />
             </Button>
@@ -54,22 +56,22 @@ export function ModelDetailCard({ modelType, onBack }: ModelDetailCardProps) {
                 <div className={`p-2 ${info.iconBg} rounded-xl ${info.iconColor} shadow-sm`}>
                   <Icon className="h-6 w-6" />
                 </div>
-                {info.title}
+                {t(`${modelType}Title`)}
                 {info.recommended ? (
-                  <span className="text-sm font-normal text-amber-600 ml-1 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">(推荐开启)</span>
+                  <span className="text-sm font-normal text-amber-600 ml-1 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">({t("recommended")})</span>
                 ) : !info.required && (
-                  <span className="text-sm font-normal text-muted-foreground ml-1">(选填)</span>
+                  <span className="text-sm font-normal text-muted-foreground ml-1">({t("optionalStatus")})</span>
                 )}
               </CardTitle>
               <CardDescription className="text-base text-muted-foreground/80 mt-1.5">
-                {info.description}
+                {t(`${modelType}Desc`)}
               </CardDescription>
             </div>
           </div>
           <Badge variant="secondary" className="h-8 flex items-center gap-2 px-4 bg-background border border-border/50 text-muted-foreground font-bold rounded-xl shadow-sm">
             <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
             <Cpu className="h-3.5 w-3.5" />
-            内核 v1.0
+            {t("kernelVersion")}
           </Badge>
         </div>
       </CardHeader>

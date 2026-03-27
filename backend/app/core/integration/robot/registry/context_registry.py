@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.common.i18n import _
+
 RobotContextResolver = Callable[[str, int, AsyncSession], Awaitable[dict]]
 
 
@@ -44,9 +46,9 @@ def register_robot_context_resolver(
 async def get_robot_context(provider: str, kind: str, site_id: int, db: AsyncSession) -> dict:
     meta = _RESOLVERS.get(provider)
     if not meta:
-        raise HTTPException(status_code=500, detail="未知的机器人平台")
+        raise HTTPException(status_code=500, detail=_("bot.unknown_platform"))
     if not meta.enabled:
-        raise HTTPException(status_code=403, detail="机器人平台未启用")
+        raise HTTPException(status_code=403, detail=_("bot.platform_not_enabled"))
     return await meta.resolver(kind, site_id, db)
 
 

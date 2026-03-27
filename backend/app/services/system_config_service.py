@@ -6,6 +6,7 @@ from uuid import uuid4
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.common.i18n import _
 from app.core.common.masking import mask_sensitive_data
 from app.core.infra.config import (
     DOC_PROCESSOR_CONFIG_KEY,
@@ -145,7 +146,7 @@ class SystemConfigService:
             )
 
         if not db_config:
-            raise NotFoundException(detail=f"配置 {config_key} 不存在")
+            raise NotFoundException(detail=_("config.not_found", key=config_key))
 
         await self.db.delete(db_config)
 
@@ -188,7 +189,7 @@ class SystemConfigService:
     async def _after_ai_config_update(self, tenant_id: int | None, reload_vector: bool):
         """AI 配置更新后的副作用处理"""
         try:
-            configuration_service.clear_cache(tenant_id=tenant_id)
+            await configuration_service.clear_cache(tenant_id=tenant_id)
             logger.info(f"🧹 Cleared AI config cache for tenant: {tenant_id}")
         except Exception as e:
             logger.error(f"❌ Failed to clear config cache: {e}")
@@ -251,9 +252,9 @@ class SystemConfigService:
                 return await self._test_rerank_connection(api_key, base_url, model)
         except Exception as e:
             logger.error(f"❌ {model_type.upper()} connection test failed: {e}")
-            raise BadRequestException(detail=f"连接失败: {str(e)}")
+            raise BadRequestException(detail=_("config.connect_failed", error=str(e)))
 
-        raise BadRequestException(detail=f"不支持的测试类型: {model_type}")
+        raise BadRequestException(detail=_("config.unsupported_test_type", type=model_type))
 
     @staticmethod
     async def _test_chat_connection(api_key: str, base_url: str, model: str) -> dict:
@@ -429,10 +430,10 @@ class SystemConfigService:
             if is_healthy:
                 return {"status": "healthy"}
             else:
-                raise BadRequestException(detail="无法连接到服务或服务异常")
+                raise BadRequestException(detail=_("config.service_unavailable"))
         except Exception as e:
             logger.error(f"❌ Doc processor test failed: {e}")
-            raise BadRequestException(detail=f"连接失败: {str(e)}")
+            raise BadRequestException(detail=_("config.connect_failed", error=str(e)))
 
 
 def get_system_config_service(db: AsyncSession = Depends(get_db)) -> SystemConfigService:

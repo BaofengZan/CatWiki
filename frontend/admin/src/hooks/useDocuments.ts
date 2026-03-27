@@ -136,7 +136,6 @@ export function useCreateDocument(siteId: number) {
   return useAdminMutation({
     mutationFn: (data: DocumentCreate) => api.document.create(data),
     invalidateKeys: [documentKeys.lists()],
-    successMsg: '文档创建成功',
   })
 }
 
@@ -147,7 +146,6 @@ export function useUpdateDocument() {
   return useAdminMutation({
     mutationFn: ({ documentId, data }: { documentId: number; data: DocumentUpdate }) =>
       api.document.update(documentId, data),
-    successMsg: '文档更新成功',
     onSuccess: (updatedDoc, variables, context, mutation) => {
       // 获取 queryClient 进行更细粒度的失效
       // 注意：useAdminMutation 内部已经处理了基础的 onSuccess 回调
@@ -166,7 +164,6 @@ export function useBatchDeleteDocuments(siteId: number) {
       await Promise.all(ids.map(id => api.document.delete(id)))
       return ids
     },
-    successMsg: (ids: number[]) => `成功删除 ${ids.length} 个文档`,
     invalidateKeys: [documentKeys.lists()],
   })
 }
@@ -180,7 +177,6 @@ export function useDeleteDocument(siteId: number) {
 
   return useAdminMutation({
     mutationFn: (id: number) => api.document.delete(id),
-    successMsg: '文档删除成功',
     onMutate: async (deletedId) => {
       await queryClient.cancelQueries({ queryKey: documentKeys.lists() })
       const previousData = queryClient.getQueriesData({ queryKey: documentKeys.lists() })
@@ -217,11 +213,6 @@ export function useBatchUpdateDocuments() {
       await Promise.all(documentIds.map(id => api.document.update(id, data)))
       return { documentIds, data }
     },
-    successMsg: (res) => {
-      if (res.data.status !== undefined) return `成功更新 ${res.documentIds.length} 个文档状态`
-      if (res.data.collection_id !== undefined) return `成功移动 ${res.documentIds.length} 个文档`
-      return `成功批量更新 ${res.documentIds.length} 个文档`
-    },
     invalidateKeys: [documentKeys.lists()],
   })
 }
@@ -234,7 +225,6 @@ export function useBatchUpdateDocuments() {
 export function useVectorizeDocument() {
   return useAdminMutation({
     mutationFn: (documentId: number) => api.document.vectorizeSingle(documentId),
-    successMsg: '已加入学习队列',
     invalidateKeys: [documentKeys.all],
   })
 }
@@ -245,7 +235,6 @@ export function useVectorizeDocument() {
 export function useBatchVectorizeDocuments() {
   return useAdminMutation({
     mutationFn: (documentIds: number[]) => api.document.vectorize(documentIds),
-    successMsg: (result: VectorizeResponse) => `成功加入 ${result.success_count} 个文档到学习队列`,
     invalidateKeys: [documentKeys.lists()],
 
   })
@@ -257,7 +246,6 @@ export function useBatchVectorizeDocuments() {
 export function useRemoveVector() {
   return useAdminMutation({
     mutationFn: (documentId: number) => api.document.removeVector(documentId),
-    successMsg: '已移除向量数据',
     invalidateKeys: [documentKeys.all],
   })
 }

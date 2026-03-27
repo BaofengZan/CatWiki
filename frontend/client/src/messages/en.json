@@ -1,0 +1,194 @@
+{
+  "HomePage": {
+    "loading": "Discovering new knowledge...",
+    "nav": {
+      "plaza": "Site Plaza",
+      "docs": "Docs",
+      "admin": "Admin Console",
+      "star": "Star",
+      "search": "Search"
+    },
+    "hero": {
+      "badge": "Discover · Connect · Wisdom",
+      "welcome": "Welcome to",
+      "subtitle": "CatWiki Knowledge Plaza",
+      "description": "Where wisdom converges. Connect scattered nodes, discover deep insights, empower every site with AI, and make search and chat within reach.",
+      "searchPlaceholder": "Search and explore sites or content..."
+    },
+    "plaza": {
+      "title": "Discovery Plaza",
+      "nodes": "{count} Open Nodes",
+      "empty": {
+        "title": "No matching sites found",
+        "description": "Try different keywords or create your own knowledge space here."
+      },
+      "error_load_sites": "Failed to load sites",
+      "error_logic": "Data loading error"
+    },
+    "trending": {
+      "title": "Trending Content",
+      "empty": "No recommendations yet",
+      "views": "{count} Views",
+      "readMore": "Read More",
+      "defaultSite": "Default Site",
+      "defaultAuthor": "Admin",
+      "error_load_docs": "Failed to load trending docs"
+    },
+    "aiAssistant": {
+      "title": "AI Assistant",
+      "knowledgeBase": "Knowledge Base"
+    }
+  },
+  "SlugPage": {
+    "loading": "Loading site...",
+    "retrieving": "Retrieving knowledge base...",
+    "openMenu": "Open Menu",
+    "defaultSiteName": "Knowledge Base"
+  },
+  "TenantPortal": {
+    "loading": "Loading...",
+    "notFound": {
+      "title": "Tenant Not Found",
+      "description": "Sorry, tenant \"{tenantSlug}\" does not exist or has no public sites."
+    },
+    "subtitle": "Enterprise AI Knowledge Base Platform",
+    "nav": {
+      "docs": "Docs",
+      "star": "Star"
+    },
+    "selector": {
+      "allSites": "All Sites",
+      "crossSite": "Cross-site Query",
+      "limitSite": "Limited to this site",
+      "placeholder": "Search {tenantSlug} sites...",
+      "crossSiteLong": "Cross-site query, no limitation",
+      "empty": "No matching sites found",
+      "emptySub": "Try different keywords"
+    }
+  },
+  "SiteCard": {
+    "defaultDescription": "A knowledge base full of wisdom, waiting for your exploration.",
+    "visit": "Visit Details",
+    "aiChat": "AI Chat",
+    "articleCount": "{count} Articles",
+    "viewCount": "Views {count}"
+  },
+  "Sidebar": {
+    "defaultSiteName": "Knowledge Base",
+    "closeMenu": "Close Menu",
+    "aiChat": "AI Chat",
+    "collectionCatalog": "Collections",
+    "aiPrompt": "Try asking a question directly in the search bar for AI retrieval."
+  },
+  "SearchBar": {
+    "placeholderAI": "Ask AI...",
+    "placeholderDoc": "Search docs...",
+    "placeholderAll": "Search or ask...",
+    "ariaSearch": "Search documents or ask AI",
+    "ariaClear": "Clear search",
+    "tabAll": "All",
+    "tabAI": "AI Chat",
+    "tabDoc": "Docs",
+    "aiSmartChat": "AI Chat",
+    "askAI": "Ask AI now: \"{query}\"",
+    "searchResultDoc": "Search results",
+    "aiSearchResultDoc": "AI search results",
+    "noDocFound": "No documents found",
+    "select": "Select",
+    "confirm": "Confirm",
+    "aiPowered": "AI Powered"
+  },
+  "AIChat": {
+    "welcome": "Hello! I am CatWiki's AI assistant, how can I help you?",
+    "title": "AI Assistant",
+    "description": "Semantic search & Q&A based on RAG",
+    "inputPlaceholder": "Ask a question about the knowledge base...",
+    "inputAria": "Input your question",
+    "sendAria": "Send message",
+    "disclaimer": "AI may produce errors, please refer to the original document."
+  },
+  "MessageSources": {
+    "title": "Sources ({count})",
+    "defaultSiteName": "Knowledge Base"
+  },
+  "AIChatLanding": {
+    "history": "History",
+    "newChat": "New Chat",
+    "welcome": "Hello, I am {siteName} AI",
+    "description": "You can ask me any questions about the knowledge base or let me search for information in documents.",
+    "inputPlaceholder": "Ask AI assistant...",
+    "inputAria": "Input your question",
+    "sendAria": "Send message"
+  },
+  "ChatHistory": {
+    "title": "History",
+    "close": "Close",
+    "newChat": "New Chat",
+    "searchPlaceholder": "Search sessions...",
+    "loading": "Loading...",
+    "noMatch": "No matching sessions",
+    "empty": "No history yet",
+    "defaultTitle": "New Chat",
+    "noMessage": "No messages",
+    "deleteConfirm": "Are you sure you want to delete this session?",
+    "deleteAria": "Delete session",
+    "autoSave": "Sessions are saved automatically"
+  },
+  "NotFoundState": {
+    "title": "Page Not Found",
+    "description": "Sorry, the page you are visiting does not exist or has been removed.",
+    "back": "Back to previous page",
+    "home": "Home"
+  },
+  "ChatWidget": {
+    "defaultWelcome": "Hello! I'm the AI assistant, how can I help you?",
+    "defaultTitle": "AI Customer Service",
+    "online": "Online",
+    "today": "Today",
+    "inputPlaceholder": "Type your question...",
+    "defaultWidgetTitle": "AI Assistant"
+  },
+  "ToolCall": {
+    "search_knowledge_base": "Search Knowledge Base"
+  },
+  "Loading": {
+    "default": "Loading..."
+  },
+  "LanguageSwitcher": {
+    "zh": "简体中文",
+    "en": "English"
+  },
+  "SiteNotFound": {
+    "title": "Site Not Found",
+    "description": "Sorry, site \"{siteSlug}\" was not found under tenant \"{tenantSlug}\". It may have been removed or the link is incorrect."
+  },
+  "Metadata": {
+    "title": "CatWiki - Enterprise AI Knowledge Base",
+    "description": "CatWiki - Enterprise full-stack AI knowledge base platform with modern content management, deep AI Q&A, and exceptional user experience."
+  },
+  "Errors": {
+    "tenantNotFound": "Tenant not found",
+    "loadSite": "Load site",
+    "loadMenu": "Load menu data",
+    "loadDocument": "Load document details",
+    "unknownError": "Unknown error",
+    "operationFailed": "Operation failed"
+  },
+  "Console": {
+    "branding": "CatWiki - Enterprise AI Knowledge Base"
+  },
+  "DocumentDetail": {
+    "emptyTitle": "Ready to explore?",
+    "emptyDescription": "Select an article from the left directory or menu to start reading, or use AI to search for content you are interested in.",
+    "docList": "Documents",
+    "updatedAt": "Updated at {date}",
+    "readCount": "{count} Reads",
+    "readingTime": "Est. {time} min read",
+    "readingTimeLess": "Est. less than 1 min read",
+    "summary": "Summary",
+    "wasHelpful": "Was this helpful?",
+    "feedbackDesc": "Your feedback will help us optimize AI search results.",
+    "helpful": "Helpful",
+    "notHelpful": "Not Helpful"
+  }
+}

@@ -67,7 +67,6 @@ export function useDeleteConfig(scope: 'platform' | 'tenant' = 'tenant') {
   return useAdminMutation({
     mutationFn: (configKey: string) => api.systemConfig.deleteConfig(configKey, scope),
     invalidateKeys: [systemConfigKeys.aiConfig(tenantId, scope)],
-    successMsg: '配置删除成功',
   })
 }
 

@@ -7,8 +7,8 @@
 
 .PHONY: help \
 	dev-init dev-up dev-down dev-rebuild dev-restart dev-restart-backend dev-logs dev-clean dev-db-migrate dev-db-upgrade dev-db-psql gen-sdk license format \
-	prod-init prod-up prod-up-build prod-rebuild prod-down prod-restart prod-restart-backend prod-logs prod-clean prod-docs clean-cache \
-	set-version publish-ce-github publish-ce-images setup-hooks check-changed check-all
+	prod-init prod-up prod-up-build prod-rebuild prod-down prod-restart prod-restart-backend prod-logs prod-clean prod-docs \
+	set-version publish-ce-github publish-ce-images setup-hooks check-changed check-all smoke-test
 
 # ------------------------------------------------------------------------------
 # 1. 跨平台配置 (Cross-Platform Config)
@@ -62,18 +62,18 @@ help:
 	@echo "  make prod-clean         - 停止容器并删除数据卷 (❗危险：清空生产数据)"
 	@echo ""
 	@echo " 🧩  [通用命令] (Common Commands)"
-	@echo "  make clean-cache        - 清理本地缓存 (node_modules/.next/.pnpm-store 等)"
 	@echo "  make gen-sdk            - 生成前端 TypeScript SDK"
 	@echo "  make license            - 为所有源文件自动注入 License Header"
 	@echo "  make format             - 运行代码格式化 (后端+前端)"
 	@echo "  make check-changed      - 仅检查已暂存改动 (增量)"
 	@echo "  make check-all          - 全量规范检查 (后端+前端+类型)"
+	@echo "  make smoke-test         - 运行 API 冒烟测试 (ai=0 跳过AI测试)"
 	@echo "  make setup-hooks        - 配置 Git hooksPath 到 scripts/git-hooks"
 	@echo "  make help               - 显示此帮助信息"
 	@echo ""
 	@echo " 📦  [发布同步] (Release & Sync)"
 	@echo "  make publish-ce-images  - 构建 CE 镜像并推送到 Docker Hub (公开仓库)"
-	@echo "  make set-version v=1.0.4 - 统一修改项目版本号 (代码, 配置, 镜像标签)"
+	@echo "  make set-version v=1.0.5 - 统一修改项目版本号 (代码, 配置, 镜像标签)"
 	@echo ""
 	@echo " ⚠️  Windows 用户注意: 请使用 WSL2 或 Git Bash 运行 make 命令"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -210,18 +210,9 @@ prod-clean: check-prod-env
 # ------------------------------------------------------------------------------
 # 5. [通用命令] Common Targets
 # ------------------------------------------------------------------------------
-# 清理本地缓存/构建产物
-clean-cache:
-	@echo "🧹 [CatWiki] 清理本地缓存..."
-	@rm -rf .pnpm-store
-	@rm -rf frontend/admin/.pnpm-store frontend/client/.pnpm-store frontend/docs/.pnpm-store frontend/website/.pnpm-store
-	@rm -rf frontend/admin/node_modules frontend/client/node_modules frontend/docs/node_modules frontend/website/node_modules
-	@rm -rf frontend/admin/.next frontend/client/.next frontend/website/.next frontend/website/out
-	@rm -rf frontend/docs/.vitepress/cache frontend/docs/.vitepress/dist
-	@find backend scripts -type d -name "__pycache__" -prune -exec rm -rf {} + 2>/dev/null || true
-	@rm -rf backend/.pytest_cache backend/.ruff_cache
-	@rm -f frontend/admin/tsconfig.tsbuildinfo frontend/client/tsconfig.tsbuildinfo
-	@echo "✅ 本地缓存清理完成"
+# API 冒烟测试 (ai=0 跳过AI测试)
+smoke-test:
+	@docker compose -f docker-compose.dev.yml exec backend uv run python scripts/smoke_test.py $(if $(filter 0,$(ai)),--skip-ai)
 
 # 生成前端 SDK
 gen-sdk:
@@ -275,6 +266,8 @@ check-all:
 	cd frontend/admin && pnpm run lint && pnpm exec tsc --noEmit
 	@echo "  - frontend/client eslint + tsc"
 	cd frontend/client && pnpm run lint && pnpm exec tsc --noEmit
+	@echo "  - i18n keys check"
+	python3 scripts/check-i18n.py
 	@echo "✅ 全量检查通过"
 
 # 配置 Git hooks 路径

@@ -39,7 +39,7 @@ export function useModelConfigLogic(type: RuntimeModelType, onSuccess?: () => vo
       { modelType: type, config },
       {
         onSuccess: (data: unknown) => {
-          toast.success("连接测试成功")
+          toast.success("Connection test successful")
           if (
             data &&
             typeof data === 'object' &&
@@ -50,7 +50,7 @@ export function useModelConfigLogic(type: RuntimeModelType, onSuccess?: () => vo
           }
         },
         onError: (err) => {
-          toast.error(err.message || "连接测试失败")
+          toast.error(err.message || "Connection test failed")
         }
       }
     )
@@ -62,7 +62,7 @@ export function useModelConfigLogic(type: RuntimeModelType, onSuccess?: () => vo
         await handleSave(type, { mode })
         onSuccess?.()
       } catch (e: unknown) {
-        toast.error(e instanceof Error ? e.message : "保存失败")
+        toast.error(e instanceof Error ? e.message : "Save failed")
       }
       return
     }
@@ -85,7 +85,7 @@ export function useModelConfigLogic(type: RuntimeModelType, onSuccess?: () => vo
       await handleSave(type, { ...overrides, mode })
       onSuccess?.()
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "连接测试发生错误，无法保存")
+      toast.error(e instanceof Error ? e.message : "Connection test error, cannot save")
     }
   }
 

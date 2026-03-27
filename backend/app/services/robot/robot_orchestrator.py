@@ -8,6 +8,7 @@ from typing import Any
 from fastapi import BackgroundTasks, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.common.i18n import _
 from app.core.integration.robot.base import BaseRobotAdapter, RobotSession
 from app.db.database import AsyncSessionLocal, get_db
 from app.schemas.chat import ChatCompletionRequest
@@ -32,9 +33,17 @@ class RobotOrchestrator:
         self.chat_service = chat_service
         self.session_service = session_service
 
-    DEFAULT_ERROR_REPLY = "服务暂时繁忙，请稍后再试。"
-    DEFAULT_TIMEOUT_REPLY = "服务响应超时，请稍后再试。"
-    DEFAULT_EMPTY_REPLY = "抱歉，我暂时无法回答这个问题。"
+    @property
+    def DEFAULT_ERROR_REPLY(self):
+        return _("bot.error_reply")
+
+    @property
+    def DEFAULT_TIMEOUT_REPLY(self):
+        return _("bot.timeout_reply")
+
+    @property
+    def DEFAULT_EMPTY_REPLY(self):
+        return _("bot.empty_reply")
 
     _global_locks: dict[str, float] = {}  # thread_id -> start_time
     _global_lock_mutex = threading.Lock()

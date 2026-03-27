@@ -15,6 +15,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useTranslations } from 'next-intl'
 import Image from "next/image"
 import {
   Dialog,
@@ -105,6 +106,7 @@ export function DocumentUploadDialog({
   collections,
   onSuccess
 }: DocumentUploadDialogProps) {
+  const t = useTranslations('DocUpload')
   const [files, setFiles] = useState<File[]>([])
   const [processorId, setProcessorId] = useState<string>("")
   const [processors, setProcessors] = useState<DocProcessor[]>([])
@@ -163,14 +165,14 @@ export function DocumentUploadDialog({
           }
         } catch (error) {
           console.error("Failed to fetch processors:", error)
-          toast.error("获取文档解析器配置失败")
+          toast.error(t("fetchProcessorFailed"))
         } finally {
           setIsLoadingProcessors(false)
         }
       }
       fetchProcessors()
     }
-  }, [open])
+  }, [open, t])
 
   // 重置其他状态
   useEffect(() => {
@@ -193,7 +195,7 @@ export function DocumentUploadDialog({
       const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png']
       const validFiles = selectedFiles.filter(f => {
         if (!allowedTypes.includes(f.type)) {
-          toast.error(`文件 ${f.name} 类型不支持，已跳过`)
+          toast.error(t("unsupportedFile", { name: f.name }))
           return false
         }
         return true
@@ -210,7 +212,7 @@ export function DocumentUploadDialog({
       const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png']
       const validFiles = selectedFiles.filter(f => {
         if (!allowedTypes.includes(f.type)) {
-          toast.error(`文件 ${f.name} 类型不支持，已跳过`)
+          toast.error(t("unsupportedFile", { name: f.name }))
           return false
         }
         return true
@@ -236,11 +238,11 @@ export function DocumentUploadDialog({
 
   const handleUpload = async () => {
     if (files.length === 0) {
-      toast.error("请选择至少一个文件")
+      toast.error(t("selectFile"))
       return
     }
     if (!collectionId) {
-      toast.error("请选择所属合集")
+      toast.error(t("selectCollection"))
       return
     }
 
@@ -251,7 +253,7 @@ export function DocumentUploadDialog({
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
-        setCurrentUploadingFile(`正在上传 (${i + 1}/${files.length}): ${file.name}`)
+        setCurrentUploadingFile(t("uploading", { current: i + 1, total: files.length, name: file.name }))
         setUploadProgress(0)
 
         // 模拟上传进度条
@@ -279,8 +281,8 @@ export function DocumentUploadDialog({
           generatedTasks.push(task as any)
           successCount++
         } catch (err: unknown) {
-          const errMsg = err instanceof Error ? err.message : "未知错误"
-          toast.error(`文件 ${file.name} 上传失败: ${errMsg}`)
+          const errMsg = err instanceof Error ? err.message : "Unknown error"
+          toast.error(t("uploadFailed", { name: file.name, error: errMsg }))
         } finally {
           clearInterval(interval)
           setUploadProgress(100)
@@ -288,13 +290,13 @@ export function DocumentUploadDialog({
       }
 
       if (successCount > 0) {
-        toast.success(`成功提交 ${successCount} 个文档上传队列`)
+        toast.success(t("uploadSuccess", { count: successCount }))
         addTasks(generatedTasks)
         onOpenChange(false)
       }
 
     } catch (error: unknown) {
-      toast.error("批量上传过程出错")
+      toast.error(t("batchError"))
     } finally {
       setIsUploading(false)
       setCurrentUploadingFile("")
@@ -324,10 +326,10 @@ export function DocumentUploadDialog({
         <DialogHeader className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
           <DialogTitle className="flex items-center gap-2 text-lg">
             <Upload className="h-5 w-5 text-primary" />
-            批量导入文档
+            {t("title")}
           </DialogTitle>
           <DialogDescription>
-            支持上传多个 PDF 或图片，使用 AI 解析器提取内容。
+            {t("description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -353,8 +355,8 @@ export function DocumentUploadDialog({
               <div className="h-12 w-12 bg-slate-100 rounded-full flex items-center justify-center mb-3 text-slate-400">
                 <Upload className="h-6 w-6" />
               </div>
-              <p className="font-medium text-slate-600">点击上传或拖拽文件到此处</p>
-              <p className="text-sm text-slate-400 mt-1">支持多选 PDF, JPG, PNG 格式</p>
+              <p className="font-medium text-slate-600">{t("dropzone")}</p>
+              <p className="text-sm text-slate-400 mt-1">{t("dropzoneHint")}</p>
             </div>
           </div>
 
@@ -392,10 +394,10 @@ export function DocumentUploadDialog({
           {/* 配置项 */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>解析器</Label>
+              <Label>{t("parser")}</Label>
               <Select value={processorId} onValueChange={handleProcessorChange} disabled={processors.length === 0 || isLoadingProcessors}>
                 <SelectTrigger>
-                  <SelectValue placeholder={isLoadingProcessors ? "加载中..." : (processors.length === 0 ? "无可用解析器" : "选择解析器")} />
+                  <SelectValue placeholder={isLoadingProcessors ? t("loading") : (processors.length === 0 ? t("noParser") : t("selectParser"))} />
                 </SelectTrigger>
                 <SelectContent>
                   {processors.map(p => {
@@ -415,7 +417,7 @@ export function DocumentUploadDialog({
                           {p.origin === 'platform' && (
                             <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-50 text-indigo-600 border border-indigo-100 ml-1">
                               <Globe className="h-2.5 w-2.5 mr-0.5" />
-                              平台
+                              {t("platform")}
                             </span>
                           )}
                         </div>
@@ -425,15 +427,15 @@ export function DocumentUploadDialog({
                 </SelectContent>
               </Select>
               {processors.length === 0 && !isLoadingProcessors && (
-                <p className="text-xs text-red-500">需要在系统设置中配置并开启至少一个文档解析器。</p>
+                <p className="text-xs text-red-500">{t("parserHint")}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label>所属合集 <span className="text-red-500">*</span></Label>
+              <Label>{t("collection")} <span className="text-red-500">*</span></Label>
               <Select value={collectionId} onValueChange={setCollectionId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="选择合集..." />
+                  <SelectValue placeholder={t("collectionPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   {flattenedCollections.map(col => (
@@ -452,11 +454,11 @@ export function DocumentUploadDialog({
                 {/* OCR */}
                 <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                   <div className="space-y-1">
-                    <Label className="text-sm font-medium">OCR识别</Label>
+                    <Label className="text-sm font-medium">{t("ocr")}</Label>
                     <p className="text-xs text-slate-500">
                       {processors.find(p => p.id === processorId)?.type === 'Docling'
-                        ? "启用 Docling OCR 识别，更好地处理扫描件。"
-                        : "对扫描件或复杂公式启用 OCR 识别，速度较慢但精度更高。"
+                        ? t("ocrDescDocling")
+                        : t("ocrDescDefault")
                       }
                     </p>
                   </div>
@@ -469,9 +471,9 @@ export function DocumentUploadDialog({
                 {/* Extract Images */}
                 <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                   <div className="space-y-1">
-                    <Label className="text-sm font-medium">提取图片</Label>
+                    <Label className="text-sm font-medium">{t("extractImages")}</Label>
                     <p className="text-xs text-slate-500">
-                      提取文档中的图片作为单独的资源。
+                      {t("extractImagesDesc")}
                     </p>
                   </div>
                   <Switch
@@ -484,9 +486,9 @@ export function DocumentUploadDialog({
                 {processors.find(p => p.id === processorId)?.type === 'Docling' && (
                   <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                     <div className="space-y-1">
-                      <Label className="text-sm font-medium">表格结构识别</Label>
+                      <Label className="text-sm font-medium">{t("extractTables")}</Label>
                       <p className="text-xs text-slate-500">
-                        识别文档中的表格结构，生成结构化数据。
+                        {t("extractTablesDesc")}
                       </p>
                     </div>
                     <Switch
@@ -519,11 +521,11 @@ export function DocumentUploadDialog({
 
         <DialogFooter className="px-6 py-4 bg-slate-50/50 border-t border-slate-100">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isUploading}>
-            取消
+            {t("cancel")}
           </Button>
           <Button onClick={handleUpload} disabled={files.length === 0 || !collectionId || !processorId || isUploading}>
             {isUploading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {isUploading ? "处理中..." : `开始批量导入 (${files.length})`}
+            {isUploading ? t("processing") : t("submit", { count: files.length })}
           </Button>
         </DialogFooter>
       </DialogContent >

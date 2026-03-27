@@ -14,6 +14,8 @@
 
 "use client"
 
+import { useTranslations, useLocale } from "next-intl"
+
 import {
   LoadingState,
   EmptyState,
@@ -133,6 +135,9 @@ const convertToCollectionItems = (tree: APICollectionTree[]): CollectionItem[] =
 }
 
 export default function DocumentsPage() {
+  const t = useTranslations("Documents")
+  const locale = useLocale()
+  const commonT = useTranslations("Common")
   const routeContext = useRouteContext()
   const currentSite = useSiteData()
   const siteId = currentSite.id
@@ -293,7 +298,7 @@ export default function DocumentsPage() {
             className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-slate-400 hover:text-primary hover:bg-primary/5 transition-all whitespace-nowrap flex-shrink-0"
           >
             <Brain className="h-3 w-3 flex-shrink-0" />
-            <span>未学习</span>
+            <span>{t("learning.notLearned")}</span>
           </button>
         )
       case VectorStatus.PENDING:
@@ -302,10 +307,10 @@ export default function DocumentsPage() {
             variant="outline"
             className="inline-flex items-center text-[10px] font-bold px-1.5 py-0 h-4.5 border-none bg-amber-50 text-amber-600 shadow-none cursor-pointer hover:bg-amber-100 whitespace-nowrap flex-shrink-0"
             onClick={() => removeVectorMutation.mutate(doc.id)}
-            title="点击取消"
+            title={t("learning.clickToCancel")}
           >
             <Clock className="h-2.5 w-2.5 mr-0.5 flex-shrink-0" />
-            排队中
+            {t("learning.queuing")}
           </Badge>
         )
       case VectorStatus.PROCESSING:
@@ -315,7 +320,7 @@ export default function DocumentsPage() {
             className="inline-flex items-center text-[10px] font-bold px-1.5 py-0 h-4.5 border-none bg-blue-50 text-blue-600 shadow-none whitespace-nowrap flex-shrink-0"
           >
             <Loader2 className="h-2.5 w-2.5 mr-0.5 flex-shrink-0 animate-spin" />
-            学习中
+            {t("learning.learning")}
           </Badge>
         )
       case VectorStatus.COMPLETED:
@@ -325,15 +330,15 @@ export default function DocumentsPage() {
               onClick={() => vectorizeMutation.mutate(doc.id)}
               disabled={vectorizeMutation.isPending}
               className="group/relearn inline-flex items-center justify-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-200 border border-emerald-100/50 hover:border-emerald-200 shadow-sm active:scale-95 transition-all whitespace-nowrap flex-shrink-0 cursor-pointer min-w-[60px]"
-              title="已学习，点击重新学习"
+              title={t("learning.clickToRelearn")}
             >
               <span className="flex items-center gap-1 group-hover/relearn:hidden">
                 <Brain className="h-2.5 w-2.5 mr-0.5 flex-shrink-0" />
-                <span>已学习</span>
+                <span>{t("learning.learned")}</span>
               </span>
               <span className="hidden group-hover/relearn:flex items-center gap-1">
                 <RefreshCw className="h-2.5 w-2.5 mr-0.5 flex-shrink-0" />
-                <span>重学</span>
+                <span>{t("learning.relearnShort")}</span>
               </span>
             </button>
 
@@ -344,7 +349,7 @@ export default function DocumentsPage() {
                 setViewChunksId(doc.id)
               }}
               className="p-1 rounded-md text-slate-400 hover:text-primary hover:bg-primary/5 transition-colors"
-              title="查看向量分片"
+              title={t("list.viewChunks")}
             >
               <Eye className="h-3.5 w-3.5" />
             </button>
@@ -353,13 +358,13 @@ export default function DocumentsPage() {
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                if (confirm('确定要删除该文档的向量数据吗？删除后文档将变为“未学习”状态。')) {
+                if (confirm(t("learning.confirmDeleteVector"))) {
                   removeVectorMutation.mutate(doc.id)
                 }
               }}
               disabled={removeVectorMutation.isPending}
               className="p-1 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-              title="删除向量数据"
+              title={t("list.deleteVector")}
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
@@ -371,14 +376,14 @@ export default function DocumentsPage() {
             onClick={() => vectorizeMutation.mutate(doc.id)}
             disabled={vectorizeMutation.isPending}
             className="inline-flex items-center gap-1 whitespace-nowrap flex-shrink-0"
-            title={vectorError || '学习失败，点击重试'}
+            title={vectorError || t("learning.clickToRelearn")}
           >
             <Badge
               variant="outline"
               className="inline-flex items-center text-[10px] font-bold px-1.5 py-0 h-4.5 border-none bg-red-50 text-red-500 shadow-none whitespace-nowrap"
             >
               <AlertCircle className="h-2.5 w-2.5 mr-0.5 flex-shrink-0" />
-              失败
+              {t("learning.failed")}
             </Badge>
             <RefreshCw className="h-3 w-3 text-slate-400 hover:text-primary flex-shrink-0" />
           </button>
@@ -408,6 +413,7 @@ export default function DocumentsPage() {
     }
     createCollectionMutation.mutate(payload, {
       onSuccess: () => {
+        toast.success(t("dialogs.createCollection.success"))
         setIsCreateCollectionOpen(false)
         setNewCollectionName("")
         setTargetParentId(undefined)
@@ -490,7 +496,7 @@ export default function DocumentsPage() {
       })
 
 
-      toast.success('合集移动成功')
+      toast.success(t("success.collectionMoved"))
 
       // 刷新合集树
       refetchCollections()
@@ -498,20 +504,8 @@ export default function DocumentsPage() {
       // 刷新文档列表，因为合集结构改变了，文档列表可能受影响
       queryClient.invalidateQueries({ queryKey: documentKeys.lists() })
 
-      // 如果当前选中的是移动的合集或其子合集，强制刷新文档列表
-      // 通过重新设置 selectedCollectionId 来触发文档列表的重新获取
-      if (selectedCollectionId) {
-        const currentId = selectedCollectionId
-        // 先清除，然后立即恢复，触发 React Query 重新获取数据
-        setSelectedCollectionId(undefined)
-        // 使用 setTimeout 确保状态更新完成后再恢复
-        setTimeout(() => {
-          setSelectedCollectionId(currentId)
-        }, 50)
-      }
-
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : '移动合集失败'
+      const message = error instanceof Error ? error.message : t("error.collectionMoveFailed")
       toast.error(message)
     }
 
@@ -528,6 +522,7 @@ export default function DocumentsPage() {
 
     deleteCollectionMutation.mutate(parseInt(deleteCollectionTarget.id), {
       onSuccess: () => {
+        toast.success(t("deleteDialog.success"))
         if (selectedCollectionId === deleteCollectionTarget.id) {
           setSelectedCollectionId(undefined)
         }
@@ -546,6 +541,7 @@ export default function DocumentsPage() {
     if (!deleteDocTarget) return
     deleteDocumentMutation.mutate(deleteDocTarget.id, {
       onSuccess: () => {
+        toast.success(t("deleteDialog.success"))
         setDeleteDocTarget(null)
       }
     })
@@ -630,7 +626,7 @@ export default function DocumentsPage() {
 
   const handleBatchDelete = () => {
     if (selectedDocIds.length === 0) {
-      toast.error('请选择要删除的文档')
+      toast.error(t('batchBar.selectItems'))
       return
     }
     setIsBatchDeleteOpen(true)
@@ -639,6 +635,7 @@ export default function DocumentsPage() {
   const confirmBatchDelete = () => {
     batchDeleteMutation.mutate(selectedDocIds, {
       onSuccess: () => {
+        toast.success(t("deleteDialog.success"))
         setSelectedDocIds([])
         setIsBatchMode(false)
         setIsBatchDeleteOpen(false)
@@ -648,7 +645,7 @@ export default function DocumentsPage() {
 
   const handleBatchMove = () => {
     if (selectedDocIds.length === 0) {
-      toast.error('请选择要移动的文档')
+      toast.error(t('batchBar.selectItems'))
       return
     }
     setShowBatchMoveDialog(true)
@@ -656,7 +653,7 @@ export default function DocumentsPage() {
 
   const confirmBatchMove = () => {
     if (!batchTargetCollectionId) {
-      toast.error('请选择目标合集')
+      toast.error(t("dialogs.batchMove.errorSelectTarget"))
       return
     }
 
@@ -665,6 +662,7 @@ export default function DocumentsPage() {
       data: { collection_id: parseInt(batchTargetCollectionId) }
     }, {
       onSuccess: () => {
+        toast.success(t("dialogs.batchMove.success"))
         setSelectedDocIds([])
         setIsBatchMode(false)
         setShowBatchMoveDialog(false)
@@ -677,7 +675,7 @@ export default function DocumentsPage() {
 
   const handleBatchPublish = () => {
     if (selectedDocIds.length === 0) {
-      toast.error('请选择要发布的文档')
+      toast.error(t('batchBar.selectItems'))
       return
     }
 
@@ -686,6 +684,7 @@ export default function DocumentsPage() {
       data: { status: DocumentStatus.PUBLISHED }
     }, {
       onSuccess: () => {
+        toast.success(t("batchBar.publishSuccess"))
         setSelectedDocIds([])
       }
     })
@@ -693,13 +692,18 @@ export default function DocumentsPage() {
 
   const handleBatchUnpublish = () => {
     if (selectedDocIds.length === 0) {
-      toast.error('请选择要取消发布的文档')
+      toast.error(t('batchBar.selectItems'))
       return
     }
 
     batchUpdateMutation.mutate({
       documentIds: selectedDocIds,
       data: { status: DocumentStatus.DRAFT }
+    }, {
+      onSuccess: () => {
+        toast.success(t("batchBar.unpublishSuccess"))
+        setSelectedDocIds([])
+      }
     })
   }
 
@@ -726,10 +730,10 @@ export default function DocumentsPage() {
       />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between shrink-0 px-1 gap-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
-            文档管理
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+            {t("title")}
           </h1>
-          <p className="text-slate-500 mt-1 md:mt-2 text-sm md:text-base hidden sm:block">在这里管理您的所有百科文档，支持目录化操作。</p>
+          <p className="text-muted-foreground mt-1 md:mt-2 text-sm md:text-base hidden sm:block">{t("description")}</p>
         </div>
         <div className="flex gap-2 md:gap-3">
           {!isBatchMode && (
@@ -740,8 +744,8 @@ export default function DocumentsPage() {
               className="gap-1.5 md:gap-2 hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all duration-200"
             >
               <CheckSquare className="h-4 w-4" />
-              <span className="hidden sm:inline">批量操作</span>
-              <span className="sm:hidden">批量</span>
+              <span className="hidden sm:inline">{t("actions.batch")}</span>
+              <span className="sm:hidden">{t("actions.batch").slice(0, 2)}</span>
             </Button>
           )}
           {/* Import Button */}
@@ -755,14 +759,14 @@ export default function DocumentsPage() {
             className="gap-1.5 md:gap-2 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200"
           >
             <FolderInput className="h-4 w-4" />
-            <span className="hidden sm:inline">导入文档</span>
-            <span className="sm:hidden">导入</span>
+            <span className="hidden sm:inline">{t("actions.import")}</span>
+            <span className="sm:hidden">{t("actions.import").slice(0, 2)}</span>
           </Button>
           <Link href={getRoutePath("/documents/new", routeContext.slug)}>
-            <Button size="sm" className="flex items-center gap-1.5 md:gap-2 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
+            <Button size="sm" className="flex items-center gap-1.5 md:gap-2">
               <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">发布文档</span>
-              <span className="sm:hidden">发布</span>
+              <span className="hidden sm:inline">{t("actions.publish")}</span>
+              <span className="sm:hidden">{t("actions.publish").slice(0, 2)}</span>
             </Button>
           </Link>
           <Button
@@ -775,8 +779,8 @@ export default function DocumentsPage() {
             className="flex items-center gap-1.5 md:gap-2 border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-300 transition-all shadow-sm"
           >
             <Brain className="h-4 w-4" />
-            <span className="hidden sm:inline">向量检索</span>
-            <span className="sm:hidden">检索</span>
+            <span className="hidden sm:inline">{t("actions.vectorize")}</span>
+            <span className="sm:hidden">{t("actions.vectorize").slice(0, 2)}</span>
           </Button>
           <Button
             variant="outline"
@@ -789,7 +793,7 @@ export default function DocumentsPage() {
             className="flex items-center gap-1.5 md:gap-2 border-purple-200 text-purple-600 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300 transition-all shadow-sm"
           >
             <Sparkles className="h-4 w-4" />
-            <span className="hidden sm:inline">AI 问答</span>
+            <span className="hidden sm:inline">{t("actions.aiChat")}</span>
             <span className="sm:hidden">AI</span>
           </Button>
         </div>
@@ -805,7 +809,9 @@ export default function DocumentsPage() {
                 <div className="flex items-center justify-center w-5 h-5 md:w-6 md:h-6 rounded-full bg-primary text-white text-[10px] md:text-[11px] font-bold shadow-sm shadow-primary/20">
                   {selectedDocIds.length}
                 </div>
-                <span className="text-xs md:text-sm font-semibold text-slate-600 tracking-tight hidden sm:inline">已选择</span>
+                <span className="text-xs md:text-sm font-semibold text-slate-600 tracking-tight hidden sm:inline">
+                  {t("batchBar.selected", { count: selectedDocIds.length }).replace(selectedDocIds.length.toString(), '').trim()}
+                </span>
               </div>
 
               {/* 操作按钮组 */}
@@ -816,50 +822,50 @@ export default function DocumentsPage() {
                       onClick={handleBatchMove}
                       disabled={batchUpdateMutation.isPending}
                       className="flex items-center gap-1 md:gap-2 px-2 md:px-3.5 py-1.5 md:py-2 hover:bg-slate-50 active:bg-slate-100 rounded-lg md:rounded-xl text-xs md:text-sm font-medium text-slate-700 transition-all disabled:opacity-50 group whitespace-nowrap"
-                      title="移动"
+                      title={t("actions.move")}
                     >
                       <FolderInput className="h-3.5 w-3.5 md:h-4 md:w-4 text-slate-400 group-hover:text-primary transition-colors" />
-                      <span className="hidden md:inline">移动</span>
+                      <span className="hidden md:inline">{t("actions.move")}</span>
                     </button>
                     <button
                       onClick={handleBatchPublish}
                       disabled={batchUpdateMutation.isPending}
                       className="flex items-center gap-1 md:gap-2 px-2 md:px-3.5 py-1.5 md:py-2 hover:bg-emerald-50 active:bg-emerald-100 rounded-lg md:rounded-xl text-xs md:text-sm font-medium text-emerald-600 transition-all disabled:opacity-50 whitespace-nowrap"
-                      title="发布"
+                      title={t("batchBar.publish")}
                     >
                       <Send className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                      <span className="hidden md:inline">发布</span>
+                      <span className="hidden md:inline">{t("batchBar.publish")}</span>
                     </button>
                     <button
                       onClick={handleBatchUnpublish}
                       disabled={batchUpdateMutation.isPending}
                       className="flex items-center gap-1 md:gap-2 px-2 md:px-3.5 py-1.5 md:py-2 hover:bg-amber-50 active:bg-amber-100 rounded-lg md:rounded-xl text-xs md:text-sm font-medium text-amber-600 transition-all disabled:opacity-50 whitespace-nowrap"
-                      title="草稿"
+                      title={t("batchBar.unpublish")}
                     >
                       <Archive className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                      <span className="hidden md:inline">草稿</span>
+                      <span className="hidden md:inline">{t("batchBar.unpublish")}</span>
                     </button>
                     <button
                       onClick={handleBatchVectorize}
                       disabled={batchVectorizeMutation.isPending}
                       className="flex items-center gap-1 md:gap-2 px-2 md:px-3.5 py-1.5 md:py-2 hover:bg-blue-50 active:bg-blue-100 rounded-lg md:rounded-xl text-xs md:text-sm font-medium text-blue-600 transition-all disabled:opacity-50 whitespace-nowrap"
-                      title="学习"
+                      title={t("batchBar.vectorize")}
                     >
                       <Brain className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                      <span className="hidden md:inline">学习</span>
+                      <span className="hidden md:inline">{t("batchBar.vectorize")}</span>
                     </button>
                     <button
                       onClick={handleBatchDelete}
                       disabled={batchDeleteMutation.isPending}
                       className="flex items-center gap-1 md:gap-2 px-2 md:px-3.5 py-1.5 md:py-2 hover:bg-red-50 active:bg-red-100 rounded-lg md:rounded-xl text-xs md:text-sm font-medium text-red-500 transition-all disabled:opacity-50 whitespace-nowrap"
-                      title="删除"
+                      title={t("batchBar.delete")}
                     >
                       <Trash2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                      <span className="hidden md:inline">删除</span>
+                      <span className="hidden md:inline">{t("batchBar.delete")}</span>
                     </button>
                   </>
                 ) : (
-                  <span className="text-[10px] md:text-xs text-slate-400 px-2 md:px-6 py-1.5 md:py-2">请勾选文档</span>
+                  <span className="text-[10px] md:text-xs text-slate-400 px-2 md:px-6 py-1.5 md:py-2">{t("batchBar.selectItems")}</span>
                 )}
               </div>
 
@@ -869,7 +875,7 @@ export default function DocumentsPage() {
               <button
                 onClick={toggleBatchMode}
                 className="flex items-center justify-center w-7 h-7 md:w-9 md:h-9 hover:bg-slate-50 active:bg-slate-100 rounded-lg md:rounded-xl text-slate-400 hover:text-slate-600 transition-all shrink-0"
-                title="退出批量操作"
+                title={t("actions.cancel")}
               >
                 <X className="h-3.5 w-3.5 md:h-4 md:w-4" />
               </button>
@@ -923,9 +929,9 @@ export default function DocumentsPage() {
                       </Button>
                     </SheetTrigger>
                     <SheetContent side="left" className="w-80 p-4">
-                      <SheetTitle className="sr-only">合集目录</SheetTitle>
+                      <SheetTitle className="sr-only">{t("collections.title")}</SheetTitle>
                       <SheetDescription className="sr-only">
-                        这里显示了当前站点的合集目录结构，点击可筛选文档。
+                        {t("collections.description")}
                       </SheetDescription>
                       <CollectionTree
                         items={collections}
@@ -952,10 +958,10 @@ export default function DocumentsPage() {
                     <Input
                       placeholder={
                         selectedDocumentId
-                          ? "已选中文档"
+                          ? t("actions.selectedDoc")
                           : selectedCollectionId
-                            ? "在当前目录下搜索..."
-                            : "搜索文档..."
+                            ? t("actions.searchInFolder")
+                            : t("actions.searchDoc")
                       }
                       className="pl-9 bg-white border-slate-200 focus:ring-0 focus:border-slate-300 transition-all h-10 rounded-lg shadow-sm"
                       value={searchTerm}
@@ -974,7 +980,7 @@ export default function DocumentsPage() {
                         viewMode === 'list' ? "bg-white shadow-sm text-slate-900" : "text-slate-400 hover:text-slate-600"
                       )}
                       onClick={() => setViewMode('list')}
-                      title="列表视图"
+                      title={t("actions.listView")}
                     >
                       <List className="h-4 w-4" />
                     </Button>
@@ -986,7 +992,7 @@ export default function DocumentsPage() {
                         viewMode === 'grid' ? "bg-white shadow-sm text-slate-900" : "text-slate-400 hover:text-slate-600"
                       )}
                       onClick={() => setViewMode('grid')}
-                      title="网格视图"
+                      title={t("actions.gridView")}
                     >
                       <LayoutGrid className="h-4 w-4" />
                     </Button>
@@ -997,22 +1003,22 @@ export default function DocumentsPage() {
                 <div className="flex items-center gap-3 md:gap-4 flex-wrap">
                   {/* 状态筛选器 */}
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-500 whitespace-nowrap">状态:</span>
+                    <span className="text-xs text-slate-500 whitespace-nowrap">{t("list.columnStatus")}:</span>
                     <Select value={status} onValueChange={handleStatusFilterChange}>
                       <SelectTrigger className="w-[90px] md:w-[100px] bg-white border-slate-200 shadow-sm h-8 md:h-9 rounded-lg text-xs md:text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">全部</SelectItem>
-                        <SelectItem value="published">已发布</SelectItem>
-                        <SelectItem value="draft">草稿</SelectItem>
+                        <SelectItem value="all">{t("status.all")}</SelectItem>
+                        <SelectItem value="published">{t("status.published")}</SelectItem>
+                        <SelectItem value="draft">{t("status.draft")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   {/* 学习状态筛选器 */}
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-500 whitespace-nowrap">学习:</span>
+                    <span className="text-xs text-slate-500 whitespace-nowrap">{t("list.columnLearning")}:</span>
                     <Select value={vectorStatus} onValueChange={(value: string) => {
                       setVectorStatus(value as typeof vectorStatus)
                       setCurrentPage(1)
@@ -1021,12 +1027,12 @@ export default function DocumentsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">全部</SelectItem>
-                        <SelectItem value="none">未学习</SelectItem>
-                        <SelectItem value="pending">排队中</SelectItem>
-                        <SelectItem value="processing">学习中</SelectItem>
-                        <SelectItem value="completed">已学习</SelectItem>
-                        <SelectItem value="failed">失败</SelectItem>
+                        <SelectItem value="all">{t("status.all")}</SelectItem>
+                        <SelectItem value="none">{t("status.none")}</SelectItem>
+                        <SelectItem value="pending">{t("status.pending")}</SelectItem>
+                        <SelectItem value="processing">{t("status.processing")}</SelectItem>
+                        <SelectItem value="completed">{t("status.completed")}</SelectItem>
+                        <SelectItem value="failed">{t("status.failed")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1037,8 +1043,8 @@ export default function DocumentsPage() {
               {loading && (
                 <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-20 flex items-center justify-center">
                   <div className="flex flex-col items-center gap-2">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                    <div className="text-sm text-muted-foreground">加载中...</div>
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    <div className="text-sm text-muted-foreground">{commonT('loading')}</div>
                   </div>
                 </div>
               )}
@@ -1063,16 +1069,16 @@ export default function DocumentsPage() {
                           </TableHead>
                         )}
                         <TableHead className={cn("w-[50px] py-3 font-medium text-[11px] uppercase tracking-wider text-slate-400 hidden md:table-cell", isBatchMode ? "" : "pl-6")}>#</TableHead>
-                        <TableHead className="w-[300px] font-medium text-[11px] uppercase tracking-wider text-slate-400 min-w-[200px]">标题内容</TableHead>
-                        <TableHead className="w-[120px] font-medium text-[11px] uppercase tracking-wider text-slate-400 hidden lg:table-cell">所在合集</TableHead>
-                        <TableHead className="w-[80px] font-medium text-[11px] uppercase tracking-wider text-slate-400">状态</TableHead>
-                        <TableHead className="w-[90px] font-medium text-[11px] uppercase tracking-wider text-slate-400 hidden xl:table-cell">学习</TableHead>
+                        <TableHead className="w-[300px] font-medium text-[11px] uppercase tracking-wider text-slate-400 min-w-[200px]">{t("list.columnTitle")}</TableHead>
+                        <TableHead className="w-[120px] font-medium text-[11px] uppercase tracking-wider text-slate-400 hidden lg:table-cell">{t("list.columnCollection")}</TableHead>
+                        <TableHead className="w-[80px] font-medium text-[11px] uppercase tracking-wider text-slate-400">{t("list.columnStatus")}</TableHead>
+                        <TableHead className="w-[90px] font-medium text-[11px] uppercase tracking-wider text-slate-400 hidden xl:table-cell">{t("list.columnLearning")}</TableHead>
                         <TableHead className="w-[80px] hidden lg:table-cell">
                           <button
                             className="group flex items-center gap-1 hover:text-slate-600 transition-colors font-medium text-[11px] uppercase tracking-wider text-slate-400"
                             onClick={() => handleSort('views')}
                           >
-                            浏览
+                            {t("list.columnViews")}
                             {getSortIcon('views')}
                           </button>
                         </TableHead>
@@ -1081,7 +1087,7 @@ export default function DocumentsPage() {
                             className="group flex items-center gap-1 hover:text-slate-600 transition-colors font-medium text-[11px] uppercase tracking-wider text-slate-400"
                             onClick={() => handleSort('created_at')}
                           >
-                            创建时间
+                            {t("list.columnCreatedAt")}
                             {getSortIcon('created_at')}
                           </button>
                         </TableHead>
@@ -1090,11 +1096,11 @@ export default function DocumentsPage() {
                             className="group flex items-center gap-1 hover:text-slate-600 transition-colors font-medium text-[11px] uppercase tracking-wider text-slate-400"
                             onClick={() => handleSort('updated_at')}
                           >
-                            更新时间
+                            {t("list.columnUpdatedAt")}
                             {getSortIcon('updated_at')}
                           </button>
                         </TableHead>
-                        <TableHead className="w-[80px] text-right pr-6 font-medium text-[11px] uppercase tracking-wider text-slate-400 sticky right-0 z-20 bg-slate-50/95 backdrop-blur">操作</TableHead>
+                        <TableHead className="w-[80px] text-right pr-6 font-medium text-[11px] uppercase tracking-wider text-slate-400 sticky right-0 z-20 bg-slate-50/95 backdrop-blur">{t("list.columnActions")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1143,9 +1149,9 @@ export default function DocumentsPage() {
                                     {doc.title}
                                   </div>
                                   <div className="flex items-center gap-2 text-[11px] text-slate-400 font-medium">
-                                    <span className="hidden sm:inline">{doc.reading_time || 0} 分钟</span>
+                                    <span className="hidden sm:inline">{t("list.readingTime", { count: doc.reading_time || 0 })}</span>
                                     <span className={cn("sm:hidden", doc.status === "published" ? "text-emerald-500" : "text-amber-500")}>
-                                      {doc.status === "published" ? "已发布" : "草稿"}
+                                      {doc.status === "published" ? t("status.published") : t("status.draft")}
                                     </span>
                                     {doc.tags && doc.tags.length > 0 && (
                                       <>
@@ -1161,7 +1167,7 @@ export default function DocumentsPage() {
                               <div className="flex items-center gap-1.5">
                                 <Folder className="h-3 w-3 text-slate-300" />
                                 <span className="text-[12px] text-slate-500 font-medium truncate max-w-[100px]">
-                                  {doc.collection?.title || '根目录'}
+                                  {doc.collection?.title || t("list.rootFolder")}
                                 </span>
                               </div>
                             </TableCell>
@@ -1173,7 +1179,7 @@ export default function DocumentsPage() {
                                   doc.status === "published" ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"
                                 )}
                               >
-                                {doc.status === "published" ? "已发布" : "草稿"}
+                                {doc.status === "published" ? t("status.published") : t("status.draft")}
                               </Badge>
                             </TableCell>
                             <TableCell className="py-3 hidden xl:table-cell">
@@ -1183,7 +1189,7 @@ export default function DocumentsPage() {
                               {(doc.views || 0).toLocaleString()}
                             </TableCell>
                             <TableCell className="py-3 text-slate-400 text-[11px] font-medium whitespace-nowrap hidden 2xl:table-cell">
-                              {new Date(doc.created_at).toLocaleString('zh-CN', {
+                              {new Date(doc.created_at).toLocaleString(locale, {
                                 month: '2-digit',
                                 day: '2-digit',
                                 hour: '2-digit',
@@ -1192,7 +1198,7 @@ export default function DocumentsPage() {
                               }).replace(/\//g, '-')}
                             </TableCell>
                             <TableCell className="py-3 text-slate-400 text-[11px] font-medium whitespace-nowrap hidden md:table-cell">
-                              {new Date(doc.updated_at).toLocaleString('zh-CN', {
+                              {new Date(doc.updated_at).toLocaleString(locale, {
                                 month: '2-digit',
                                 day: '2-digit',
                                 hour: '2-digit',
@@ -1203,7 +1209,7 @@ export default function DocumentsPage() {
                             <TableCell className="py-3 text-right pr-6 sticky right-0 z-10 bg-white group-hover:bg-slate-50/50">
                               <div className="flex justify-end gap-0.5 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Link href={getRoutePath(`/documents/edit/${doc.id}`, routeContext.slug)}>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md text-slate-400 hover:text-slate-900 hover:bg-slate-100" title="编辑">
+                                  <Button variant="ghost" size="icon-xs" className="text-slate-400 hover:text-slate-900 hover:bg-slate-100" title={t("list.edit")}>
                                     <Edit2 className="h-3.5 w-3.5" />
                                   </Button>
                                 </Link>
@@ -1211,7 +1217,7 @@ export default function DocumentsPage() {
                                   variant="ghost"
                                   size="icon"
                                   className="h-7 w-7 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50"
-                                  title="删除"
+                                  title={t("list.delete")}
                                   onClick={() => handleDeleteDocument(doc.id, doc.title)}
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
@@ -1229,12 +1235,12 @@ export default function DocumentsPage() {
                               </div>
                               <div className="text-sm font-medium text-slate-400 italic">
                                 {selectedDocumentId
-                                  ? "未找到该文档"
+                                  ? t("list.noDocFound")
                                   : selectedCollectionId
-                                    ? "该目录下暂无文档"
+                                    ? t("list.noDocInCollection")
                                     : searchTerm
-                                      ? "未找到匹配的文档"
-                                      : "暂无文档"}
+                                      ? t("list.noMatchDoc")
+                                      : t("list.noDoc")}
                               </div>
                             </div>
                           </TableCell>
@@ -1252,7 +1258,7 @@ export default function DocumentsPage() {
                       {documents.map((doc: Document) => (
                         <div
                           key={doc.id}
-                          className="group flex flex-col h-full bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
+                          className="group flex flex-col h-full bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-200"
                         >
                           <div
                             className="relative w-full aspect-[3/2] overflow-hidden bg-slate-50 cursor-pointer shrink-0"
@@ -1273,16 +1279,16 @@ export default function DocumentsPage() {
                             <div className="absolute top-2 right-2 flex flex-col gap-1">
                               {doc.status === "published" ? (
                                 <div className="px-2 py-0.5 rounded bg-emerald-500/90 backdrop-blur-sm text-white text-xs font-medium">
-                                  已发布
+                                  {t("status.published")}
                                 </div>
                               ) : (
                                 <div className="px-2 py-0.5 rounded bg-slate-500/90 backdrop-blur-sm text-white text-xs font-medium">
-                                  草稿
+                                  {t("status.draft")}
                                 </div>
                               )}
                               {doc.vector_status === VectorStatus.COMPLETED && (
                                 <div className="px-2 py-0.5 rounded bg-blue-500/90 backdrop-blur-sm text-white text-xs font-medium">
-                                  已学习
+                                  {t("status.completed")}
                                 </div>
                               )}
                             </div>
@@ -1307,7 +1313,7 @@ export default function DocumentsPage() {
                                 </p>
                               ) : (
                                 <p className="text-[11px] text-slate-400 italic line-clamp-2 leading-relaxed">
-                                  无摘要
+                                  {t("list.noSummary")}
                                 </p>
                               )}
                             </div>
@@ -1315,7 +1321,7 @@ export default function DocumentsPage() {
                             <div className="space-y-1.5 mb-2 shrink-0">
                               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <Folder className="h-3 w-3 shrink-0" />
-                                <span className="truncate">{doc.collection?.title || '根目录'}</span>
+                                <span className="truncate">{doc.collection?.title || t("list.rootFolder")}</span>
                               </div>
 
                               <div className="flex items-center gap-3 text-[10px] text-slate-400 font-medium">
@@ -1325,7 +1331,7 @@ export default function DocumentsPage() {
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <Clock className="h-3 w-3 opacity-60" />
-                                  <span>{doc.reading_time || 0} 分钟</span>
+                                  <span>{t("list.readingTime", { count: doc.reading_time || 0 })}</span>
                                 </div>
                               </div>
 
@@ -1360,7 +1366,7 @@ export default function DocumentsPage() {
                                   className="w-full h-8 text-xs hover:bg-primary hover:text-white hover:border-primary transition-colors"
                                 >
                                   <Edit2 className="h-3.5 w-3.5 mr-1.5" />
-                                  编辑
+                                  {t("list.move")}
                                 </Button>
                               </Link>
                               <Button
@@ -1381,12 +1387,12 @@ export default function DocumentsPage() {
                       <FileText className="h-12 w-12 mb-3 opacity-20" />
                       <p className="text-sm">
                         {selectedDocumentId
-                          ? "未找到该文档"
+                          ? t("list.noDocFound")
                           : selectedCollectionId
-                            ? "该目录下暂无文档"
+                            ? t("list.noDocInCollection")
                             : searchTerm
-                              ? "未找到匹配的文档"
-                              : "暂无文档"}
+                              ? t("list.noMatchDoc")
+                              : t("list.noDoc")}
                       </p>
                     </div>
                   )}
@@ -1413,16 +1419,16 @@ export default function DocumentsPage() {
       <Dialog open={isCreateCollectionOpen} onOpenChange={setIsCreateCollectionOpen}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle>新建目录</DialogTitle>
+            <DialogTitle>{t("dialogs.createCollection.title")}</DialogTitle>
             <DialogDescription>
-              创建一个新的目录，以便更好地组织文档。
+              {t("dialogs.createCollection.description")}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">目录名称</label>
+              <label className="text-sm font-medium text-slate-700">{t("dialogs.createCollection.labelName")}</label>
               <Input
-                placeholder="输入目录名称..."
+                placeholder={t("dialogs.createCollection.placeholderName")}
                 value={newCollectionName}
                 onChange={(e) => setNewCollectionName(e.target.value)}
                 autoFocus
@@ -1433,8 +1439,8 @@ export default function DocumentsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateCollectionOpen(false)}>取消</Button>
-            <Button onClick={handleCreateCollection} disabled={!newCollectionName.trim()}>创建</Button>
+            <Button variant="outline" onClick={() => setIsCreateCollectionOpen(false)}>{t("dialogs.createCollection.cancel")}</Button>
+            <Button onClick={handleCreateCollection} disabled={!newCollectionName.trim()}>{t("dialogs.createCollection.create")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1445,10 +1451,10 @@ export default function DocumentsPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg">
               <FolderInput className="h-5 w-5 text-slate-900" />
-              批量移动文档
+              {t("dialogs.batchMove.title")}
             </DialogTitle>
             <DialogDescription>
-              将选中的 <span className="font-bold text-slate-900 mx-1">{selectedDocIds.length}</span> 个文档移动到新合集
+              {t("dialogs.batchMove.description", { count: selectedDocIds.length })}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -1458,7 +1464,7 @@ export default function DocumentsPage() {
                 onValueChange={setBatchTargetCollectionId}
               >
                 <SelectTrigger className="w-full h-11 rounded-xl border-slate-200 bg-white hover:bg-slate-50 transition-all">
-                  <SelectValue placeholder="📁 请选择目标合集..." />
+                  <SelectValue placeholder={t("dialogs.batchMove.placeholderTarget")} />
                 </SelectTrigger>
                 <SelectContent className="max-h-[300px] rounded-xl border-slate-200 shadow-xl">
                   {flatCollections.map((col: APICollectionTree & { level: number }) => (
@@ -1496,14 +1502,15 @@ export default function DocumentsPage() {
               onClick={() => setShowBatchMoveDialog(false)}
               className="rounded-lg h-9"
             >
-              取消
+              {t("dialogs.batchMove.cancel")}
             </Button>
             <Button
               onClick={confirmBatchMove}
               disabled={!batchTargetCollectionId || batchUpdateMutation.isPending}
-              className="bg-slate-900 text-white hover:bg-slate-800 rounded-lg h-9 px-6"
+              className="bg-slate-900 text-white hover:bg-slate-800 rounded-lg h-9 px-6 flex items-center gap-2"
             >
-              {batchUpdateMutation.isPending ? '移动中...' : '确认移动'}
+              {batchUpdateMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {batchUpdateMutation.isPending ? t("dialogs.batchMove.moving") : t("dialogs.batchMove.confirm")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1530,7 +1537,7 @@ export default function DocumentsPage() {
                   <span className="font-mono bg-primary/10 text-primary px-2 py-0.5 rounded text-sm">
                     #{focusedChunk.metadata?.chunk_index ?? '?'}
                   </span>
-                  分片详情
+                  {t("dialogs.chunks.detailTitle")}
                 </DialogTitle>
                 <DialogDescription className="font-mono text-xs ml-auto">
                   Chunk ID: {focusedChunk.id}
@@ -1540,10 +1547,10 @@ export default function DocumentsPage() {
               <>
                 <DialogTitle className="flex items-center gap-2">
                   <Brain className="h-5 w-5 text-primary" />
-                  向量分片详情
+                  {t("dialogs.chunks.title")}
                 </DialogTitle>
                 <DialogDescription>
-                  查看文档在向量数据库中的实际存储片段 (ID: {viewChunksId})
+                  {t("dialogs.chunks.description", { id: viewChunksId || "" })}
                 </DialogDescription>
               </>
             )}
@@ -1565,22 +1572,22 @@ export default function DocumentsPage() {
             ) : chunksLoading ? (
               <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-400">
                 <Loader2 className="h-8 w-8 animate-spin text-primary/50" />
-                <p className="text-sm">正在加载分片数据...</p>
+                <p className="text-sm">{t("dialogs.chunks.loading")}</p>
               </div>
             ) : chunkList.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-400">
                 <FileText className="h-10 w-10 opacity-20" />
-                <p className="text-sm">暂无分片数据</p>
+                <p className="text-sm">{t("dialogs.chunks.noData")}</p>
               </div>
             ) : (
               <ScrollArea className="h-full p-4 md:p-6 text-left">
                 <div className="space-y-4 pb-4">
                   <div className="flex items-center justify-between px-1 pb-2">
                     <Badge variant="outline" className="bg-white">
-                      共 {chunkList.length} 个分片
+                      {t("dialogs.chunks.badgeCount", { count: chunkList.length })}
                     </Badge>
                     <div className="text-xs text-slate-400">
-                      点击卡片查看完整内容
+                      {t("dialogs.chunks.hintClick")}
                     </div>
                   </div>
 
@@ -1605,7 +1612,7 @@ export default function DocumentsPage() {
                           </div>
                           {/* 遮罩提示 */}
                           <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-2">
-                            <span className="text-[10px] text-primary bg-primary/5 px-2 py-0.5 rounded-full font-medium">点击查看详情</span>
+                            <span className="text-[10px] text-primary bg-primary/5 px-2 py-0.5 rounded-full font-medium">{t("deleteDialog.viewDetail")}</span>
                           </div>
                         </div>
                       </div>
@@ -1617,7 +1624,7 @@ export default function DocumentsPage() {
           </div>
 
           <DialogFooter className="px-6 py-4 border-t border-slate-100 bg-white shrink-0">
-            <Button onClick={() => setViewChunksId(null)}>关闭</Button>
+            <Button onClick={() => setViewChunksId(null)}>{t("deleteDialog.close")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1628,26 +1635,27 @@ export default function DocumentsPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
               <AlertCircle className="h-5 w-5" />
-              确认删除文档?
+              {t("deleteDialog.confirmDeleteDoc")}
             </DialogTitle>
             <DialogDescription asChild className="pt-2 space-y-2">
               <div>
-                <p>您即将删除文档 <span className="font-bold text-slate-900">&quot;{deleteDocTarget?.title}&quot;</span>。</p>
+                <p>{t("deleteDialog.descriptionDoc", { name: deleteDocTarget?.title || "" })}</p>
                 <p className="text-red-500 bg-red-50 p-2 rounded text-xs">
-                  ⚠️ 此操作将永久删除该文档及其所有历史记录，无法恢复。
+                  ⚠️ {t("deleteDialog.warningDoc")}
                 </p>
               </div>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setDeleteDocTarget(null)}>取消</Button>
+            <Button variant="outline" onClick={() => setDeleteDocTarget(null)}>{t("deleteDialog.cancel")}</Button>
             <Button
               variant="destructive"
               onClick={confirmDeleteDocument}
               disabled={deleteDocumentMutation.isPending}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-600 hover:bg-red-700 flex items-center gap-2"
             >
-              {deleteDocumentMutation.isPending ? "删除中..." : "确认删除"}
+              {deleteDocumentMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {deleteDocumentMutation.isPending ? t("deleteDialog.deleting") : t("deleteDialog.confirm")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1659,26 +1667,27 @@ export default function DocumentsPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
               <AlertCircle className="h-5 w-5" />
-              确认批量删除?
+              {t("deleteDialog.confirmDeleteBatch")}
             </DialogTitle>
             <DialogDescription asChild className="pt-2 space-y-2">
               <div>
-                <p>您即将删除选中的 <span className="font-bold text-slate-900">{selectedDocIds.length}</span> 个文档。</p>
+                <p>{t("deleteDialog.descriptionBatch", { count: selectedDocIds.length })}</p>
                 <p className="text-red-500 bg-red-50 p-2 rounded text-xs">
-                  ⚠️ 此操作将永久删除这些文档，无法恢复。
+                  ⚠️ {t("deleteDialog.warningBatch")}
                 </p>
               </div>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setIsBatchDeleteOpen(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setIsBatchDeleteOpen(false)}>{t("deleteDialog.cancel")}</Button>
             <Button
               variant="destructive"
               onClick={confirmBatchDelete}
               disabled={batchDeleteMutation.isPending}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-600 hover:bg-red-700 flex items-center gap-2"
             >
-              {batchDeleteMutation.isPending ? "删除中..." : "确认删除"}
+              {batchDeleteMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {batchDeleteMutation.isPending ? t("deleteDialog.deleting") : t("deleteDialog.confirm")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1690,26 +1699,27 @@ export default function DocumentsPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
               <AlertCircle className="h-5 w-5" />
-              确认删除合集?
+              {t("deleteDialog.confirmDeleteCollection")}
             </DialogTitle>
             <DialogDescription asChild className="pt-2 space-y-2">
               <div>
-                <p>您即将删除合集 <span className="font-bold text-slate-900">&quot;{deleteCollectionTarget?.name}&quot;</span>。</p>
+                <p>{t("deleteDialog.descriptionCollection", { name: deleteCollectionTarget?.name || "" })}</p>
                 <p className="text-red-500 bg-red-50 p-2 rounded text-xs border border-red-100">
-                  ⚠️ 警告：该合集下的所有文档和子合集也将被一并删除，且无法恢复！
+                  ⚠️ {t("deleteDialog.warningCollection")}
                 </p>
               </div>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setDeleteCollectionTarget(null)}>取消</Button>
+            <Button variant="outline" onClick={() => setDeleteCollectionTarget(null)}>{t("deleteDialog.cancel")}</Button>
             <Button
               variant="destructive"
               onClick={confirmDeleteCollection}
               disabled={deleteCollectionMutation.isPending}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-600 hover:bg-red-700 flex items-center gap-2"
             >
-              {deleteCollectionMutation.isPending ? "删除中..." : "确认删除"}
+              {deleteCollectionMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {deleteCollectionMutation.isPending ? t("deleteDialog.deleting") : t("deleteDialog.confirm")}
             </Button>
           </DialogFooter>
         </DialogContent>

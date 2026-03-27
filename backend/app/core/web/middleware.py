@@ -25,6 +25,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
+from app.core.common.i18n import DEFAULT_LOCALE, SUPPORTED_LOCALES, _, set_locale
 from app.core.common.logger import request_id_var
 from app.core.infra.config import settings
 
@@ -78,6 +79,64 @@ class RequestLoggingMiddleware:
             request_id_var.reset(token)
 
 
+def _parse_accept_language(header: str) -> str:
+    """Parse Accept-Language header (e.g. 'en-US,zh;q=0.9,ja;q=0.8') and return best matching locale."""
+    candidates = []
+    for part in header.split(","):
+        part = part.strip()
+        if ";q=" in part:
+            lang, q = part.split(";q=", 1)
+            try:
+                quality = float(q.strip())
+            except ValueError:
+                quality = 0.0
+        else:
+            lang, quality = part, 1.0
+        lang = lang.strip().lower()
+        candidates.append((lang, quality))
+    candidates.sort(key=lambda x: x[1], reverse=True)
+    for lang, _q in candidates:
+        prefix = lang.split("-")[0]
+        if prefix in SUPPORTED_LOCALES:
+            return prefix
+    return DEFAULT_LOCALE
+
+
+class LocaleMiddleware:
+    """语言国际化中间件"""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+
+        # 从 Header 或 Cookie 中获取语言
+        locale = DEFAULT_LOCALE
+        accept_lang_header = None
+        for name, value in scope.get("headers", []):
+            if name == b"cookie":
+                cookie_header = value.decode()
+                if "NEXT_LOCALE=" in cookie_header:
+                    parts = cookie_header.split("NEXT_LOCALE=")
+                    if len(parts) > 1:
+                        candidate = parts[1].split(";")[0].strip()
+                        if candidate in SUPPORTED_LOCALES:
+                            locale = candidate
+                            break
+            elif name == b"accept-language":
+                accept_lang_header = value.decode()
+
+        else:
+            # Cookie 中未找到有效 locale，尝试从 Accept-Language 解析
+            if accept_lang_header:
+                locale = _parse_accept_language(accept_lang_header)
+
+        set_locale(locale)
+        await self.app(scope, receive, send)
+
+
 class ErrorHandlingMiddleware:
     """全局错误处理中间件 (避免使用 BaseHTTPMiddleware)"""
 
@@ -96,7 +155,7 @@ class ErrorHandlingMiddleware:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 content={
                     "code": 500,
-                    "msg": "服务器内部错误",
+                    "msg": _("error.internal"),
                     "data": {"detail": str(e)} if settings.DEBUG else None,
                 },
             )
@@ -135,10 +194,9 @@ def setup_middleware(app):
         expose_headers=["*"],
     )
 
-    # 请求日志中间件
+    # 注册中间件 (注意顺序)
+    app.add_middleware(LocaleMiddleware)
     app.add_middleware(RequestLoggingMiddleware)
-
-    # 错误处理中间件
     app.add_middleware(ErrorHandlingMiddleware)
 
     # 注册系统诊断模块 (moved to EE)

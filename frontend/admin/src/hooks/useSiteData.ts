@@ -26,7 +26,7 @@ import type { Site } from "@/lib/api-client"
 
 const defaultSite: Site = {
   id: 0,
-  name: "加载中",
+  name: "Loading...",
   slug: "",
   description: "",
   article_count: 0,

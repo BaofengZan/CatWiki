@@ -20,6 +20,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { useTranslations } from "next-intl"
 import { PlugZap, Save, Loader2 } from "lucide-react"
 import { useModelConfigLogic } from "@/hooks/useModelConfigLogic"
 import { PlatformModeView } from "./PlatformModeView"
@@ -31,6 +32,7 @@ interface SingleModelConfigProps {
 }
 
 export function SingleModelConfig({ type, onSuccess }: SingleModelConfigProps) {
+  const t = useTranslations("Models")
   const {
     config,
     mode,
@@ -53,7 +55,7 @@ export function SingleModelConfig({ type, onSuccess }: SingleModelConfigProps) {
               : "text-slate-500 hover:text-slate-700"
               }`}
           >
-            自定义配置
+            {t("customConfig")}
           </button>
           <button
             onClick={() => handleModeChange("platform")}
@@ -62,7 +64,7 @@ export function SingleModelConfig({ type, onSuccess }: SingleModelConfigProps) {
               : "text-slate-500 hover:text-slate-700"
               }`}
           >
-            使用平台资源
+            {t("usePlatformResource")}
           </button>
         </div>
       )}
@@ -83,14 +85,14 @@ export function SingleModelConfig({ type, onSuccess }: SingleModelConfigProps) {
           onClick={handleTest}
           disabled={isTesting || (mode === "platform")}
           className="text-slate-600"
-          title={mode === "platform" ? "平台模式下无需测试连接" : ""}
+          title={mode === "platform" ? t("noTestPlatform") : ""}
         >
           {isTesting ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             <PlugZap className="mr-2 h-4 w-4 text-amber-500" />
           )}
-          仅测试连接
+          {t("testConnection")}
         </Button>
 
         <Button
@@ -103,7 +105,7 @@ export function SingleModelConfig({ type, onSuccess }: SingleModelConfigProps) {
           ) : (
             <Save className="mr-2 h-4 w-4" />
           )}
-          保存配置
+          {t("saveConfig")}
         </Button>
       </div>
     </div>

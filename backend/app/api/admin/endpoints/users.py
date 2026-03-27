@@ -20,6 +20,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, status
 
+from app.core.common.i18n import _
 from app.core.web.deps import get_current_user_with_tenant
 from app.models.user import User, UserRole, UserStatus
 from app.schemas.response import ApiResponse, PaginatedResponse
@@ -79,7 +80,7 @@ async def list_users(
 
     return ApiResponse.ok(
         data=PaginatedResponse(list=users, pagination=paginator.to_pagination_info()),
-        msg="获取成功",
+        msg=_("api.success.get"),
     )
 
 
@@ -95,7 +96,7 @@ async def get_user(
     user = await service.get_user(user_id)
     service.ensure_user_access(current_user, user, action="查看")
 
-    return ApiResponse.ok(data=user, msg="获取成功")
+    return ApiResponse.ok(data=user, msg=_("api.success.get"))
 
 
 @router.post(
@@ -122,7 +123,7 @@ async def create_user(
     # get_current_user_with_tenant 已确保基本访问权
 
     user = await service.create_user(current_user, user_in)
-    return ApiResponse.ok(data=user, msg="创建成功")
+    return ApiResponse.ok(data=user, msg=_("api.success.create"))
 
 
 @router.post(":invite", status_code=status.HTTP_201_CREATED, operation_id="inviteAdminUser")
@@ -144,7 +145,7 @@ async def invite_user(
 
     user, password = await service.invite_user(current_user, user_in)
     user_response = UserResponse.model_validate(user)
-    return ApiResponse.ok(data={"user": user_response, "password": password}, msg="用户创建成功")
+    return ApiResponse.ok(data={"user": user_response, "password": password}, msg=_("user.created"))
 
 
 @router.put("/{user_id}", response_model=ApiResponse[UserResponse], operation_id="updateAdminUser")
@@ -167,7 +168,7 @@ async def update_user(
     # get_current_user_with_tenant 已确保基本访问权
 
     user = await service.update_user(current_user, user_id, user_in)
-    return ApiResponse.ok(data=user, msg="更新成功")
+    return ApiResponse.ok(data=user, msg=_("api.success.update"))
 
 
 @router.put(
@@ -183,7 +184,9 @@ async def update_user_password(
     # get_current_user_with_tenant 已允许普通用户修改自己
     await service.update_password(current_user, user_id, password_in)
 
-    return ApiResponse.ok(data={"message": "密码更新成功"}, msg="密码更新成功")
+    return ApiResponse.ok(
+        data={"message": _("user.password_updated")}, msg=_("user.password_updated")
+    )
 
 
 @router.post("/{user_id}:resetPassword", operation_id="resetAdminUserPassword")
@@ -202,7 +205,7 @@ async def reset_user_password(
 
     return ApiResponse.ok(
         data={"user": UserResponse.model_validate(user), "password": new_password},
-        msg="密码重置成功",
+        msg=_("user.password_reset"),
     )
 
 
@@ -217,7 +220,7 @@ async def delete_user(
 
     await service.delete_user(current_user, user_id)
 
-    return ApiResponse.ok(data={"message": "删除成功"}, msg="删除成功")
+    return ApiResponse.ok(data={"message": _("api.success.delete")}, msg=_("api.success.delete"))
 
 
 @router.post(":login", response_model=ApiResponse[UserLoginResponse], operation_id="loginAdmin")
@@ -233,4 +236,6 @@ async def login(
     """
     user, token = await service.authenticate(login_in)
 
-    return ApiResponse.ok(data=UserLoginResponse(token=token, user=user), msg="登录成功")
+    return ApiResponse.ok(
+        data=UserLoginResponse(token=token, user=user), msg=_("api.success.login")
+    )

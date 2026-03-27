@@ -58,17 +58,16 @@ import {
   Loader2,
   Plus,
   ChevronLeft,
-  ChevronRight,
   Slash
 } from "lucide-react"
 import { toast } from "sonner"
 import { CreateUserForm } from "./CreateUserForm"
 import { UserRole, UserStatus, type UserListItem, type Site } from "@/lib/api-client"
+import { useTranslations } from "next-intl"
 
 
 import {
   useUsers,
-  useInviteUser,
   useUpdateUserRole,
   useUpdateUserStatus,
   useResetUserPassword,
@@ -78,7 +77,6 @@ import {
   useUpdateUserSites
 } from "@/hooks"
 import { getUserInfo } from "@/lib/auth"
-import { env } from "@/lib/env"
 import { useHealth } from "@/hooks/useHealth"
 
 type PasswordResponse = {
@@ -94,6 +92,8 @@ function parsePasswordResponse(data: unknown): PasswordResponse | null {
 }
 
 export function GlobalUsers() {
+  const t = useTranslations("Users")
+  const commonT = useTranslations("Common")
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -109,8 +109,6 @@ export function GlobalUsers() {
   const { data: sitesList } = useSitesList({ page: 1, size: 100 })
   const sitesMap = new Map<number, Site>(sitesList?.map((site: Site) => [site.id, site] as [number, Site]) || [])
 
-
-
   // React Query hooks - 全局用户列表，不需要 siteId
   const { data: usersData, isLoading: loading, refetch: refetchUsers } = useUsers({
     page,
@@ -119,19 +117,16 @@ export function GlobalUsers() {
   })
 
   // hooks
-  const inviteUserMutation = useInviteUser()
   const updateUserRoleMutation = useUpdateUserRole()
   const updateUserStatusMutation = useUpdateUserStatus()
-  const updateUserSitesMutation = useUpdateUserSites() // Add this hook
+  const updateUserSitesMutation = useUpdateUserSites()
   const resetPasswordMutation = useResetUserPassword()
   const deleteUserMutation = useDeleteUser()
 
   const users = usersData?.users || []
-  const total = usersData?.total || 0
 
   const currentUser = getUserInfo()
   const isSystemAdmin = currentUser?.role === UserRole.ADMIN
-  const currentUserId = currentUser?.id
 
   const handleStartCreate = () => {
     const params = new URLSearchParams(searchParams.toString())
@@ -162,13 +157,14 @@ export function GlobalUsers() {
   }
 
   const handleDeleteUser = async (userId: number, userName: string) => {
-    if (!confirm(`确定要永久删除用户 "${userName}" 吗？此操作不可恢复！`)) {
+    if (!confirm(t("deleteConfirm", { name: userName }))) {
       return
     }
 
     deleteUserMutation.mutate(userId, {
       onSuccess: () => {
-        toast.success("用户已删除")
+        toast.success(t("deleteSuccess"))
+        refetchUsers()
       }
     })
   }
@@ -177,19 +173,31 @@ export function GlobalUsers() {
     updateUserRoleMutation.mutate({
       userId,
       role: newRole
+    }, {
+      onSuccess: () => {
+        toast.success(t("actions.changeRole") + " " + commonT("saveSuccess"))
+        refetchUsers()
+      }
     })
   }
 
-  const updateStatus = async (userId: number, status: UserStatus) => {
+  const updateStatus = async (userId: number, status: UserStatus, userName: string) => {
+    const action = status === UserStatus.ACTIVE ? t("statusEnable") : t("statusDisable")
+    if (!confirm(t("statusConfirm", { action }))) return
 
     updateUserStatusMutation.mutate({
       userId,
       status
+    }, {
+      onSuccess: () => {
+        toast.success(t("statusUpdated"))
+        refetchUsers()
+      }
     })
   }
 
   const handleResetPassword = async (userId: number, userName: string, userEmail: string) => {
-    if (!confirm(`确定要重置用户"${userName}"的密码吗？`)) {
+    if (!confirm(t("resetPasswordDialog.confirm", { name: userName }))) {
       return
     }
 
@@ -200,18 +208,18 @@ export function GlobalUsers() {
           const { password } = parsed
           toast.success(
             <div className="space-y-2">
-              <div className="font-semibold">密码重置成功！</div>
+              <div className="font-semibold">{t("resetPasswordDialog.success")}</div>
               <div className="text-sm">
-                <div>用户: {userName} ({userEmail})</div>
+                <div>{t("resetPasswordDialog.userLabel")}: {userName} ({userEmail})</div>
                 <div className="flex items-center gap-2 mt-1">
-                  <span>新密码: </span>
+                  <span>{t("resetPasswordDialog.newPassword")}: </span>
                   <code className="px-2 py-1 bg-slate-800 text-white rounded font-mono text-xs">
                     {password}
                   </code>
                 </div>
               </div>
               <div className="text-xs text-muted-foreground mt-2">
-                请将此密码告知用户，建议用户尽快修改密码
+                {t("resetPasswordDialog.tip")}
               </div>
             </div>,
             { duration: 15000 }
@@ -221,12 +229,11 @@ export function GlobalUsers() {
     })
   }
 
-
-
-
-
   // 子组件：行内站点管理单元格
   const UserSitesCell = ({ user }: { user: UserListItem }) => {
+    const scT = useTranslations("Users.sitesCell")
+    const rolesT = useTranslations("Users.roles")
+
     const [selectedIds, setSelectedIds] = useState<number[]>(user.managed_site_ids || [])
     const [isOpen, setIsOpen] = useState(false)
 
@@ -238,6 +245,7 @@ export function GlobalUsers() {
       }, {
         onSuccess: () => {
           setIsOpen(false)
+          toast.success(scT("sync"))
           refetchUsers()
         }
       })
@@ -260,7 +268,7 @@ export function GlobalUsers() {
         {user.role === UserRole.ADMIN || user.role === UserRole.TENANT_ADMIN ? (
           <div className="w-full h-full px-4 py-3 min-h-[50px] flex flex-wrap gap-1 items-center relative pr-8">
             <span className="text-xs text-muted-foreground">
-              {user.role === UserRole.ADMIN ? "全平台" : (isCommunity ? "全部站点" : "全组织")}
+              {user.role === UserRole.ADMIN ? rolesT("allPlatform") : (isCommunity ? rolesT("allSites") : rolesT("allOrg"))}
             </span>
           </div>
         ) : (
@@ -278,21 +286,21 @@ export function GlobalUsers() {
                     )
                   })
                 ) : (
-                  <span className="text-xs text-muted-foreground group-hover/cell:text-primary transition-colors">点击分配站点</span>
+                  <span className="text-xs text-muted-foreground group-hover/cell:text-primary transition-colors">{scT("clickToAssign")}</span>
                 )}
                 <span className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/cell:opacity-100 transition-opacity">
                   <ChevronLeft className="h-4 w-4 text-muted-foreground rotate-180" />
                 </span>
               </div>
             </PopoverTrigger>
-            <PopoverContent className="w-64 p-0 overflow-hidden shadow-2xl" align="start">
+            <PopoverContent className="w-64 p-0 overflow-hidden" align="start">
               <div className="p-3 border-b border-slate-100 bg-slate-50/50">
-                <h4 className="font-semibold text-xs text-slate-900">分配站点</h4>
-                <p className="text-[10px] text-slate-500 mt-0.5">选择该用户可管理的站点</p>
+                <h4 className="font-semibold text-xs text-slate-900">{scT("assignSites")}</h4>
+                <p className="text-[10px] text-slate-500 mt-0.5">{scT("assignDesc")}</p>
               </div>
               <div className="max-h-[240px] overflow-y-auto p-1.5 custom-scrollbar">
                 {sitesList?.length === 0 ? (
-                  <div className="text-center text-[11px] text-muted-foreground py-6">暂无站点</div>
+                  <div className="text-center text-[11px] text-muted-foreground py-6">{scT("noSites")}</div>
                 ) : (
                   sitesList?.map((site: Site) => (
                     <div
@@ -311,7 +319,7 @@ export function GlobalUsers() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-[11px] font-bold truncate">{site.name}</div>
-                        <div className="text-[9px] opacity-60 truncate">{site.slug || "无标识"}</div>
+                        <div className="text-[9px] opacity-60 truncate">{site.slug || (isCommunity ? "" : scT("noSlug"))}</div>
                       </div>
                     </div>
                   ))
@@ -327,7 +335,7 @@ export function GlobalUsers() {
                     setIsOpen(false)
                   }}
                 >
-                  取消
+                  {commonT("cancel")}
                 </Button>
                 <Button
                   size="sm"
@@ -335,7 +343,7 @@ export function GlobalUsers() {
                   onClick={handleSave}
                   disabled={updateUserSitesMutation.isPending}
                 >
-                  {updateUserSitesMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "同步"}
+                  {updateUserSitesMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : scT("sync")}
                 </Button>
               </div>
             </PopoverContent>
@@ -348,15 +356,15 @@ export function GlobalUsers() {
   return (
     <div key="list" className="animate-in fade-in slide-in-from-left-4 duration-300">
       <div className="space-y-6">
-        {/* ... (existing header and dialogs) */}
+
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-5">
             <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm ring-1 ring-primary/20">
               <Users className="h-6 w-6" />
             </div>
             <div className="space-y-1">
-              <h2 className="text-xl font-bold tracking-tight text-slate-900">用户权限</h2>
-              <p className="text-sm text-slate-500 font-medium">管理用户账户及权限。</p>
+              <h2 className="text-xl font-bold tracking-tight text-slate-900">{t("title")}</h2>
+              <p className="text-sm text-slate-500 font-medium">{t("description")}</p>
             </div>
           </div>
 
@@ -366,18 +374,18 @@ export function GlobalUsers() {
             onClick={handleStartCreate}
           >
             <Plus className="mr-2 h-4 w-4" />
-            添加成员
+            {t("addUser")}
           </Button>
 
         </div>
 
-        <Card className="border-border/60 shadow-md rounded-2xl overflow-hidden">
+        <Card className="border-border/60 overflow-hidden">
           <CardHeader className="py-4">
             <div className="flex items-center gap-4">
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="搜索用户名或邮箱..."
+                  placeholder={t("searchPlaceholder")}
                   className="pl-9 h-9"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -392,19 +400,19 @@ export function GlobalUsers() {
             ) : users.length === 0 ? (
               <EmptyState
                 icon={Users}
-                title="暂无用户"
-                description="平台暂无用户数据。"
+                title={t("empty")}
+                description={t("emptyDesc")}
               />
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="pl-6">用户信息</TableHead>
-                    <TableHead>角色</TableHead>
-                    <TableHead>所属站点</TableHead>
-                    <TableHead>状态</TableHead>
-                    <TableHead>最后登录</TableHead>
-                    <TableHead className="text-right pr-6">操作</TableHead>
+                    <TableHead className="pl-6">{t("table.info")}</TableHead>
+                    <TableHead>{t("table.role")}</TableHead>
+                    <TableHead>{t("table.sites")}</TableHead>
+                    <TableHead>{t("table.status")}</TableHead>
+                    <TableHead>{t("table.lastLogin")}</TableHead>
+                    <TableHead className="text-right pr-6">{t("table.actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -437,9 +445,9 @@ export function GlobalUsers() {
                                   "bg-muted text-muted-foreground"
                           )}
                         >
-                          {user.role === UserRole.ADMIN ? "系统管理员" :
-                            user.role === UserRole.TENANT_ADMIN ? (isCommunity ? "超级管理员" : "组织管理员") :
-                              user.role === UserRole.SITE_ADMIN ? "站点管理员" : "未知角色"}
+                          {user.role === UserRole.ADMIN ? (isCommunity ? t("roles.superAdmin") : t("roles.sysAdmin")) :
+                            user.role === UserRole.TENANT_ADMIN ? (isCommunity ? t("roles.superAdmin") : t("roles.orgAdmin")) :
+                              user.role === UserRole.SITE_ADMIN ? t("roles.siteAdmin") : t("roles.unknown")}
                         </Badge>
                       </TableCell>
                       <UserSitesCell user={user} />
@@ -447,112 +455,105 @@ export function GlobalUsers() {
                         <div className="flex items-center gap-1.5">
                           <span className={cn(
                             "w-2 h-2 rounded-full",
-                            user.status === "active" ? "bg-emerald-500" : "bg-slate-300"
+                            user.status === UserStatus.ACTIVE ? "bg-emerald-500" : "bg-slate-300"
                           )} />
-                          <span className="text-xs text-muted-foreground">
-                            {user.status === "active" ? "正常" : "禁用"}
+                          <span className={cn(
+                            "text-xs font-bold",
+                            user.status === UserStatus.ACTIVE ? "text-emerald-600" : "text-slate-400"
+                          )}>
+                             {user.status === UserStatus.ACTIVE ? t("status.active") : t("status.inactive")}
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {user.last_login_at
-                          ? new Date(user.last_login_at).toLocaleString('zh-CN', {
-                            month: 'numeric',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })
-                          : "从未登录"
-                        }
+                      <TableCell>
+                        <span className="text-xs text-muted-foreground font-medium tabular-nums group-hover:text-slate-900 transition-colors">
+                          {user.last_login_at || t("lastLoginNever")}
+                        </span>
                       </TableCell>
                       <TableCell className="text-right pr-6">
-                        {user.role !== UserRole.ADMIN && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56 z-[200]">
-                              <DropdownMenuLabel>用户操作</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon-sm" className="hover:bg-slate-100">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-56 p-1.5">
+                            <DropdownMenuLabel className="px-2 py-1.5 text-[11px] font-bold text-muted-foreground uppercase tracking-widest">{t("actions.label")}</DropdownMenuLabel>
+                            
+                            {isSystemAdmin && (
                               <DropdownMenuSub>
-                                <DropdownMenuSubTrigger className="flex items-center gap-2 px-3 py-2 cursor-pointer">
-                                  <Shield className="h-4 w-4 text-muted-foreground" />
-                                  <span>修改角色</span>
+                                <DropdownMenuSubTrigger className="flex items-center gap-2 rounded-xl px-2 py-2">
+                                  <Shield className="h-4 w-4 opacity-70" />
+                                  <span className="text-sm font-medium">{t("actions.changeRole")}</span>
                                 </DropdownMenuSubTrigger>
                                 <DropdownMenuPortal>
-                                  <DropdownMenuSubContent className="w-48 z-[200]">
-                                    {isSystemAdmin && !isCommunity && (
-                                      <DropdownMenuItem
-                                        onSelect={() => updateRole(user.id, UserRole.ADMIN)}
-                                        className="flex items-center justify-between"
-                                      >
-                                        <span>系统管理员</span>
-                                      </DropdownMenuItem>
+                                  <DropdownMenuSubContent className="w-48 p-1">
+                                    {(healthData?.edition !== 'community') && (
+                                       <DropdownMenuItem 
+                                        className="flex items-center justify-between rounded-xl px-3 py-2"
+                                        onClick={() => updateRole(user.id, UserRole.ADMIN)}
+                                       >
+                                         <span className="text-sm font-medium">{t("roles.sysAdmin")}</span>
+                                         {user.role === UserRole.ADMIN && <Check className="h-4 w-4 text-primary" />}
+                                       </DropdownMenuItem>
                                     )}
-                                    <DropdownMenuItem
-                                      onSelect={() => updateRole(user.id, UserRole.TENANT_ADMIN)}
-                                      className="flex items-center justify-between"
+                                    <DropdownMenuItem 
+                                      className="flex items-center justify-between rounded-xl px-3 py-2"
+                                      onClick={() => updateRole(user.id, UserRole.TENANT_ADMIN)}
                                     >
-                                      <span>{isCommunity ? '超级管理员' : '组织管理员'}</span>
+                                      <span className="text-sm font-medium">{t("roles.orgAdmin")}</span>
                                       {user.role === UserRole.TENANT_ADMIN && <Check className="h-4 w-4 text-primary" />}
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onSelect={() => updateRole(user.id, UserRole.SITE_ADMIN)}
-                                      className="flex items-center justify-between"
+                                    <DropdownMenuItem 
+                                      className="flex items-center justify-between rounded-xl px-3 py-2"
+                                      onClick={() => updateRole(user.id, UserRole.SITE_ADMIN)}
                                     >
-                                      <span>站点管理员</span>
+                                      <span className="text-sm font-medium">{t("roles.siteAdmin")}</span>
                                       {user.role === UserRole.SITE_ADMIN && <Check className="h-4 w-4 text-primary" />}
                                     </DropdownMenuItem>
                                   </DropdownMenuSubContent>
                                 </DropdownMenuPortal>
                               </DropdownMenuSub>
+                            )}
 
+                            <DropdownMenuItem 
+                              className="flex items-center gap-2 rounded-xl px-2 py-2 cursor-pointer"
+                              onClick={() => handleResetPassword(user.id, user.name, user.email)}
+                            >
+                              <KeyRound className="h-4 w-4 opacity-70 text-amber-500" />
+                              <span className="text-sm font-medium">{t("actions.resetPassword")}</span>
+                            </DropdownMenuItem>
 
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => handleResetPassword(user.id, user.name, user.email)}
-                                className="text-amber-600 focus:text-amber-600 focus:bg-amber-50"
-                              >
-                                <KeyRound className="mr-2 h-4 w-4" />
-                                重置密码
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  const newStatus = user.status === UserStatus.ACTIVE ? UserStatus.INACTIVE : UserStatus.ACTIVE
-                                  if (confirm(`确定要${newStatus === UserStatus.INACTIVE ? '禁用' : '启用'}该账户吗？`)) {
-                                    updateStatus(user.id, newStatus)
-                                  }
-                                }}
-                                disabled={user.id === currentUserId}
-                              >
-                                {user.status === UserStatus.ACTIVE ? (
-                                  <>
-                                    <Slash className="mr-2 h-4 w-4" />
-                                    禁用账号
-                                  </>
-                                ) : (
-                                  <>
-                                    <Check className="mr-2 h-4 w-4" />
-                                    启用账号
-                                  </>
-                                )}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => handleDeleteUser(user.id, user.name)}
-                                className="text-red-600 focus:text-red-600 focus:bg-red-50"
-                                disabled={user.id === currentUserId}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                删除用户
-                              </DropdownMenuItem>
+                            <DropdownMenuSeparator className="my-1.5 opacity-40" />
 
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
+                            {user.status === UserStatus.ACTIVE ? (
+                              <DropdownMenuItem 
+                                className="flex items-center gap-2 rounded-xl px-2 py-2 text-slate-500 hover:text-slate-700 cursor-pointer"
+                                onClick={() => updateStatus(user.id, UserStatus.INACTIVE, user.name)}
+                              >
+                                <Slash className="h-4 w-4 opacity-70" />
+                                <span className="text-sm font-medium">{t("actions.disableAccount")}</span>
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem 
+                                className="flex items-center gap-2 rounded-xl px-2 py-2 text-emerald-600 hover:text-emerald-700 cursor-pointer"
+                                onClick={() => updateStatus(user.id, UserStatus.ACTIVE, user.name)}
+                              >
+                                <Check className="h-4 w-4 opacity-70" />
+                                <span className="text-sm font-medium">{t("actions.enableAccount")}</span>
+                              </DropdownMenuItem>
+                            )}
+                            
+                            <DropdownMenuSeparator className="my-1.5 opacity-40" />
+                            <DropdownMenuItem 
+                              className="flex items-center gap-2 rounded-xl px-2 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
+                              onClick={() => handleDeleteUser(user.id, user.name)}
+                            >
+                              <Trash2 className="h-4 w-4 opacity-70" />
+                              <span className="text-sm font-medium">{t("actions.deleteUser")}</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -560,8 +561,8 @@ export function GlobalUsers() {
               </Table>
             )}
           </CardContent>
-        </Card >
-      </div >
+        </Card>
+      </div>
     </div>
   )
 }

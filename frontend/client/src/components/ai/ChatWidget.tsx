@@ -18,6 +18,7 @@ import { useState, useRef, useEffect } from "react"
 import { Bot, X, Send, User, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAIChat } from "@/hooks"
+import { useTranslations } from "next-intl"
 import { Streamdown } from "streamdown"
 import { MessageSources } from "./MessageSources"
 import { ScrollArea } from "@/components/ui"
@@ -44,12 +45,13 @@ export function ChatWidget({
   siteId,
   allSites,
 }: ChatWidgetProps) {
+  const t = useTranslations("ChatWidget")
   const { messages, isLoading, sendMessage } = useAIChat({
     initialMessages: [
       {
         id: "welcome",
         role: "assistant",
-        content: welcomeMessage || "您好！我是 AI 助手，有什么可以帮您？",
+        content: welcomeMessage || t("defaultWelcome"),
       },
     ],
     selectedSiteId: siteId,
@@ -96,10 +98,10 @@ export function ChatWidget({
                   <Bot className="w-6 h-6" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-extrabold text-sm tracking-wide">{title || "AI 智能客服"}</span>
+                  <span className="font-extrabold text-sm tracking-wide">{title || t("defaultTitle")}</span>
                   <div className="flex items-center gap-1.5">
                     <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-                    <span className="text-[10px] text-white/80 font-medium tracking-tight">在线咨询中</span>
+                    <span className="text-[10px] text-white/80 font-medium tracking-tight">{t("online")}</span>
                   </div>
                 </div>
               </div>
@@ -116,7 +118,7 @@ export function ChatWidget({
           <ScrollArea ref={scrollAreaRef} className="flex-1 bg-gradient-to-b from-slate-50/50 to-white">
             <div className="p-5 space-y-6">
               <div className="text-center pb-2">
-                <span className="px-3 py-1 bg-slate-100/80 rounded-full text-[10px] text-slate-400 font-bold uppercase tracking-widest">今天</span>
+                <span className="px-3 py-1 bg-slate-100/80 rounded-full text-[10px] text-slate-400 font-bold uppercase tracking-widest">{t("today")}</span>
               </div>
 
               {messages.map((msg, i) => (
@@ -166,7 +168,7 @@ export function ChatWidget({
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder="键入您要咨询的内容..."
+                placeholder={t("inputPlaceholder")}
                 className="flex-1 bg-transparent border-none py-2 text-[13px] text-slate-800 placeholder:text-slate-400 focus:outline-none"
               />
               <button

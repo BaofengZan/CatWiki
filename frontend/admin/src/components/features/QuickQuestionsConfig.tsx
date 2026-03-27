@@ -19,6 +19,7 @@
 
 "use client"
 
+import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -32,6 +33,7 @@ interface QuickQuestionsConfigProps {
 }
 
 export function QuickQuestionsConfig({ questions, onChange }: QuickQuestionsConfigProps) {
+  const t = useTranslations("QuickQuestions")
   const handleAddQuestion = () => {
     onChange([...questions, { text: "", category: "" }])
   }
@@ -47,23 +49,23 @@ export function QuickQuestionsConfig({ questions, onChange }: QuickQuestionsConf
   }
 
   return (
-    <Card className="border-slate-200/60 shadow-sm rounded-2xl overflow-hidden transition-all duration-300 w-full">
-      <CardHeader className="border-b border-slate-50 pb-4">
+    <Card className="border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300 w-full">
+      <CardHeader className="border-b border-border/40 pb-4">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-primary/10 rounded-lg text-primary border border-primary/20">
             <Sparkles className="h-5 w-5" />
           </div>
           <div>
-            <CardTitle className="text-xl font-bold">快速问题配置</CardTitle>
+            <CardTitle className="text-xl font-bold">{t("title")}</CardTitle>
             <CardDescription>
-              配置首页展示的快速开始问题，如果不配置，首页将不会显示快速问题区域。
+              {t("description")}
             </CardDescription>
           </div>
         </div>
       </CardHeader>
       <CardContent className="p-6 space-y-4 pt-6">
         <div className="flex items-center justify-between mb-2">
-          <Label className="text-sm font-semibold text-slate-700">问题列表</Label>
+          <Label className="text-sm font-semibold text-slate-700">{t("listLabel")}</Label>
           <Button
             variant="outline"
             size="sm"
@@ -71,7 +73,7 @@ export function QuickQuestionsConfig({ questions, onChange }: QuickQuestionsConf
             className="h-8 gap-1 text-xs rounded-lg border-slate-200 hover:bg-slate-100"
           >
             <Plus className="h-3 w-3" />
-            添加问题
+            {t("addQuestion")}
           </Button>
         </div>
 
@@ -79,7 +81,7 @@ export function QuickQuestionsConfig({ questions, onChange }: QuickQuestionsConf
           {questions.length === 0 ? (
             <div className="border-2 border-dashed border-border/50 rounded-xl p-6 text-center">
               <p className="text-muted-foreground text-xs">
-                暂无快速问题配置，点击上方按钮开始
+                {t("empty")}
               </p>
             </div>
           ) : (
@@ -94,20 +96,20 @@ export function QuickQuestionsConfig({ questions, onChange }: QuickQuestionsConf
                 </div>
                 <div className="flex-1 grid grid-cols-12 gap-3">
                   <div className="col-span-8 space-y-1">
-                    <Label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">问题内容</Label>
+                    <Label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{t("questionLabel")}</Label>
                     <Input
                       value={question.text}
                       onChange={(e) => handleQuestionChange(index, "text", e.target.value)}
-                      placeholder="例如：项目的核心功能是什么？"
+                      placeholder={t("placeholder")}
                       className="h-9 text-xs bg-background"
                     />
                   </div>
                   <div className="col-span-3 space-y-1">
-                    <Label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">分类</Label>
+                    <Label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{t("categoryLabel")}</Label>
                     <Input
                       value={question.category || ""}
                       onChange={(e) => handleQuestionChange(index, "category", e.target.value)}
-                      placeholder="分类"
+                      placeholder={t("categoryPlaceholder")}
                       className="h-9 text-xs bg-background"
                     />
                   </div>

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import { Input } from "@/components/ui/input"
+import { useTranslations } from "next-intl"
 import { ShieldCheck /*, BrainCircuit */ } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
@@ -31,6 +32,7 @@ interface ModelConfigFieldsProps {
 }
 
 export function ModelConfigFields({ type, config, onUpdate }: ModelConfigFieldsProps) {
+  const t = useTranslations("Models")
   // const isThinkingEnabled = config.extra_body?.chat_template_kwargs?.enable_thinking ?? false;
   const isVisionEnabled = config.is_vision ?? false;
 
@@ -73,26 +75,26 @@ export function ModelConfigFields({ type, config, onUpdate }: ModelConfigFieldsP
             </svg>
           </div>
           <div className="space-y-1">
-            <p className="font-medium text-amber-800">更改需谨慎</p>
-            <p>修改向量模型配置可能导致现有的向量知识库无法检索！</p>
-            <p>一旦修改，建议在&quot;文档管理&quot;中对所有文档执行&quot;重新向量化&quot;操作，否则旧数据的向量将与新模型不兼容。</p>
+            <p className="font-medium text-amber-800">{t("caution")}</p>
+            <p>{t("vectorModelWarning")}</p>
+            <p>{t("revectorizeTip")}</p>
           </div>
         </div>
       )}
 
       <div className="grid grid-cols-2 gap-6">
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-slate-700">协议类型</label>
+          <label className="text-sm font-semibold text-slate-700">{t("protocolType")}</label>
           <div className="flex items-center h-10 px-3 rounded-md border border-slate-200 bg-slate-50 text-slate-500 text-sm">
-            OpenAI API 兼容协议
+            {t("openAICompatible")}
           </div>
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-slate-700">模型名称</label>
+          <label className="text-sm font-semibold text-slate-700">{t("modelName")}</label>
           <Input
             value={config.model}
             onChange={(e) => onUpdate(type, "model", e.target.value)}
-            placeholder="例如: gpt-4, claude-3-opus..."
+            placeholder={t("modelPlaceholder")}
             className="bg-white"
             autoComplete="new-password"
             name="custom_model_disable_autofill"
@@ -125,18 +127,18 @@ export function ModelConfigFields({ type, config, onUpdate }: ModelConfigFieldsP
 
       {type === "embedding" && (
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-slate-700">向量维度 (自动获取)</label>
+          <label className="text-sm font-semibold text-slate-700">{t("dimension")}</label>
           <div className="flex gap-2">
             <Input
               type="number"
               value={config.dimension || ""}
               disabled={true}
-              placeholder="等待自动探测..."
+              placeholder={t("detecting")}
               className="bg-slate-50 font-mono text-slate-500"
             />
           </div>
           <p className="text-xs text-slate-500">
-            该值将在保存配置时自动从模型提供商探测。
+            {t("dimensionTip")}
           </p>
         </div>
       )}
@@ -188,9 +190,9 @@ export function ModelConfigFields({ type, config, onUpdate }: ModelConfigFieldsP
               </div>
               <div className="space-y-0.5">
                 <Label htmlFor="vision-support" className="text-sm font-bold text-slate-800 cursor-pointer">
-                  视觉支持
+                  {t("visionSupport")}
                 </Label>
-                <p className="text-[11px] text-slate-500">该配置对应的模型是否支持多模态的图像理解</p>
+                <p className="text-[11px] text-slate-500">{t("visionSupportDesc")}</p>
               </div>
             </div>
             <Switch

@@ -5,6 +5,7 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.common.auth import create_access_token
+from app.core.common.i18n import _
 from app.core.common.utils import Paginator
 from app.core.infra.config import settings
 from app.core.web.exceptions import (
@@ -46,12 +47,12 @@ class UserService:
 
         if current_user.role == UserRole.TENANT_ADMIN:
             if target_user.role == UserRole.ADMIN:
-                raise ForbiddenException(detail=f"无权{action}系统管理员")
+                raise ForbiddenException(detail=_("user.no_permission_action_admin", action=action))
             return
 
         if current_user.role == UserRole.SITE_ADMIN:
             if target_user.role in [UserRole.ADMIN, UserRole.TENANT_ADMIN]:
-                raise ForbiddenException(detail=f"无权{action}该级别管理员")
+                raise ForbiddenException(detail=_("user.no_permission_action_level", action=action))
 
             # 检查是否有共同管理的站点
             admin_sites = set(current_user.managed_sites)
@@ -60,14 +61,14 @@ class UserService:
             # 如果目标用户没有任何关联站点，且当前是 SITE_ADMIN，可能也无权查看（除非是同一个租户下的无站点用户？）
             # 根据原代码逻辑：如果用户有管理站点但没有交集，则禁止
             if user_sites and not admin_sites.intersection(user_sites):
-                raise ForbiddenException(detail=f"无权{action}该用户")
+                raise ForbiddenException(detail=_("user.no_permission_action_user", action=action))
 
             # 如果目标用户没有关联任何站点，SITE_ADMIN 通常也无权管理（除非是自己，但上面已经判断了）
             if not user_sites and current_user.id != target_user.id:
                 # 这里根据业务逻辑决定，原代码在 list_users 中通过 filter_site_ids 过滤
                 # 在 get_user 中则主要看交集。如果没有交集则禁止。
                 # 如果 target_user.managed_sites 为空，intersection 也是空。
-                raise ForbiddenException(detail=f"无权{action}该用户")
+                raise ForbiddenException(detail=_("user.no_permission_action_user", action=action))
 
     @transactional()
     async def get_user(self, user_id: int) -> User:
@@ -76,7 +77,7 @@ class UserService:
         """
         user = await crud_user.get(self.db, id=user_id)
         if not user:
-            raise NotFoundException(detail=f"用户 {user_id} 不存在")
+            raise NotFoundException(detail=_("user.not_found", id=user_id))
         return user
 
     @transactional()
@@ -106,7 +107,7 @@ class UserService:
             exclude_roles = [UserRole.ADMIN, UserRole.TENANT_ADMIN]
             if site_id:
                 if site_id not in current_user.managed_sites:
-                    raise ForbiddenException(detail="无权查看该站点用户")
+                    raise ForbiddenException(detail=_("user.no_permission_view_site_users"))
                 filter_site_ids = [site_id]
             else:
                 filter_site_ids = current_user.managed_sites
@@ -147,22 +148,22 @@ class UserService:
         """
         if current_user.role == UserRole.TENANT_ADMIN:
             if user_in.role == UserRole.ADMIN:
-                raise ForbiddenException(detail="租户管理员无法创建系统管理员")
+                raise ForbiddenException(detail=_("user.cannot_create_sys_admin"))
 
         if settings.CATWIKI_EDITION == "community" and user_in.role == UserRole.ADMIN:
-            raise ForbiddenException(detail="社区版无法创建系统管理员角色")
+            raise ForbiddenException(detail=_("user.cannot_create_sys_admin_ce"))
 
         if current_user.role == UserRole.SITE_ADMIN:
             if user_in.managed_site_ids:
                 admin_sites = set(current_user.managed_sites)
                 req_sites = set(user_in.managed_site_ids)
                 if not req_sites.issubset(admin_sites):
-                    raise ForbiddenException(detail="无法分配您未管理的站点")
+                    raise ForbiddenException(detail=_("user.cannot_assign_unmanaged_sites"))
 
         # 检查邮箱是否已存在
         existing_user = await crud_user.get_by_email(self.db, email=user_in.email)
         if existing_user:
-            raise ConflictException(detail=f"邮箱 {user_in.email} 已被使用")
+            raise ConflictException(detail=_("user.email_taken", email=user_in.email))
 
         return await crud_user.create(self.db, obj_in=user_in)
 
@@ -173,10 +174,10 @@ class UserService:
         """
         if current_user.role == UserRole.TENANT_ADMIN:
             if user_in.role == UserRole.ADMIN:
-                raise ForbiddenException(detail="无法邀请系统管理员")
+                raise ForbiddenException(detail=_("user.cannot_invite_sys_admin"))
 
         if settings.CATWIKI_EDITION == "community" and user_in.role == UserRole.ADMIN:
-            raise ForbiddenException(detail="社区版无法邀请系统管理员角色")
+            raise ForbiddenException(detail=_("user.cannot_invite_sys_admin_ce"))
 
         if current_user.role == UserRole.SITE_ADMIN:
             if user_in.role != UserRole.SITE_ADMIN:
@@ -186,12 +187,12 @@ class UserService:
                 admin_sites = set(current_user.managed_sites)
                 req_sites = set(user_in.managed_site_ids)
                 if not req_sites.issubset(admin_sites):
-                    raise ForbiddenException(detail="无法分配您未管理的站点")
+                    raise ForbiddenException(detail=_("user.cannot_assign_unmanaged_sites"))
 
         # 检查邮箱是否已存在
         existing_user = await crud_user.get_by_email(self.db, email=user_in.email)
         if existing_user:
-            raise ConflictException(detail=f"邮箱 {user_in.email} 已被使用")
+            raise ConflictException(detail=_("user.email_taken", email=user_in.email))
 
         user, password = await crud_user.invite(self.db, obj_in=user_in)
         return user, password
@@ -203,31 +204,31 @@ class UserService:
         """
         db_user = await crud_user.get(self.db, id=user_id)
         if not db_user:
-            raise NotFoundException(detail=f"用户 {user_id} 不存在")
+            raise NotFoundException(detail=_("user.not_found", id=user_id))
 
         self.ensure_user_access(current_user, db_user, action="修改")
 
         if current_user.role == UserRole.TENANT_ADMIN:
             if user_in.role == UserRole.ADMIN:
-                raise ForbiddenException(detail="无法提权为系统管理员")
+                raise ForbiddenException(detail=_("user.cannot_escalate_to_sys_admin"))
 
         if settings.CATWIKI_EDITION == "community" and user_in.role == UserRole.ADMIN:
-            raise ForbiddenException(detail="社区版无法设置为系统管理员角色")
+            raise ForbiddenException(detail=_("user.cannot_escalate_to_sys_admin_ce"))
 
         if current_user.role == UserRole.SITE_ADMIN:
             if user_in.role and user_in.role == UserRole.ADMIN:
-                raise ForbiddenException(detail="无法提权为系统管理员")
+                raise ForbiddenException(detail=_("user.cannot_escalate_to_sys_admin"))
             if user_in.managed_site_ids is not None:
                 admin_sites = set(current_user.managed_sites)
                 req_sites = set(user_in.managed_site_ids)
                 if not req_sites.issubset(admin_sites):
-                    raise ForbiddenException(detail="无法分配您未管理的站点")
+                    raise ForbiddenException(detail=_("user.cannot_assign_unmanaged_sites"))
 
         # 如果更新邮箱，检查是否已被其他用户使用
         if user_in.email and user_in.email != db_user.email:
             existing_user = await crud_user.get_by_email(self.db, email=user_in.email)
             if existing_user:
-                raise ConflictException(detail=f"邮箱 {user_in.email} 已被使用")
+                raise ConflictException(detail=_("user.email_taken", email=user_in.email))
 
         return await crud_user.update(self.db, db_obj=db_user, obj_in=user_in)
 
@@ -240,7 +241,7 @@ class UserService:
             self.db, email=login_in.email, password=login_in.password
         )
         if not user:
-            raise BadRequestException(detail="邮箱或密码错误")
+            raise BadRequestException(detail=_("user.wrong_credentials"))
 
         token_data = {
             "sub": str(user.id),
@@ -262,7 +263,7 @@ class UserService:
         """
         db_user = await crud_user.get(self.db, id=user_id)
         if not db_user:
-            raise NotFoundException(detail=f"用户 {user_id} 不存在")
+            raise NotFoundException(detail=_("user.not_found", id=user_id))
 
         self.ensure_user_access(current_user, db_user, action="重置密码")
 
@@ -276,13 +277,13 @@ class UserService:
         """
         db_user = await crud_user.get(self.db, id=user_id)
         if not db_user:
-            raise NotFoundException(detail=f"用户 {user_id} 不存在")
+            raise NotFoundException(detail=_("user.not_found", id=user_id))
 
         self.ensure_user_access(current_user, db_user, action="删除")
 
         success = await crud_user.delete(self.db, id=user_id)
         if not success:
-            raise NotFoundException(detail=f"用户 {user_id} 不存在")
+            raise NotFoundException(detail=_("user.not_found", id=user_id))
 
     @transactional()
     async def update_password(
@@ -296,14 +297,14 @@ class UserService:
         """
         db_user = await crud_user.get(self.db, id=user_id)
         if not db_user:
-            raise NotFoundException(detail=f"用户 {user_id} 不存在")
+            raise NotFoundException(detail=_("user.not_found", id=user_id))
 
         self.ensure_user_access(current_user, db_user, action="修改密码")
 
         from app.crud.user import verify_password
 
         if not verify_password(password_in.old_password, db_user.password_hash):
-            raise BadRequestException(detail="旧密码错误")
+            raise BadRequestException(detail=_("user.wrong_old_password"))
 
         await crud_user.update_password(
             self.db, db_obj=db_user, new_password=password_in.new_password

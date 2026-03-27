@@ -18,6 +18,7 @@
 
 from fastapi import APIRouter, Depends, Query, status
 
+from app.core.common.i18n import _
 from app.core.web.deps import get_current_user_with_tenant, get_valid_site
 from app.models.site import Site
 from app.models.user import User
@@ -60,7 +61,7 @@ async def list_collections(
             list=collections,
             pagination=paginator.to_pagination_info(),
         ),
-        msg="获取成功",
+        msg=_("api.success.get"),
     )
 
 
@@ -78,7 +79,7 @@ async def get_collection_tree(
     tree = await service.get_collection_tree(
         site_id=site.id, show_type=type, tenant_id=current_user.tenant_id
     )
-    return ApiResponse.ok(data=tree, msg="获取成功")
+    return ApiResponse.ok(data=tree, msg=_("api.success.get"))
 
 
 @router.get(
@@ -93,7 +94,7 @@ async def get_collection(
     collection = await service.get_collection(
         collection_id=collection_id, tenant_id=current_user.tenant_id
     )
-    return ApiResponse.ok(data=collection, msg="获取成功")
+    return ApiResponse.ok(data=collection, msg=_("api.success.get"))
 
 
 @router.post(
@@ -109,7 +110,7 @@ async def create_collection(
 ) -> ApiResponse[Collection]:
     """创建合集"""
     collection = await service.create_collection(collection_in, tenant_id=current_user.tenant_id)
-    return ApiResponse.ok(data=collection, msg="创建成功")
+    return ApiResponse.ok(data=collection, msg=_("api.success.create"))
 
 
 @router.put(
@@ -125,7 +126,7 @@ async def update_collection(
     collection = await service.update_collection(
         collection_id, collection_in, tenant_id=current_user.tenant_id
     )
-    return ApiResponse.ok(data=collection, msg="更新成功")
+    return ApiResponse.ok(data=collection, msg=_("api.success.update"))
 
 
 @router.delete(
@@ -138,7 +139,7 @@ async def delete_collection(
 ) -> ApiResponse[None]:
     """删除合集"""
     await service.delete_collection(collection_id, tenant_id=current_user.tenant_id)
-    return ApiResponse.ok(msg="删除成功")
+    return ApiResponse.ok(msg=_("api.success.delete"))
 
 
 @router.post(
@@ -165,4 +166,4 @@ async def move_collection(
         move_request.target_position,
         tenant_id=current_user.tenant_id,
     )
-    return ApiResponse.ok(data=collection, msg="移动成功")
+    return ApiResponse.ok(data=collection, msg=_("api.success.move"))

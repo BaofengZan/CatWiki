@@ -77,4 +77,11 @@ async def get_db() -> AsyncGenerator[AsyncSession]:
                 logger.error(f"数据库会话错误: {e}")
             await session.rollback()
             raise
+        finally:
+            # 开发环境检测：如果 session 有未提交的变更，说明有写操作遗漏了 @transactional
+            if settings.DEBUG and (session.dirty or session.new or session.deleted):
+                logger.warning(
+                    f"⚠️ Session 关闭时存在未提交的变更 (dirty={len(session.dirty)}, new={len(session.new)}, deleted={len(session.deleted)})，"
+                    f"请检查是否遗漏了 @transactional 装饰器"
+                )
         # async with 自动处理 session.close()

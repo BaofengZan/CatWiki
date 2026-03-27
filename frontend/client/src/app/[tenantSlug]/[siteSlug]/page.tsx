@@ -1,21 +1,8 @@
-// Copyright 2026 CatWiki Authors
-// 
-// Licensed under the CatWiki Open Source License (Modified Apache 2.0);
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-// 
-//     https://github.com/CatWiki/CatWiki/blob/main/LICENSE
-// 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 "use client"
 
 import { useState, useEffect, Suspense, useMemo } from "react"
 import { useParams, useSearchParams, useRouter, notFound } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { Sidebar } from "@/components/layout"
 import { SearchBar } from "@/components/search/SearchBar"
 import { AIChat, AIChatLanding } from "@/components/ai"
@@ -25,8 +12,10 @@ import { useSiteBySlug, useMenuTree, useDocument } from "@/hooks"
 import { PageLoading, NotFoundState, Button } from "@/components/ui"
 import type { MenuItem } from "@/types"
 import { ThemeProvider, type ThemeColor } from "@/contexts"
+import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher"
 
 function SlugPageContent() {
+  const t = useTranslations("SlugPage")
   const params = useParams()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -38,7 +27,7 @@ function SlugPageContent() {
   const { data: site, isLoading: siteLoading } = useSiteBySlug(siteSlug)
 
   // 从站点信息中提取配置
-  const siteName = site?.name || "知识库"
+  const siteName = site?.name || t("defaultSiteName")
   const themeColor = (site?.theme_color || "blue") as ThemeColor
   const layoutMode = (site?.layout_mode || "sidebar") as "sidebar" | "top"
 
@@ -97,7 +86,7 @@ function SlugPageContent() {
   }
 
   if (siteLoading) {
-    return <PageLoading text="正在加载站点..." />
+    return <PageLoading text={t("loading")} />
   }
 
   if (!site) {
@@ -139,7 +128,7 @@ function SlugPageContent() {
                 size="icon"
                 className="lg:hidden shrink-0"
                 onClick={() => setIsMobileSidebarOpen(true)}
-                aria-label="打开菜单"
+                aria-label={t("openMenu")}
               >
                 <Menu className="h-5 w-5" />
               </Button>
@@ -152,6 +141,9 @@ function SlugPageContent() {
                 onSelect={(item) => handleSelectItem(item)}
                 onAskAI={handleOpenAIChat}
               />
+            </div>
+            <div className="flex items-center gap-2">
+              <LanguageSwitcher />
             </div>
           </header>
 
@@ -189,8 +181,9 @@ function SlugPageContent() {
 }
 
 export default function SlugPage() {
+  const t = useTranslations("SlugPage")
   return (
-    <Suspense fallback={<PageLoading text="正在检索知识库..." />}>
+    <Suspense fallback={<PageLoading text={t("retrieving")} />}>
       <SlugPageContent />
     </Suspense>
   )

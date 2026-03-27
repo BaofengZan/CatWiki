@@ -16,6 +16,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useRouter, useSearchParams, usePathname } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { SettingsProvider, useSettings } from "@/contexts/SettingsContext"
 import { ModelSettingsCard, ModelDetailCard } from "@/components/settings/models"
 import { GlobalUsers } from "@/components/settings/users"
@@ -38,6 +39,7 @@ import { Button, Card, Tabs, TabsContent, TabsList, TabsTrigger } from "@/compon
 import { cn } from "@/lib/utils"
 
 function SettingsContent() {
+  const t = useTranslations("Settings")
   const router = useRouter()
   const searchParams = useSearchParams()
   const pathname = usePathname()
@@ -145,7 +147,7 @@ function SettingsContent() {
                 size="icon"
                 onClick={handleBackToGlobal}
                 className="h-8 w-8 rounded-full hover:bg-slate-100 -ml-2 transition-colors"
-                title="返回列表"
+                title={t("backToList")}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -155,7 +157,7 @@ function SettingsContent() {
                 <Settings className="h-4 w-4 text-slate-600" />
               </div>
               <h1 className="text-base font-bold text-slate-900 leading-tight">
-                {isSiteSettings ? "站点设置" : "系统设置"}
+                {isSiteSettings ? t("siteSettings") : t("systemSettings")}
               </h1>
             </div>
           </div>
@@ -169,7 +171,7 @@ function SettingsContent() {
                 className="flex items-center gap-2 h-9 px-4 animate-in fade-in zoom-in duration-300"
               >
                 <Save className="h-4 w-4" />
-                保存配置
+                {t("saveConfig")}
               </Button>
             )}
 
@@ -204,7 +206,7 @@ function SettingsContent() {
                 )}
               >
                 <Globe className="h-4 w-4 mr-3 opacity-70" />
-                站点管理
+                {t("sites")}
               </TabsTrigger>
 
               {(isAdmin || isTenantAdmin) && (
@@ -217,7 +219,7 @@ function SettingsContent() {
                   )}
                 >
                   <Users className="h-4 w-4 mr-3 opacity-70" />
-                  用户权限
+                  {t("users")}
                 </TabsTrigger>
               )}
 
@@ -231,7 +233,7 @@ function SettingsContent() {
                   )}
                 >
                   <Settings className="h-4 w-4 mr-3 opacity-70" />
-                  模型配置
+                  {t("models")}
                 </TabsTrigger>
               )}
 
@@ -245,7 +247,7 @@ function SettingsContent() {
                   )}
                 >
                   <FileText className="h-4 w-4 mr-3 opacity-70" />
-                  文档解析
+                  {t("docProcessor")}
                 </TabsTrigger>
               )}
             </TabsList>

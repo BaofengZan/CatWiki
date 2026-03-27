@@ -18,6 +18,7 @@ import { motion } from "framer-motion"
 import { BookOpen, ExternalLink, MessageCircle, Star, Users } from "lucide-react"
 import { ClientSite } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
+import { useTranslations } from "next-intl"
 
 interface SiteCardProps {
   site: ClientSite
@@ -26,6 +27,7 @@ interface SiteCardProps {
 }
 
 export function SiteCard({ site, onSelect, onVisit }: SiteCardProps) {
+  const t = useTranslations("SiteCard")
   const [imgError, setImgError] = useState(false)
   const hasValidIcon = site.icon && site.icon.trim() !== "" && !imgError
 
@@ -71,7 +73,7 @@ export function SiteCard({ site, onSelect, onVisit }: SiteCardProps) {
           {site.name}
         </h3>
         <p className="text-sm text-slate-500 line-clamp-2 md:line-clamp-3 leading-relaxed mb-6">
-          {site.description || "一个充满智慧的知识库，等待您的探索。"}
+          {site.description || t("defaultDescription")}
         </p>
       </div>
 
@@ -81,14 +83,14 @@ export function SiteCard({ site, onSelect, onVisit }: SiteCardProps) {
           className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-xs md:text-sm hover:bg-slate-50 active:scale-95 transition-all"
         >
           <ExternalLink className="h-4 w-4" />
-          访问详情
+          {t("visit")}
         </button>
         <button
           onClick={() => onSelect(site)}
           className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary text-white font-semibold text-xs md:text-sm hover:bg-primary/90 shadow-lg shadow-primary/20 active:scale-95 transition-all"
         >
           <MessageCircle className="h-4 w-4 fill-white" />
-          AI 对话
+          {t("aiChat")}
         </button>
       </div>
 
@@ -96,10 +98,10 @@ export function SiteCard({ site, onSelect, onVisit }: SiteCardProps) {
       <div className="mt-5 pt-4 border-t border-slate-50 flex items-center justify-between text-[10px] text-slate-400 font-medium">
         <div className="flex items-center gap-1">
           <BookOpen className="h-3 w-3" />
-          <span>{site.article_count || 0} 篇文章</span>
+          <span>{t("articleCount", { count: site.article_count || 0 })}</span>
         </div>
         <div className="flex items-center gap-1">
-          浏览量 {site.view_count !== undefined ? (site.view_count >= 1000 ? `${(site.view_count / 1000).toFixed(1)}k` : site.view_count) : 0}
+          {t("viewCount", { count: site.view_count !== undefined ? (site.view_count >= 1000 ? `${(site.view_count / 1000).toFixed(1)}k` : site.view_count) : 0 })}
         </div>
       </div>
     </motion.div>

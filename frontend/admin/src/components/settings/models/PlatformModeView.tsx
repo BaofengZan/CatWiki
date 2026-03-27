@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { useTranslations } from "next-intl"
 import { PlugZap } from "lucide-react"
 import { useSettings } from "@/contexts/SettingsContext"
 import { SettingsTabId } from "@/types/settings"
@@ -21,6 +22,7 @@ interface PlatformModeViewProps {
 }
 
 export function PlatformModeView({ type }: PlatformModeViewProps) {
+  const t = useTranslations("Models")
   const { platformDefaults } = useSettings()
 
   return (
@@ -29,9 +31,9 @@ export function PlatformModeView({ type }: PlatformModeViewProps) {
         <PlugZap className="w-6 h-6" />
       </div>
       <div>
-        <h3 className="text-sm font-semibold text-blue-900">已托管至平台</h3>
+        <h3 className="text-sm font-semibold text-blue-900">{t("hostedOnPlatform")}</h3>
         <p className="text-xs text-blue-700 mt-1 max-w-xs mx-auto">
-          当前正在使用平台提供的共享 AI 资源。无需配置 Key 即可直接使用。
+          {t("usingSharedResource")}
         </p>
       </div>
 
@@ -39,7 +41,7 @@ export function PlatformModeView({ type }: PlatformModeViewProps) {
       {platformDefaults?.[type]?.model && (
         <div className="inline-block bg-white/60 px-3 py-1 rounded text-xs text-blue-800 border border-blue-100">
           {/* @ts-ignore */}
-          当前模型: <span className="font-mono font-semibold">{platformDefaults[type].model}</span>
+          {t("currentModel")} <span className="font-mono font-semibold">{platformDefaults[type].model}</span>
         </div>
       )}
     </div>

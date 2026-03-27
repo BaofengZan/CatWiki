@@ -20,6 +20,7 @@
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 
+from app.core.common.i18n import _
 from app.schemas.response import ApiResponse
 from app.services.file_service import FileService, get_file_service
 
@@ -49,7 +50,7 @@ async def get_file_info(
 ) -> ApiResponse[dict]:
     """获取文件信息（客户端）"""
     data = await service.get_client_file_info(object_name)
-    return ApiResponse.ok(data=data, msg="获取成功")
+    return ApiResponse.ok(data=data, msg=_("api.success.get"))
 
 
 @router.get(
@@ -72,5 +73,5 @@ async def get_presigned_url(
             "object_name": object_name,
             "url": url,
         },
-        msg="获取成功",
+        msg=_("api.success.get"),
     )

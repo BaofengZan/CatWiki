@@ -16,6 +16,8 @@
 
 import Link from "next/link"
 import Image from "next/image"
+import { logger } from "@/lib/logger"
+import { useTranslations } from "next-intl"
 import { usePathname, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
@@ -49,24 +51,25 @@ interface MenuItem {
 
 const allMenuItems: MenuItem[] = [
   {
-    title: "运营概览",
+    title: "dashboard",
     href: "/",
     icon: LayoutGrid,
     roles: ["admin", "tenant_admin", "site_admin"] // 管理员和站点管理员可见
   },
   {
-    title: "文档管理",
+    title: "documents",
     href: "/documents",
     icon: FileText,
     children: [
-      { title: "文档列表", href: "/documents" },
-      { title: "发布文档", href: "/documents/new" },
+      { title: "documentList", href: "/documents" },
+      { title: "publishDocument", href: "/documents/new" },
     ],
     roles: ["admin", "tenant_admin", "site_admin"] // 所有角色都可见
   },
 ]
 
 function AdminSidebarComponent() {
+  const t = useTranslations("Sidebar")
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const isSitesPage = pathname.startsWith('/sites/edit') || pathname.startsWith('/sites/new')
@@ -134,8 +137,8 @@ function AdminSidebarComponent() {
             </div>
             <span className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/70 truncate">
               {healthData?.edition === 'community'
-                ? '系统设置'
-                : (userRole === 'admin' ? '系统管理' : '组织设置')}
+                ? t("systemSettings")
+                : (userRole === 'admin' ? t("systemManagement") : t("orgSettings"))}
             </span>
           </div>
 
@@ -160,7 +163,7 @@ function AdminSidebarComponent() {
               )} suppressHydrationWarning>
                 <Settings className="h-4 w-4" />
               </div>
-              <span className="text-sm font-semibold">模型配置</span>
+              <span className="text-sm font-semibold">{t("modelConfig")}</span>
             </Link>
 
             <Link
@@ -180,7 +183,7 @@ function AdminSidebarComponent() {
               )} suppressHydrationWarning>
                 <Globe className="h-4 w-4" />
               </div>
-              <span className="text-sm font-semibold">站点管理</span>
+              <span className="text-sm font-semibold">{t("siteManagement")}</span>
             </Link>
 
             <Link
@@ -200,7 +203,7 @@ function AdminSidebarComponent() {
               )} suppressHydrationWarning>
                 <Users className="h-4 w-4" />
               </div>
-              <span className="text-sm font-semibold">用户权限</span>
+              <span className="text-sm font-semibold">{t("userPermissions")}</span>
             </Link>
 
             <Link
@@ -220,7 +223,7 @@ function AdminSidebarComponent() {
               )} suppressHydrationWarning>
                 <FileText className="h-4 w-4" />
               </div>
-              <span className="text-sm font-semibold">文档解析</span>
+              <span className="text-sm font-semibold">{t("docProcessor")}</span>
             </Link>
           </nav>
         </div>
@@ -232,7 +235,7 @@ function AdminSidebarComponent() {
               className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-primary transition-colors px-2 py-1.5 rounded-md hover:bg-muted/50"
             >
               <ChevronRight className="h-3 w-3 rotate-180" />
-              <span>返回控制台</span>
+              <span>{t("backToConsole")}</span>
             </Link>
             <div className="flex items-center justify-between px-0.5">
               <div className="flex items-center gap-2 text-[10px] font-bold tracking-wider text-muted-foreground/60">
@@ -276,7 +279,7 @@ function AdminSidebarComponent() {
               />
             </div>
             <span className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/70 truncate">
-              站点管理
+              {t("siteManagement")}
             </span>
           </div>
 
@@ -294,7 +297,7 @@ function AdminSidebarComponent() {
               )} suppressHydrationWarning>
                 <Globe className="h-4 w-4" />
               </div>
-              <span className="text-sm font-semibold">返回站点管理</span>
+              <span className="text-sm font-semibold">{t("backToSiteManagement")}</span>
             </Link>
           </nav>
         </div>
@@ -315,7 +318,7 @@ function AdminSidebarComponent() {
               className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-primary hover:bg-muted/50 transition-all group"
             >
               <BookOpen className="h-4 w-4 opacity-60 group-hover:opacity-100 transition-opacity" />
-              <span className="font-medium">文档中心</span>
+              <span className="font-medium">{t("docCenter")}</span>
             </Link>
           </div>
 
@@ -351,7 +354,7 @@ function AdminSidebarComponent() {
     <div className="w-64 bg-muted/50 border-r border-border h-screen flex flex-col sticky top-0">
       <div className="p-6">
         <div className="flex items-center gap-3 px-2 mb-10">
-          <div className="relative w-9 h-9 rounded-xl overflow-hidden border border-border flex items-center justify-center shadow-lg shadow-primary/20 transition-transform hover:scale-105 duration-300">
+          <div className="relative w-9 h-9 rounded-xl overflow-hidden border border-border flex items-center justify-center shadow-sm">
             <Image
               key={logoSrc}
               src={logoSrc}
@@ -361,14 +364,14 @@ function AdminSidebarComponent() {
               unoptimized={true} // 强制禁用优化，避免 /_next/image 400 错误
               onError={() => {
                 if (logoSrc !== "/logo.png") {
-                  console.warn(`Failed to load site icon: ${logoSrc}, falling back to default.`);
+                  logger.warn(`Failed to load site icon: ${logoSrc}, falling back to default.`);
                   setImgError(true);
                 }
               }}
             />
           </div>
           <span className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/70 truncate">
-            {isSitesPage ? "站点管理" : (siteData.name || "加载中")}
+            {isSitesPage ? t("siteManagement") : (siteData.name || t("loading"))}
           </span>
         </div>
 
@@ -405,7 +408,7 @@ function AdminSidebarComponent() {
                     )} suppressHydrationWarning>
                       <Icon className="h-4 w-4" />
                     </div>
-                    <span className="text-sm font-semibold">{item.title}</span>
+                    <span className="text-sm font-semibold">{t(item.title as any)}</span>
                     {item.children && (
                       <ChevronRight className={cn("ml-auto h-3 w-3 transition-transform duration-200", isActive && "rotate-90")} />
                     )}
@@ -427,7 +430,7 @@ function AdminSidebarComponent() {
                                 : "text-muted-foreground hover:text-foreground hover:bg-muted"
                             )}
                           >
-                            {child.title}
+                            {t(child.title as any)}
                           </Link>
                         )
                       })}
@@ -438,7 +441,7 @@ function AdminSidebarComponent() {
             })
           ) : (
             <div className="px-3 py-8 text-sm text-muted-foreground text-center bg-muted/30 rounded-2xl border border-dashed border-border mx-2">
-              请选择一个站点
+              {t("selectSite")}
             </div>
           )}
         </nav>
@@ -453,7 +456,7 @@ function AdminSidebarComponent() {
               className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-primary hover:text-primary hover:bg-primary/10 transition-all group mb-2"
             >
               <ExternalLink className="h-4 w-4" />
-              <span>进入站点</span>
+              <span>{t("enterSite")}</span>
             </Link>
           )}
 
@@ -471,7 +474,7 @@ function AdminSidebarComponent() {
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-primary hover:bg-muted/50 transition-all group"
           >
             <BookOpen className="h-4 w-4 opacity-60 group-hover:opacity-100 transition-opacity" />
-            <span className="font-medium">文档中心</span>
+            <span className="font-medium">{t("docCenter")}</span>
           </Link>
         </div>
 

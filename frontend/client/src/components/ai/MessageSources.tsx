@@ -17,6 +17,7 @@ import { useParams } from "next/navigation"
 import { Source } from "@/types"
 import type { ClientSite } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
+import { useTranslations } from "next-intl"
 
 interface MessageSourcesProps {
   sources?: Source[]
@@ -24,6 +25,7 @@ interface MessageSourcesProps {
 }
 
 export function MessageSources({ sources, allSites }: MessageSourcesProps) {
+  const t = useTranslations("MessageSources")
   const params = useParams()
   const tenantSlug = params.tenantSlug as string
 
@@ -36,14 +38,14 @@ export function MessageSources({ sources, allSites }: MessageSourcesProps) {
           <Link className="w-3 h-3 text-indigo-500" />
         </div>
         <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-          引用来源 ({sources.length})
+          {t("title", { count: sources.length })}
         </span>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         {sources.map((source, index) => {
           const matchedSite = allSites?.find(s => s.id === source.siteId)
-          const siteName = source.siteName || matchedSite?.name || "知识库"
+          const siteName = source.siteName || matchedSite?.name || t("defaultSiteName")
           const siteSlug = source.siteSlug || matchedSite?.slug
           const documentId = source.documentId || source.id
 

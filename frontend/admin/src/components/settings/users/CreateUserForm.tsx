@@ -23,25 +23,18 @@ import {
   UserPlus,
   Mail,
   Shield,
-  Loader2,
-  Check
+  Check,
+  Loader2
 } from "lucide-react"
 import { toast } from "sonner"
 import { useInviteUser, useSitesList } from "@/hooks"
 import { getUserInfo } from "@/lib/auth"
-import { env } from "@/lib/env"
 import { useHealth } from "@/hooks/useHealth"
 import {
   UserRole,
   type Site
 } from "@/lib/api-client"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { useTranslations } from "next-intl"
 
 interface CreateUserFormProps {
   onCancel: () => void
@@ -72,6 +65,7 @@ function parseInviteResponse(data: unknown): InviteResponseWithPassword | null {
 }
 
 export function CreateUserForm({ onCancel, onSuccess, fixedSiteId, fixedSiteName }: CreateUserFormProps) {
+  const t = useTranslations("CreateUser")
   const [email, setEmail] = useState("")
   const [role, setRole] = useState<UserRole>(UserRole.SITE_ADMIN)
   const [selectedSites, setSelectedSites] = useState<number[]>(fixedSiteId ? [fixedSiteId] : [])
@@ -95,7 +89,7 @@ export function CreateUserForm({ onCancel, onSuccess, fixedSiteId, fixedSiteName
 
   const handleInvite = () => {
     if (!email.trim()) {
-      toast.error("请输入邮箱地址")
+      toast.error(t("errorEmptyEmail"))
       return
     }
 
@@ -111,18 +105,18 @@ export function CreateUserForm({ onCancel, onSuccess, fixedSiteId, fixedSiteName
 
           toast.success(
             <div className="space-y-2">
-              <div className="font-semibold">用户创建成功！</div>
+              <div className="font-semibold">{t("successTitle")}</div>
               <div className="text-sm">
-                <div>邮箱: {user.email}</div>
+                <div>{t("successEmail")}: {user.email}</div>
                 <div className="flex items-center gap-2 mt-1">
-                  <span>临时密码: </span>
+                  <span>{t("successPassword")}: </span>
                   <code className="px-2 py-1 bg-slate-800 text-white rounded font-mono text-xs">
                     {password}
                   </code>
                 </div>
               </div>
               <div className="text-xs text-muted-foreground mt-2">
-                请将此密码告知用户，用户首次登录后应修改密码
+                {t("successTip")}
               </div>
             </div>,
             { duration: 10000 }
@@ -135,14 +129,14 @@ export function CreateUserForm({ onCancel, onSuccess, fixedSiteId, fixedSiteName
         const apiLike = error as { status?: number; body?: { code?: number; msg?: string }; message?: string }
         // Handle 409 Conflict (Email already exists)
         if (apiLike?.status === 409 || apiLike?.body?.code === 409) {
-          toast.error("该邮箱已被注册", {
-            description: "请使用其他邮箱，或联系管理员重置现有账号。"
+          toast.error(t("errorConflict"), {
+            description: t("errorConflictDesc")
           })
           return
         }
 
         // Handle other errors
-        const msg = apiLike?.body?.msg || apiLike?.message || "创建用户失败"
+        const msg = apiLike?.body?.msg || apiLike?.message || t("errorFailed")
         toast.error(msg)
       }
     })
@@ -157,20 +151,20 @@ export function CreateUserForm({ onCancel, onSuccess, fixedSiteId, fixedSiteName
           </Button>
           <div>
             <h1 className="text-xl font-bold tracking-tight text-slate-900">
-              {fixedSiteName ? `添加成员到 ${fixedSiteName}` : "添加新用户"}
+              {fixedSiteName ? t("titleTo", { name: fixedSiteName }) : t("title")}
             </h1>
             <p className="text-slate-500 text-xs hidden md:block">
-              {fixedSiteName ? `邀请成员加入「${fixedSiteName}」，分配相应的角色和权限。` : "邀请团队成员加入平台，分配相应的角色和权限。"}
+              {fixedSiteName ? t("descriptionTo", { name: fixedSiteName }) : t("description")}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" size="sm" onClick={onCancel} disabled={inviteUserMutation.isPending}>
-            取消
+            {t("cancel")}
           </Button>
           <Button size="sm" className="flex items-center gap-2" onClick={handleInvite} disabled={inviteUserMutation.isPending}>
-            <UserPlus className="h-4 w-4" />
-            {inviteUserMutation.isPending ? "创建中..." : "确认添加"}
+            {inviteUserMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+            {inviteUserMutation.isPending ? t("creating") : t("confirm")}
           </Button>
         </div>
       </div>
@@ -180,18 +174,18 @@ export function CreateUserForm({ onCancel, onSuccess, fixedSiteId, fixedSiteName
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <Mail className="h-4 w-4 text-primary" />
-              账号信息
+              {t("accountInfo")}
             </CardTitle>
             <CardDescription className="text-xs">
-              设置用户的登录邮箱，系统将自动生成初始密码。
+              {t("accountDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">邮箱地址 <span className="text-red-500">*</span></label>
+              <label className="text-sm font-medium text-slate-700">{t("emailLabel")} <span className="text-red-500">*</span></label>
               <Input
                 className="h-9 max-w-md"
-                placeholder="user@example.com"
+                placeholder={t("emailPlaceholder")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -203,10 +197,10 @@ export function CreateUserForm({ onCancel, onSuccess, fixedSiteId, fixedSiteName
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <Shield className="h-4 w-4 text-primary" />
-              角色权限
+              {t("roleLabel")}
             </CardTitle>
             <CardDescription className="text-xs">
-              {fixedSiteId ? "设置用户在该站点的访问权限。" : "设置用户在平台级别的访问权限。"}
+              {fixedSiteId ? t("roleDescTo") : t("roleDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -218,11 +212,11 @@ export function CreateUserForm({ onCancel, onSuccess, fixedSiteId, fixedSiteName
                   onClick={() => setRole(UserRole.SITE_ADMIN)}
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <span className="font-semibold text-sm">站点管理员</span>
+                    <span className="font-semibold text-sm">{t("siteAdmin")}</span>
                     {role === UserRole.SITE_ADMIN && <Check className="h-4 w-4 text-primary" />}
                   </div>
                   <p className="text-xs text-slate-500 leading-relaxed">
-                    可以管理被分配站点的所有内容和设置。适合站点负责人。
+                    {t("siteAdminDesc")}
                   </p>
                 </div>
 
@@ -231,13 +225,13 @@ export function CreateUserForm({ onCancel, onSuccess, fixedSiteId, fixedSiteName
                   onClick={() => setRole(UserRole.TENANT_ADMIN)}
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <span className="font-semibold text-sm">组织管理员</span>
+                    <span className="font-semibold text-sm">{t("orgAdmin")}</span>
                     {role === UserRole.TENANT_ADMIN && <Check className="h-4 w-4 text-primary" />}
                   </div>
                   <p className="text-xs text-slate-500 leading-relaxed">
                     {edition === 'community'
-                      ? "拥有全平台管理权限，可管理所有站点、用户 and 全局配置。"
-                      : "管理当前组织下的所有站点、用户和全局配置，不可跨组织。"}
+                      ? t("superAdminDesc")
+                      : t("orgAdminDesc")}
                   </p>
                 </div>
 
@@ -247,11 +241,11 @@ export function CreateUserForm({ onCancel, onSuccess, fixedSiteId, fixedSiteName
                     onClick={() => setRole(UserRole.ADMIN)}
                   >
                     <div className="flex justify-between items-start mb-2">
-                      <span className="font-semibold text-sm">系统管理员</span>
+                      <span className="font-semibold text-sm">{t("sysAdmin")}</span>
                       {role === UserRole.ADMIN && <Check className="h-4 w-4 text-primary" />}
                     </div>
                     <p className="text-xs text-slate-500 leading-relaxed">
-                      拥有全平台最高权限，可管理所有组织、站点和全局配置。
+                      {t("sysAdminDesc")}
                     </p>
                   </div>
                 )}
@@ -262,12 +256,12 @@ export function CreateUserForm({ onCancel, onSuccess, fixedSiteId, fixedSiteName
             {(role !== UserRole.ADMIN && role !== UserRole.TENANT_ADMIN) && !fixedSiteId && (
               <div className="mt-6 pt-6 border-t border-slate-100">
                 <label className="text-sm font-medium text-slate-700 block mb-3">
-                  分配站点 <span className="text-slate-500 font-normal">({selectedSites.length} 已选)</span>
+                  {t("assignSites")} <span className="text-slate-500 font-normal">{t("selectedCount", { count: selectedSites.length })}</span>
                 </label>
 
                 {(!sites || sites.length === 0) ? (
                   <div className="text-sm text-slate-500 bg-slate-50 p-4 rounded-lg text-center">
-                    暂无可用站点，请先创建站点。
+                    {t("noSites")}
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2">
@@ -282,14 +276,14 @@ export function CreateUserForm({ onCancel, onSuccess, fixedSiteId, fixedSiteName
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-sm truncate">{site.name}</div>
-                          <div className="text-xs text-slate-500 truncate">{site.slug || "无标识"}</div>
+                          <div className="text-xs text-slate-500 truncate">{site.slug || (edition === 'community' ? "" : t("noSlug"))}</div>
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
                 <p className="text-xs text-slate-500 mt-2">
-                  选择该用户可以管理的站点。
+                  {t("assignTip")}
                 </p>
               </div>
             )}

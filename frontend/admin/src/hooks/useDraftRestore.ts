@@ -76,10 +76,10 @@ export function useDraftRestore(key: string) {
     const hours = Math.floor(diff / 3600000)
     const days = Math.floor(diff / 86400000)
 
-    if (days > 0) return `${days} 天前`
-    if (hours > 0) return `${hours} 小时前`
-    if (minutes > 0) return `${minutes} 分钟前`
-    return '刚刚'
+    if (days > 0) return `${days}d ago`
+    if (hours > 0) return `${hours}h ago`
+    if (minutes > 0) return `${minutes}m ago`
+    return 'just now'
   }, [draftData])
 
   return {

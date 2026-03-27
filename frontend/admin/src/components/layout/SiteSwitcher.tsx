@@ -14,6 +14,7 @@
 
 "use client"
 import { useState, useMemo } from "react"
+import { useTranslations } from "next-intl"
 import {
   ChevronDown,
   Check,
@@ -41,6 +42,7 @@ import { setLastSiteSlug, getUserInfo } from "@/lib/auth"
 import { useSite } from "@/contexts/SiteContext"
 
 function SiteSwitcherComponent() {
+  const t = useTranslations("SiteSwitcher")
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -94,11 +96,11 @@ function SiteSwitcherComponent() {
 
   // 计算全局页面的标题
   const globalTitle = useMemo(() => {
-    if (pathname.startsWith('/settings')) return "全平台设置"
-    if (pathname.startsWith('/users')) return "用户管理"
-    if (pathname.startsWith('/sites')) return "站点管理"
-    return "全局管理"
-  }, [pathname])
+    if (pathname.startsWith('/settings')) return t("allPlatformSettings")
+    if (pathname.startsWith('/users')) return t("userManagement")
+    if (pathname.startsWith('/sites')) return t("siteManagement")
+    return t("globalManagement")
+  }, [pathname, t])
   // Broadway: Personal Account removed from title list.
 
   // 加载中显示占位符
@@ -117,21 +119,21 @@ function SiteSwitcherComponent() {
             variant="ghost"
             role="combobox"
             aria-expanded={open}
-            aria-label="选择站点"
+            aria-label={t("selectSite")}
             className="flex items-center gap-2 px-3 py-2 h-auto hover:bg-slate-100 transition-colors rounded-xl border border-transparent hover:border-slate-200"
           >
             <div className="w-6 h-6 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center shrink-0" suppressHydrationWarning>
               <LayoutGrid className="h-4 w-4" />
             </div>
             <div className="flex flex-col items-start text-left">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">系统环境</span>
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">{t("systemEnvironment")}</span>
               <span className="text-sm font-bold text-slate-900 leading-none">{globalTitle}</span>
             </div>
             <ChevronDown className="ml-2 h-4 w-4 text-slate-400 shrink-0" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-[240px]">
-          <DropdownMenuLabel>切换到 Wiki 站点</DropdownMenuLabel>
+          <DropdownMenuLabel>{t("switchToSite")}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {sites.map((site) => (
             <DropdownMenuItem
@@ -158,7 +160,7 @@ function SiteSwitcherComponent() {
                     setOpen(false)
                   }}
                   className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-primary transition-all flex-shrink-0"
-                  title="编辑站点"
+                  title={t("editSite")}
                 >
                   <Edit2 className="h-3.5 w-3.5" />
                 </div>
@@ -180,7 +182,7 @@ function SiteSwitcherComponent() {
           variant="ghost"
           role="combobox"
           aria-expanded={open}
-          aria-label="选择站点"
+          aria-label={t("selectSite")}
           className="flex items-center gap-2 px-3 py-2 h-auto hover:bg-slate-100 transition-colors rounded-xl border border-transparent hover:border-slate-200"
         >
           <div className={cn(
@@ -197,17 +199,17 @@ function SiteSwitcherComponent() {
           </div>
           <div className="flex flex-col items-start text-left">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">
-              {activeSite ? "当前站点" : "暂无站点"}
+              {activeSite ? t("currentSite") : t("noSites")}
             </span>
             <span className="text-sm font-bold text-slate-900 leading-none">
-              {activeSite ? activeSite.name : "创建站点"}
+              {activeSite ? activeSite.name : t("createSite")}
             </span>
           </div>
           <ChevronDown className="ml-2 h-4 w-4 text-slate-400 shrink-0" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[240px]">
-        <DropdownMenuLabel>所有 Wiki 站点</DropdownMenuLabel>
+        <DropdownMenuLabel>{t("allSites")}</DropdownMenuLabel>
         <DropdownMenuSeparator />
 
         {sites.length === 0 && (
@@ -221,8 +223,8 @@ function SiteSwitcherComponent() {
               <PlusCircle className="h-4 w-4" />
             </div>
             <div className="flex flex-col flex-1 min-w-0">
-              <span className="text-sm font-semibold">创建新站点</span>
-              <span className="text-xs text-primary/70">开始使用知识库</span>
+              <span className="text-sm font-semibold">{t("createNewSite")}</span>
+              <span className="text-xs text-primary/70">{t("startUsing")}</span>
             </div>
           </DropdownMenuItem>
         )}
@@ -258,7 +260,7 @@ function SiteSwitcherComponent() {
                   "p-1.5 rounded-lg transition-all flex-shrink-0",
                   "hover:bg-slate-200 text-slate-400 hover:text-primary"
                 )}
-                title="编辑站点"
+                title={t("editSite")}
               >
                 <Edit2 className="h-3.5 w-3.5" />
               </div>
@@ -276,7 +278,7 @@ function SiteSwitcherComponent() {
               className="flex items-center gap-2 py-2 cursor-pointer text-slate-500"
             >
               <PlusCircle className="h-4 w-4" />
-              <span className="text-sm">创建新站点</span>
+              <span className="text-sm">{t("createNewSite")}</span>
             </DropdownMenuItem>
           </>
         )}

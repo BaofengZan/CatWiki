@@ -18,6 +18,7 @@ import { useEffect, useState, useRef } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { motion, AnimatePresence } from "framer-motion"
 import { api } from "@/lib/api-client"
 import { logError } from "@/lib/error-handler"
@@ -35,10 +36,12 @@ import { cn } from "@/lib/utils"
 import { PageLoading, Input } from "@/components/ui"
 import { SiteCard } from "@/components/sites"
 import { AIChatLanding } from "@/components/ai"
+import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher"
 import type { ClientSite } from "@/lib/api-client"
 import { env } from "@/lib/env"
 
 export default function HomePage() {
+  const t = useTranslations("HomePage")
   const router = useRouter()
   const [sites, setSites] = useState<ClientSite[]>([])
   const [popularDocs, setPopularDocs] = useState<any[]>([])
@@ -66,16 +69,16 @@ export default function HomePage() {
         if (results[0].status === 'fulfilled') {
           setSites(results[0].value.list || [])
         } else {
-          logError(results[0].reason, "加载站点列表失败")
+          logError(results[0].reason, t("plaza.error_load_sites"))
         }
 
         if (results[1].status === 'fulfilled') {
           setPopularDocs(results[1].value.list || [])
         } else {
-          logError(results[1].reason, "加载热门文档失败")
+          logError(results[1].reason, t("trending.error_load_docs"))
         }
       } catch (error: any) {
-        logError(error, "数据加载逻辑异常")
+        logError(error, t("plaza.error_logic"))
       } finally {
         setLoading(false)
       }
@@ -86,7 +89,7 @@ export default function HomePage() {
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [keyword])
+  }, [keyword, t])
 
   const handleVisit = (site: ClientSite) => {
     if (site.slug) {
@@ -95,7 +98,7 @@ export default function HomePage() {
   }
 
   if (loading && !keyword) {
-    return <PageLoading text="正在发现新知识..." />
+    return <PageLoading text={t("loading")} />
   }
 
   return (
@@ -120,11 +123,13 @@ export default function HomePage() {
             />
           </div>
           <span className="text-lg font-black tracking-tight text-slate-900 group">CatWiki<span className="text-primary tracking-tighter ml-0.5">.</span></span>
+          <div className="w-px h-4 bg-slate-200" />
+          <LanguageSwitcher />
         </div>
 
         <nav className="hidden md:flex items-center gap-6">
-          <Link href="/" className="text-sm font-semibold text-slate-600 hover:text-primary transition-colors">广场</Link>
-          <a href={env.NEXT_PUBLIC_DOCS_URL} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-slate-400 hover:text-slate-600 transition-colors">文档</a>
+          <Link href="/" className="text-sm font-semibold text-slate-600 hover:text-primary transition-colors">{t("nav.plaza")}</Link>
+          <a href={env.NEXT_PUBLIC_DOCS_URL} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-slate-400 hover:text-slate-600 transition-colors">{t("nav.docs")}</a>
           <div className="w-px h-4 bg-slate-200" />
           <a
             href="https://github.com/bulolo/CatWiki"
@@ -132,7 +137,7 @@ export default function HomePage() {
             className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900 pr-2 group"
           >
             <Github className="h-4 w-4 group-hover:scale-110 transition-transform" />
-            <span className="text-sm font-bold">Star</span>
+            <span className="text-sm font-bold">{t("nav.star")}</span>
           </a>
         </nav>
 
@@ -142,7 +147,7 @@ export default function HomePage() {
             className="hidden sm:flex items-center gap-1.5 px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-900/10"
           >
             <LayoutDashboard className="h-4 w-4" />
-            管理中心
+            {t("nav.admin")}
           </button>
         </div>
       </header>
@@ -157,14 +162,14 @@ export default function HomePage() {
             transition={{ duration: 0.6 }}
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-full text-primary font-bold text-xs md:text-sm mb-6">
-              发现 · 连接 · 智慧
+              {t("hero.badge")}
             </div>
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-slate-900 tracking-tight leading-[1.1] mb-6 text-balance">
-              欢迎来到 <br />
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-purple-600 to-indigo-600 text-balance">CatWiki 知识广场</span>
+              {t("hero.welcome")} <br />
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-purple-600 to-indigo-600 text-balance">{t("hero.subtitle")}</span>
             </h1>
             <p className="text-slate-500 text-base md:text-xl max-w-3xl mx-auto leading-relaxed mb-10 text-balance">
-              这里是智慧的交汇点。连接分散的知识节点，发现隐藏的深度洞见，让每一个站点都能通过 AI 焕然一新，让搜索与对话触手可及。
+              {t("hero.description")}
             </p>
 
             {/* 中心化搜索栏 */}
@@ -175,11 +180,11 @@ export default function HomePage() {
                 <Input
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}
-                  placeholder="搜索并探索任何感兴趣的站点或内容..."
+                  placeholder={t("hero.searchPlaceholder")}
                   className="w-full h-16 md:h-20 pl-16 pr-6 bg-white border-white rounded-2xl md:rounded-3xl shadow-2xl shadow-slate-200/50 text-base md:text-lg focus-visible:ring-primary/20 focus-visible:border-primary/30 transition-all font-medium border-2"
                 />
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-2">
-                  <span className="px-2 py-1 bg-slate-50 border border-slate-100 rounded text-[10px] font-bold text-slate-400">Search</span>
+                  <span className="px-2 py-1 bg-slate-50 border border-slate-100 rounded text-[10px] font-bold text-slate-400">{t("nav.search")}</span>
                 </div>
               </div>
             </div>
@@ -191,9 +196,9 @@ export default function HomePage() {
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-2">
               <div className="w-1.5 h-6 bg-primary rounded-full" />
-              <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">发现站点广场</h2>
+              <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">{t("plaza.title")}</h2>
               <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full ml-1">
-                {sites.length} 个开放节点
+                {t("plaza.nodes", { count: sites.length })}
               </span>
             </div>
 
@@ -234,9 +239,9 @@ export default function HomePage() {
                 <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
                   <Search className="h-8 w-8 text-slate-300" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">未找到匹配的站点</h3>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">{t("plaza.empty.title")}</h3>
                 <p className="text-slate-500 max-w-sm text-center px-6">
-                  尝试更换搜索关键字，或在此创建一个属于您自己的知识空间。
+                  {t("plaza.empty.description")}
                 </p>
               </motion.div>
             )}
@@ -246,7 +251,7 @@ export default function HomePage() {
         <section className="mt-20 mb-20">
           <div className="flex items-center gap-2 mb-8">
             <div className="w-1.5 h-6 bg-purple-500 rounded-full" />
-            <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">热门知识内容</h2>
+            <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">{t("trending.title")}</h2>
             <TrendingUp className="h-5 w-5 text-purple-500" />
           </div>
 
@@ -266,7 +271,7 @@ export default function HomePage() {
           </div>
           {popularDocs.length === 0 && !loading && (
             <div className="py-12 bg-white/50 rounded-3xl border border-slate-100 flex flex-center justify-center text-slate-400 text-sm font-medium">
-              暂无热门内容推荐
+              {t("trending.empty")}
             </div>
           )}
         </section>
@@ -296,8 +301,8 @@ export default function HomePage() {
                     <BookOpen className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <h4 className="font-black text-slate-900 tracking-tight">{selectedSite.name} <span className="text-slate-400 font-medium ml-1">AI 助手</span></h4>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{selectedSite.tenant_slug || "DEFAULT"} 知识库</p>
+                    <h4 className="font-black text-slate-900 tracking-tight">{selectedSite.name} <span className="text-slate-400 font-medium ml-1">{t("aiAssistant.title")}</span></h4>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{selectedSite.tenant_slug || "DEFAULT"} {t("aiAssistant.knowledgeBase")}</p>
                   </div>
                 </div>
                 <button
@@ -338,6 +343,7 @@ export default function HomePage() {
  * 热门文档卡片组件
  */
 const DocCard = ({ doc, onClick }: { doc: any; onClick: () => void }) => {
+  const t = useTranslations("HomePage")
   return (
     <motion.div
       whileHover={{ y: -5 }}
@@ -348,11 +354,11 @@ const DocCard = ({ doc, onClick }: { doc: any; onClick: () => void }) => {
 
       <div className="flex items-center gap-2 mb-4 relative z-10">
         <div className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-[10px] font-bold uppercase tracking-wider">
-          {doc.site_name || "默认站点"}
+          {doc.site_name || t("trending.defaultSite")}
         </div>
         <div className="flex items-center gap-1 text-[10px] text-slate-400 font-bold">
           <TrendingUp className="h-3 w-3 text-purple-400" />
-          {doc.views || 0} 浏览
+          {t("trending.views", { count: doc.views || 0 })}
         </div>
       </div>
 
@@ -361,7 +367,7 @@ const DocCard = ({ doc, onClick }: { doc: any; onClick: () => void }) => {
       </h4>
 
       <p className="text-sm text-slate-500 line-clamp-2 mb-5 leading-relaxed">
-        {doc.summary || "聚合全平台开放知识库，实现精准检索与智能对话。"}
+        {doc.summary || t("hero.description")}
       </p>
 
       <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-50">
@@ -370,11 +376,11 @@ const DocCard = ({ doc, onClick }: { doc: any; onClick: () => void }) => {
             {doc.author?.charAt(0) || "C"}
           </div>
           <span className="text-[10px] text-slate-400 font-medium">
-            {doc.author || "系统管理员"} · {new Date(doc.created_at).toLocaleDateString()}
+            {doc.author || t("trending.defaultAuthor")} · {new Date(doc.created_at).toLocaleDateString()}
           </span>
         </div>
         <div className="flex items-center text-primary text-[10px] font-bold gap-1 translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all">
-          阅读全文 <ChevronRight className="h-3 w-3" />
+          {t("trending.readMore")} <ChevronRight className="h-3 w-3" />
         </div>
       </div>
     </motion.div>

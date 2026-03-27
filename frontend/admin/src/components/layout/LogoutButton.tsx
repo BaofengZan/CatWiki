@@ -18,15 +18,17 @@ import { LogOut } from "lucide-react"
 import { logout } from "@/lib/auth"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { useTranslations } from "next-intl"
 
 interface LogoutButtonProps {
   className?: string
 }
 
 export function LogoutButton({ className }: LogoutButtonProps) {
+  const t = useTranslations("Common")
   const handleLogout = () => {
-    if (confirm('确定要退出登录吗？')) {
-      toast.success('已退出登录')
+    if (confirm(t('logoutConfirm'))) {
+      toast.success(t('logoutSuccess'))
       logout()
     }
   }
@@ -42,7 +44,7 @@ export function LogoutButton({ className }: LogoutButtonProps) {
       <div className="p-1.5 rounded-lg bg-slate-200/50 group-hover:bg-red-100 group-hover:text-red-600 transition-colors">
         <LogOut className="h-4 w-4" />
       </div>
-      <span className="text-sm font-semibold">退出登录</span>
+      <span className="text-sm font-semibold">{t("logout")}</span>
     </button>
   )
 }

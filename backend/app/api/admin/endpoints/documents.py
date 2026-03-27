@@ -20,6 +20,7 @@ import logging
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Query, UploadFile, status
 
+from app.core.common.i18n import _
 from app.core.web.deps import get_current_user_with_tenant
 from app.core.web.exceptions import BadRequestException
 from app.models.user import User
@@ -77,7 +78,7 @@ async def list_documents(
             list=enriched_docs,
             pagination=paginator.to_pagination_info(),
         ),
-        msg="获取成功",
+        msg=_("api.success.get"),
     )
 
 
@@ -88,7 +89,7 @@ async def get_document(
     current_user: User = Depends(get_current_user_with_tenant),
 ) -> ApiResponse[Document]:
     document_dict = await service.get_document(document_id)
-    return ApiResponse.ok(data=document_dict, msg="获取成功")
+    return ApiResponse.ok(data=document_dict, msg=_("api.success.get"))
 
 
 @router.post(
@@ -103,7 +104,7 @@ async def create_document(
     current_user: User = Depends(get_current_user_with_tenant),
 ) -> ApiResponse[Document]:
     document_dict = await service.create_document(document_in)
-    return ApiResponse.ok(data=document_dict, msg="创建成功")
+    return ApiResponse.ok(data=document_dict, msg=_("api.success.create"))
 
 
 @router.post(
@@ -136,7 +137,7 @@ async def import_document(
         extract_tables=extract_tables,
         current_username=current_user.name or current_user.email,
     )
-    return ApiResponse.ok(data=task, msg="已加入导入队列")
+    return ApiResponse.ok(data=task, msg=_("doc.import_queued"))
 
 
 @router.put(
@@ -149,7 +150,7 @@ async def update_document(
     current_user: User = Depends(get_current_user_with_tenant),
 ) -> ApiResponse[Document]:
     document_dict = await service.update_document(document_id, document_in)
-    return ApiResponse.ok(data=document_dict, msg="更新成功")
+    return ApiResponse.ok(data=document_dict, msg=_("api.success.update"))
 
 
 @router.delete(
@@ -161,7 +162,7 @@ async def delete_document(
     current_user: User = Depends(get_current_user_with_tenant),
 ) -> ApiResponse[None]:
     await service.delete_document(document_id)
-    return ApiResponse.ok(msg="删除成功")
+    return ApiResponse.ok(msg=_("api.success.delete"))
 
 
 # ============ 向量化相关接口 ============
@@ -180,7 +181,7 @@ async def vectorize_documents(
 ) -> ApiResponse[VectorizeResponse]:
     """批量向量化文档（将文档状态设置为 pending，并启动向量化后台任务）"""
     if not request.document_ids:
-        raise BadRequestException(detail="文档ID列表不能为空")
+        raise BadRequestException(detail=_("doc.id_list_empty"))
 
     success_ids, failed_count = await service.dispatch_vectorization_tasks(
         background_tasks, request.document_ids, current_user.name
@@ -190,7 +191,7 @@ async def vectorize_documents(
         data=VectorizeResponse(
             success_count=len(success_ids), failed_count=failed_count, document_ids=success_ids
         ),
-        msg=f"已将 {len(success_ids)} 个文档加入学习队列",
+        msg=_("doc.batch_learn_queued", count=len(success_ids)),
     )
 
 
@@ -208,7 +209,7 @@ async def vectorize_single_document(
     document_dict = await service.vectorize_single_document(
         background_tasks, document_id, current_user.name
     )
-    return ApiResponse.ok(data=document_dict, msg="已加入学习队列")
+    return ApiResponse.ok(data=document_dict, msg=_("doc.learn_queued"))
 
 
 @router.post(
@@ -222,7 +223,7 @@ async def remove_document_vector(
     current_user: User = Depends(get_current_user_with_tenant),
 ) -> ApiResponse[Document]:
     document_dict = await service.remove_document_vector(document_id)
-    return ApiResponse.ok(data=document_dict, msg="已移除向量数据")
+    return ApiResponse.ok(data=document_dict, msg=_("doc.vector_removed"))
 
 
 @router.get(
@@ -236,7 +237,7 @@ async def get_document_chunks(
     current_user: User = Depends(get_current_user_with_tenant),
 ) -> ApiResponse[list[dict]]:
     chunks = await service.get_document_chunks(document_id)
-    return ApiResponse.ok(data=chunks, msg="获取成功")
+    return ApiResponse.ok(data=chunks, msg=_("api.success.get"))
 
 
 @router.post(
@@ -261,8 +262,12 @@ async def retrieve_vectors(
             rerank_k=request.rerank_k,
         )
 
-        return ApiResponse.ok(data=VectorRetrieveResult(list=results), msg="检索成功")
+        return ApiResponse.ok(
+            data=VectorRetrieveResult(list=results), msg=_("doc.retrieve_success")
+        )
 
     except Exception as e:
         logger.error(f"检索失败: {e}", exc_info=True)
-        return ApiResponse.ok(data=VectorRetrieveResult(list=[]), msg=f"检索失败: {str(e)}")
+        return ApiResponse.ok(
+            data=VectorRetrieveResult(list=[]), msg=_("doc.retrieve_failed", error=str(e))
+        )

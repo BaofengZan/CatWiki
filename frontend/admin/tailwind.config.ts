@@ -68,6 +68,21 @@ const config = {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        card: "var(--radius-card)",
+        button: "var(--radius-button)",
+        input: "var(--radius-input)",
+        dropdown: "var(--radius-dropdown)",
+        modal: "var(--radius-modal)",
+      },
+      boxShadow: {
+        card: "var(--shadow-card)",
+        "card-hover": "var(--shadow-card-hover)",
+        dropdown: "var(--shadow-dropdown)",
+        modal: "var(--shadow-modal)",
+      },
+      transitionDuration: {
+        fast: "var(--transition-fast)",
+        normal: "var(--transition-normal)",
       },
       keyframes: {
         "accordion-down": {

@@ -73,39 +73,22 @@ class ConfigurationService:
         )
         logger.info(log_msg)
 
-    def clear_cache(self, tenant_id: int | None = -1):
+    async def clear_cache(self, tenant_id: int | None = -1):
         """
         清空配置缓存。
         调用此方法后，系统缓存（内存或 Redis）中相关的配置项将被移除。
         """
         cache = get_cache()
-        # 注意：BaseCache.clear 是清空所有，这里我们其实需要根据前缀清理
-        # 但目前可以通过 delete 逐个清理重要的 Section，或者如果是租户更新，直接 clear 也是一种策略。
-        # 这里为了保持精细度，我们可以调用 delete。
         sections = ["chat", "embedding", "rerank", "vl"]
 
-        async def _do_clear():
-            if tenant_id == -1:
-                # 如果是全局清理，目前 BaseCache 只提供了 clear（全库清理）
-                # 考虑到配置的重要性，直接 clear 是最稳妥的
-                await cache.clear()
-                logger.info("🧹 已清空系统全部缓存（含配置）")
-            else:
-                for sec in sections:
-                    key = self._get_cache_key(sec, tenant_id)
-                    await cache.delete(key)
-                logger.info(f"🧹 已清除租户 {tenant_id} 的模型配置缓存")
-
-        # 由于 clear_cache 目前在多处是同步调用（历史遗留），我们起一个 task 或直接执行
-        # 建议业务层逐渐迁移到异步调用清理
-        import asyncio
-
-        try:
-            loop = asyncio.get_running_loop()
-            loop.create_task(_do_clear())
-        except RuntimeError:
-            # 兼容非异步环境（如初始化脚本）
-            asyncio.run(_do_clear())
+        if tenant_id == -1:
+            await cache.clear()
+            logger.info("🧹 已清空系统全部缓存（含配置）")
+        else:
+            for sec in sections:
+                key = self._get_cache_key(sec, tenant_id)
+                await cache.delete(key)
+            logger.info(f"🧹 已清除租户 {tenant_id} 的模型配置缓存")
 
     async def _resolve_config(
         self, section: str, tenant_id: int | None = None, force: bool = False

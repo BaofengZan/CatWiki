@@ -19,6 +19,7 @@ import { useState, useEffect, Suspense } from "react"
 import { ChatWidget } from "@/components/ai"
 
 import { api } from "@/lib/api-client"
+import { useTranslations } from "next-intl"
 import type { ClientSite } from "@/lib/api-client"
 
 interface WebWidgetConfig {
@@ -31,6 +32,7 @@ interface WebWidgetConfig {
 
 function WidgetContent() {
   const searchParams = useSearchParams()
+  const t = useTranslations("ChatWidget")
   const [isOpen, setIsOpen] = useState(false)
   const [siteConfig, setSiteConfig] = useState<WebWidgetConfig | null>(null)
   const [isReady, setIsReady] = useState(false)
@@ -67,7 +69,7 @@ function WidgetContent() {
 
   // 合并配置：Query 参数优先级高于数据库配置
   // 注意：如果 query 参数存在但为空字符串，应该被视为没有提供，从而使用数据库配置
-  const title = queryTitle || siteConfig?.title || "AI 客服助手"
+  const title = queryTitle || siteConfig?.title || t("defaultWidgetTitle")
   const position = ((queryPosition || siteConfig?.position) as "left" | "right") || "right"
   const color = queryColor || siteConfig?.primary_color || "#3b82f6"
   const welcomeMessage = queryWelcomeMessage || siteConfig?.welcome_message || ""

@@ -16,6 +16,7 @@
 
 import { useEffect, useState, useRef } from "react"
 import { useRouter, useParams } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { api } from "@/lib/api-client"
 import { logError } from "@/lib/error-handler"
 import { cn } from "@/lib/utils"
@@ -23,10 +24,12 @@ import { PageLoading, NotFoundState, Input } from "@/components/ui"
 import { AIChatLanding } from "@/components/ai"
 import type { ClientSite } from "@/lib/api-client"
 import { Search, BookOpen, ChevronDown, ExternalLink, Github, Star } from "lucide-react"
+import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher"
 
 import { env } from "@/lib/env"
 
 export default function TenantPortalPage() {
+  const t = useTranslations("TenantPortal")
   const router = useRouter()
   const { tenantSlug } = useParams()
   const [sites, setSites] = useState<ClientSite[]>([])
@@ -52,10 +55,10 @@ export default function TenantPortalPage() {
 
         // 如果没有站点且不是加载中，也视为租户配置问题或不存在
         if (!keyword && (!response.list || response.list.length === 0)) {
-          setError({ status: 404, message: "暂时无该租户" })
+          setError({ status: 404, message: t("notFound.title") })
         }
       } catch (err: any) {
-        logError("加载站点", err)
+        logError(t("loading"), err)
         setError(err)
       } finally {
         setLoading(false)
@@ -67,7 +70,7 @@ export default function TenantPortalPage() {
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [tenantSlug, keyword])
+  }, [tenantSlug, keyword, t])
 
   // 点击外部关闭选择器
   useEffect(() => {
@@ -87,15 +90,15 @@ export default function TenantPortalPage() {
   }, [isSiteSelectorOpen])
 
   if (loading) {
-    return <PageLoading text="正在加载..." />
+    return <PageLoading text={t("loading")} />
   }
 
   if (error) {
     return (
       <div className="h-screen flex items-center justify-center bg-white">
         <NotFoundState
-          title="暂时无该租户"
-          description={`抱歉，标识为 "${tenantSlug}" 的租户不存在或未配置任何公开站点。`}
+          title={t("notFound.title")}
+          description={t("notFound.description", { tenantSlug: tenantSlug as string })}
           showHome={true}
         />
       </div>
@@ -118,7 +121,7 @@ export default function TenantPortalPage() {
           </div>
           <div>
             <h1 className="text-base md:text-lg font-bold text-slate-900">CatWiki</h1>
-            <p className="text-xs text-slate-500 hidden md:block">企业级AI知识库平台</p>
+            <p className="text-xs text-slate-500 hidden md:block">{t("subtitle")}</p>
           </div>
         </div>
 
@@ -133,7 +136,7 @@ export default function TenantPortalPage() {
             >
               <Github className="h-4 w-4 text-amber-600" />
               <div className="flex items-center gap-1">
-                <span className="hidden sm:inline">Star</span>
+                <span className="hidden sm:inline">{t("nav.star")}</span>
                 <Star className="h-3.5 w-3.5 text-amber-500 group-hover:scale-110 transition-transform" />
               </div>
             </a>
@@ -144,8 +147,10 @@ export default function TenantPortalPage() {
               className="flex items-center gap-1.5 px-3 py-1.5 text-slate-600 hover:text-primary hover:bg-slate-50 rounded-lg transition-all text-xs md:text-sm font-medium"
             >
               <BookOpen className="h-4 w-4" />
-              <span className="hidden sm:inline">文档</span>
+              <span className="hidden sm:inline">{t("nav.docs")}</span>
             </a>
+            <div className="w-px h-4 bg-slate-200" />
+            <LanguageSwitcher />
           </div>
 
           {/* 站点选择器 */}
@@ -162,13 +167,13 @@ export default function TenantPortalPage() {
               >
                 <div className="text-left flex-1 min-w-0 overflow-hidden">
                   <div className="text-xs md:text-sm font-semibold text-slate-900 truncate flex items-center gap-1.5">
-                    {selectedSite ? selectedSite.name : "全部站点"}
+                    {selectedSite ? selectedSite.name : t("selector.allSites")}
                     <span className="px-1 py-0.5 bg-slate-200 text-slate-500 rounded text-[9px] font-mono leading-none">
                       {tenantSlug}
                     </span>
                   </div>
                   <div className="text-[10px] md:text-xs text-slate-500 hidden md:block truncate">
-                    {selectedSite ? (selectedSite.description || "限定此站点") : "跨站点提问"}
+                    {selectedSite ? (selectedSite.description || t("selector.limitSite")) : t("selector.crossSite")}
                   </div>
                 </div>
                 <ChevronDown className={cn(
@@ -187,7 +192,7 @@ export default function TenantPortalPage() {
                         autoFocus
                         value={keyword}
                         onChange={(e) => setKeyword(e.target.value)}
-                        placeholder={`搜索 ${tenantSlug} 的站点...`}
+                        placeholder={t("selector.placeholder", { tenantSlug: tenantSlug as string })}
                         className="pl-10 h-9 bg-white border-slate-200 rounded-lg text-sm focus-visible:ring-primary/20 focus:border-primary/30"
                       />
                     </div>
@@ -208,14 +213,14 @@ export default function TenantPortalPage() {
                     >
                       <div className="flex items-start justify-between mb-1">
                         <div className="text-sm md:text-base font-semibold text-slate-900">
-                          全部站点
+                          {t("selector.allSites")}
                         </div>
                         {!selectedSite && (
                           <div className="w-2 h-2 bg-primary rounded-full mt-1.5 shrink-0" />
                         )}
                       </div>
                       <div className="text-xs md:text-sm text-slate-500">
-                        跨站点提问，不限定范围
+                        {t("selector.crossSiteLong")}
                       </div>
                     </button>
 
@@ -256,7 +261,7 @@ export default function TenantPortalPage() {
                           )}
                           <div className="flex items-center gap-2 mt-2">
                             <span className="text-xs text-primary group-hover:underline flex items-center gap-1">
-                              限定此站点
+                              {t("selector.limitSite")}
                             </span>
                           </div>
                         </button>
@@ -266,8 +271,8 @@ export default function TenantPortalPage() {
                         <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
                           <Search className="h-5 w-5 text-slate-400" />
                         </div>
-                        <p className="text-sm text-slate-500 font-medium">未找到匹配的站点</p>
-                        <p className="text-[10px] text-slate-400 mt-1">请尝试更换搜索关键字</p>
+                        <p className="text-sm text-slate-500 font-medium">{t("selector.empty")}</p>
+                        <p className="text-[10px] text-slate-400 mt-1">{t("selector.emptySub")}</p>
                       </div>
                     )}
                   </div>

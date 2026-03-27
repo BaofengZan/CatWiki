@@ -17,6 +17,7 @@
 import { useState, useCallback, useRef } from "react"
 import { env } from "@/lib/env"
 import { api } from "@/lib/api-client"
+import { useTranslations } from "next-intl"
 import type { Message } from "@/types"
 import { getVisitorId } from "@/lib/visitor"
 
@@ -64,6 +65,7 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
     selectedTenantId = null,
   } = options
 
+  const t = useTranslations("Errors")
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [isLoading, setIsLoading] = useState(false)
   const [threadId, setThreadId] = useState<string>(generateThreadId)
@@ -311,7 +313,7 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
         console.log("Chat aborted")
       } else {
         console.warn("Chat error:", error)
-        const errorMessage = error instanceof Error ? error.message : "未知错误"
+        const errorMessage = error instanceof Error ? error.message : t("unknownError")
         setMessages(prev =>
           prev.map(msg =>
             msg.id === assistantMsgId
@@ -325,7 +327,7 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
       abortControllerRef.current = null
       onMessageSent?.()
     }
-  }, [threadId, isLoading, selectedSiteId, selectedTenantId, onMessageSent])
+  }, [threadId, isLoading, selectedSiteId, selectedTenantId, onMessageSent, t])
 
   const resetMessages = useCallback(() => {
     if (abortControllerRef.current) {

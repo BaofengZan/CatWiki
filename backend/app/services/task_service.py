@@ -65,13 +65,15 @@ class TaskService:
         # 2. 注册提交后回调，确保 Worker 启动时能查到数据
         from app.db.transaction import on_commit
 
-        on_commit(db, cls._perform_enqueue, db, task.id, task_type)
+        on_commit(db, cls._perform_enqueue, task.id, task_type)
 
         return task
 
     @classmethod
-    async def _perform_enqueue(cls, db: AsyncSession, task_id: int, task_type: TaskType):
-        """实际执行 Arq 队列推入（在主事务提交后运行）"""
+    async def _perform_enqueue(cls, task_id: int, task_type: TaskType):
+        """实际执行 Arq 队列推入（在主事务提交后运行，使用独立 session）"""
+        from app.db.database import AsyncSessionLocal
+
         logger.info(f"📤 开始异步推入 arq 队列: {task_type} | TaskID: {task_id}")
         try:
             func_name = f"process_{task_type.value}"
@@ -81,15 +83,15 @@ class TaskService:
             job = await pool.enqueue_job(func_name, task_id)
             logger.info(f"📝 arq 任务推送成功 | JobID: {job.job_id}")
 
-            # 开启新事务更新 Job ID
-            await cls._update_job_id(db, task_id, job.job_id)
+            async with AsyncSessionLocal() as db:
+                await cls._update_job_id(db, task_id, job.job_id)
 
             logger.info(f"✅ 任务已推入队列: {task_type} | ID: {task_id} | JobID: {job.job_id}")
         except Exception as e:
             logger.error(f"❌ 异步推入队列记录 {task_id} 失败: {e}", exc_info=True)
-            # 推送失败时，反向更新任务状态为 FAILED，避免一直卡在 PENDING
             try:
-                await cls.fail(db, task_id, f"分发队列失败: {str(e)}")
+                async with AsyncSessionLocal() as db:
+                    await cls.fail(db, task_id, f"分发队列失败: {str(e)}")
             except Exception as fe:
                 logger.error(f"⚠️ 更新任务失败状态也遭遇异常 (Task={task_id}): {fe}")
 

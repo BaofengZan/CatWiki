@@ -138,8 +138,8 @@ export const initialConfigs: AIConfigs = {
   bot_config: {
     web_widget: {
       enabled: false,
-      title: "AI 客服助手",
-      welcome_message: "您好！我是 AI 助手，有什么可以帮您？",
+      title: "AI Assistant",
+      welcome_message: "",
       primary_color: "#3b82f6",
       position: "right"
     },
@@ -198,9 +198,9 @@ export const BAILIAN_BASE = {
 // ============ 文档处理服务配置 ============
 
 export const DOC_PROCESSOR_TYPES: { value: DocProcessorType; label: string; description: string; endpoint: string; docUrl?: string; icon: string; color: string; disabled?: boolean }[] = [
-  { value: DocProcessorType.MINER_U, label: "MinerU", description: "高质量文档解析工具", endpoint: "/file_parse", docUrl: "https://opendatalab.github.io/MinerU/zh/quick_start/docker_deployment/#docker-compose", icon: "/icons/mineru.svg", color: "text-amber-600 bg-amber-50" },
-  { value: DocProcessorType.DOCLING, label: "Docling", description: "IBM 开源文档处理引擎 (支持 X-Api-Key 鉴权)", endpoint: "/v1/convert/file", docUrl: "https://github.com/docling-project/docling-serve", icon: "/icons/docling.svg", color: "text-indigo-600 bg-indigo-50" },
-  { value: DocProcessorType.PADDLE_OCR, label: "PaddleOCR", description: "百度飞桨 PaddleOCR-VL 布局解析引擎", endpoint: "/layout-parsing", docUrl: "https://github.com/PaddlePaddle/PaddleOCR", icon: "/icons/paddleocr.svg", color: "text-blue-600 bg-blue-50" },
+  { value: DocProcessorType.MINER_U, label: "MinerU", description: "High-quality document parser", endpoint: "/file_parse", docUrl: "https://opendatalab.github.io/MinerU/zh/quick_start/docker_deployment/#docker-compose", icon: "/icons/mineru.svg", color: "text-amber-600 bg-amber-50" },
+  { value: DocProcessorType.DOCLING, label: "Docling", description: "IBM open-source document processing engine (X-Api-Key auth)", endpoint: "/v1/convert/file", docUrl: "https://github.com/docling-project/docling-serve", icon: "/icons/docling.svg", color: "text-indigo-600 bg-indigo-50" },
+  { value: DocProcessorType.PADDLE_OCR, label: "PaddleOCR", description: "PaddleOCR-VL layout parsing engine", endpoint: "/layout-parsing", docUrl: "https://github.com/PaddlePaddle/PaddleOCR", icon: "/icons/paddleocr.svg", color: "text-blue-600 bg-blue-50" },
 ]
 
 export const initialDocProcessorConfig: DocProcessorConfig = {

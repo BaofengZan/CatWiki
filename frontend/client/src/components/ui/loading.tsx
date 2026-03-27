@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import { cn } from "@/lib/utils"
+import { Loader2 } from "lucide-react"
 
 interface LoadingSpinnerProps {
   /** 大小 */
@@ -42,9 +43,9 @@ export function LoadingSpinner({
 }: LoadingSpinnerProps) {
   const content = (
     <div className={cn("text-center", className)}>
-      <div 
+      <Loader2 
         className={cn(
-          "animate-spin rounded-full border-b-2 border-primary mx-auto mb-4",
+          "animate-spin text-primary mx-auto mb-4",
           sizeClasses[size]
         )} 
       />
@@ -68,7 +69,7 @@ export function LoadingSpinner({
 /**
  * 页面加载组件（全屏）
  */
-export function PageLoading({ text = "正在加载..." }: { text?: string }) {
+export function PageLoading({ text }: { text?: string }) {
   return <LoadingSpinner size="md" text={text} fullScreen />
 }
 

@@ -24,6 +24,7 @@ import { MessageSources } from "./MessageSources"
 import { ToolCallCard } from "./ToolCallCard"
 import { ChatHistorySidebar } from "./ChatHistorySidebar"
 import { ClientSite, QuickQuestion } from "@/lib/api-client"
+import { useTranslations } from "next-intl"
 
 
 interface AIChatLandingProps {
@@ -35,6 +36,7 @@ interface AIChatLandingProps {
 }
 
 export function AIChatLanding({ siteName = "CatWiki", siteId, tenantId, quickQuestions: propQuickQuestions, allSites }: AIChatLandingProps) {
+  const t = useTranslations("AIChatLanding")
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [input, setInput] = useState("")
@@ -104,22 +106,22 @@ export function AIChatLanding({ siteName = "CatWiki", siteId, tenantId, quickQue
             <Button
               variant="outline"
               size="sm"
-              className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm rounded-xl px-3 transition-all"
+               className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm rounded-xl px-3 transition-all"
               onClick={() => setIsHistoryOpen(true)}
             >
               <HistoryIcon className="h-4 w-4 mr-2" />
-              历史会话
+              {t("history")}
             </Button>
           )}
           {messages.length > 0 && !isHistoryOpen && (
             <Button
               variant="outline"
               size="sm"
-              className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm rounded-xl px-3"
+               className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm rounded-xl px-3"
               onClick={() => resetMessages()}
             >
               <Plus className="h-4 w-4 mr-2" />
-              新对话
+              {t("newChat")}
             </Button>
           )}
         </div>
@@ -127,12 +129,12 @@ export function AIChatLanding({ siteName = "CatWiki", siteId, tenantId, quickQue
         <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full px-4 md:px-6 pt-16 md:pt-20 lg:pt-24 relative z-10 overflow-hidden">
           {messages.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center -mt-10 md:-mt-16 lg:-mt-20">
-              <div className="w-16 h-16 md:w-20 md:h-20 bg-primary rounded-2xl md:rounded-[2.5rem] flex items-center justify-center shadow-2xl shadow-primary/30 mb-6 md:mb-8 animate-in zoom-in duration-500">
+               <div className="w-16 h-16 md:w-20 md:h-20 bg-primary rounded-2xl md:rounded-[2.5rem] flex items-center justify-center shadow-2xl shadow-primary/30 mb-6 md:mb-8 animate-in zoom-in duration-500">
                 <Bot className="h-8 w-8 md:h-10 md:w-10 text-white" />
               </div>
-              <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-slate-900 mb-3 md:mb-4 tracking-tight text-center px-4">您好，我是 {siteName} AI</h1>
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-slate-900 mb-3 md:mb-4 tracking-tight text-center px-4">{t("welcome", { siteName })}</h1>
               <p className="text-slate-500 text-sm md:text-base lg:text-lg mb-8 md:mb-10 lg:mb-12 text-center max-w-md px-4">
-                您可以问我任何关于知识库内容的问题，或者让我帮您在文档中检索相关信息。
+                {t("description")}
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 w-full">
@@ -222,18 +224,18 @@ export function AIChatLanding({ siteName = "CatWiki", siteId, tenantId, quickQue
               onSubmit={(e) => { e.preventDefault(); handleSend(input); }}
               className="max-w-3xl mx-auto w-full glass-card p-1.5 md:p-2 rounded-2xl md:rounded-3xl lg:rounded-[2rem] border-slate-200/50 shadow-2xl pointer-events-auto flex items-center gap-2"
             >
-              <input
+               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="问问 AI 助手..."
+                placeholder={t("inputPlaceholder")}
                 className="flex-1 bg-transparent border-none outline-none px-4 md:px-6 py-2 md:py-3 text-sm md:text-base lg:text-lg placeholder:text-slate-400 font-sans"
                 disabled={isLoading}
-                aria-label="输入您的问题"
+                aria-label={t("inputAria")}
               />
               <button
                 disabled={!input.trim() || isLoading}
                 className="w-10 h-10 md:w-12 md:h-12 bg-primary text-white rounded-full flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 disabled:opacity-50 transition-all shrink-0"
-                aria-label="发送消息"
+                aria-label={t("sendAria")}
               >
                 <ArrowRight className="h-5 w-5 md:h-6 md:w-6" />
               </button>

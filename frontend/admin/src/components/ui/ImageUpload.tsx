@@ -15,6 +15,8 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { logger } from "@/lib/logger"
+import { useTranslations } from 'next-intl'
 import { ImageIcon, Loader2, Camera, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
@@ -38,9 +40,10 @@ export function ImageUpload({
   disabled,
   className,
   aspect = "aspect-[16/10]",
-  text = "点击上传封面图",
+  text,
   compact = false
 }: ImageUploadProps) {
+  const t = useTranslations('ImageUpload')
   const [isUploading, setIsUploading] = useState(false)
   const [isCompressing, setIsCompressing] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(value || null)
@@ -78,11 +81,11 @@ export function ImageUpload({
       const compressionRatio = ((1 - compressedSize / originalSize) * 100).toFixed(1)
       const savedSize = ((originalSize - compressedSize) / 1024 / 1024).toFixed(2)
 
-      const info = `压缩 ${compressionRatio}%，节省 ${savedSize} MB`
+      const info = t("compressInfo", { ratio: compressionRatio, saved: savedSize })
       setCompressionInfo(info)
 
       if (process.env.NODE_ENV === 'development') {
-        console.log('📦 图片压缩完成:', {
+        logger.debug('图片压缩完成:', {
           原始大小: `${(originalSize / 1024 / 1024).toFixed(2)} MB`,
           压缩后: `${(compressedSize / 1024 / 1024).toFixed(2)} MB`,
           压缩率: `${compressionRatio}%`
@@ -101,14 +104,14 @@ export function ImageUpload({
 
     // 验证文件类型
     if (!file.type.startsWith('image/')) {
-      toast.error('请选择图片文件')
+      toast.error(t("invalidType"))
       return
     }
 
     // 验证文件大小（最大 10MB，因为会自动压缩）
     const maxSize = 10 * 1024 * 1024
     if (file.size > maxSize) {
-      toast.error('图片大小不能超过 10MB')
+      toast.error(t("tooLarge"))
       return
     }
 
@@ -122,9 +125,9 @@ export function ImageUpload({
       // 压缩图片（如果图片大于 1MB）
       let fileToUpload = file
       if (file.size > 1024 * 1024) {
-        toast.info('正在智能压缩图片...')
+        toast.info(t("compressing"))
         fileToUpload = await compressImage(file)
-        toast.success(`压缩完成！${compressionInfo}`)
+        toast.success(t("compressSuccess", { info: compressionInfo }))
       }
 
       setIsUploading(true)
@@ -136,10 +139,10 @@ export function ImageUpload({
       })
       const uploadedUrl = uploadedData.url || uploadedData.object_name
       if (!uploadedUrl) {
-        throw new Error('上传响应缺少文件 URL')
+        throw new Error(t("uploadMissingUrl"))
       }
       onChange(uploadedUrl)
-      toast.success('图片上传成功')
+      toast.success(t("uploadSuccess"))
 
       // 释放本地预览 URL
       if (localPreview) {
@@ -150,9 +153,9 @@ export function ImageUpload({
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         const errorMessage = error instanceof Error ? error.message : String(error)
-        console.warn('图片上传失败:', errorMessage)
+        logger.warn('图片上传失败:', errorMessage)
       }
-      toast.error(error instanceof Error ? error.message : '图片上传失败')
+      toast.error(error instanceof Error ? error.message : t("uploadFailed"))
       setPreviewUrl(value || null)
 
       // 清理预览 URL
@@ -174,7 +177,7 @@ export function ImageUpload({
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
-    toast.success('图片已移除')
+    toast.success(t("removed"))
   }
 
   const handleClick = () => {
@@ -207,7 +210,7 @@ export function ImageUpload({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={previewUrl}
-              alt="封面预览"
+              alt={t("preview")}
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
             />
           </div>
@@ -231,7 +234,7 @@ export function ImageUpload({
                   onClick={handleClick}
                   disabled={disabled || isProcessing}
                   className="w-10 h-10 rounded-full bg-white/95 text-slate-700 shadow-xl flex items-center justify-center hover:bg-white hover:text-primary transition-colors disabled:opacity-50"
-                  title="更换图片"
+                  title={t("changeImage")}
                 >
                   {isProcessing ? (
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
@@ -248,7 +251,7 @@ export function ImageUpload({
                   onClick={handleRemove}
                   disabled={disabled || isProcessing}
                   className="w-10 h-10 rounded-full bg-red-500 text-white shadow-xl flex items-center justify-center hover:bg-red-600 transition-colors disabled:opacity-50"
-                  title="移除图片"
+                  title={t("removeImage")}
                 >
                   <Trash2 className="h-4 w-4" />
                 </motion.button>
@@ -261,7 +264,7 @@ export function ImageUpload({
                   whileHover={{ y: 0, opacity: 1 }}
                   className="absolute bottom-4 text-white/90 text-[10px] font-bold tracking-widest uppercase"
                 >
-                  编辑图像
+                  {t("editImage")}
                 </motion.div>
               )}
             </motion.div>
@@ -286,11 +289,11 @@ export function ImageUpload({
                 <Loader2 className={cn("text-primary animate-spin", compact ? "h-4 w-4" : "h-6 w-6")} />
               </div>
               <span className="text-[10px] font-semibold text-slate-500">
-                {isCompressing ? '压缩中...' : '上传中...'}
+                {isCompressing ? t("compressingState") : t("uploadingState")}
               </span>
               {isCompressing && (
                 <span className="text-[10px] text-slate-400">
-                  优化图片质量，请稍候
+                  {t("compressHint")}
                 </span>
               )}
             </>
@@ -304,15 +307,15 @@ export function ImageUpload({
                   "font-semibold text-slate-400 group-hover:text-primary transition-colors block px-2",
                   compact ? "text-[10px]" : "text-[11px]"
                 )}>
-                  {text}
+                  {text ?? t("defaultText")}
                 </span>
                 {!compact && (
                   <>
                     <span className="text-[10px] text-slate-400 mt-1 block">
-                      支持 JPG、PNG、WebP，最大 10MB
+                      {t("formatHint")}
                     </span>
                     <span className="text-[9px] text-slate-300 mt-0.5 block">
-                      📦 自动智能压缩，节省存储空间
+                      {t("autoCompress")}
                     </span>
                   </>
                 )}

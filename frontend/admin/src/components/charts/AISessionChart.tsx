@@ -15,6 +15,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from "@/lib/utils";
 
 interface ChartData {
@@ -41,6 +42,7 @@ interface AISessionChartProps {
 }
 
 export default function AISessionChart({ data, color = "#3b82f6", className }: AISessionChartProps) {
+  const t = useTranslations('AIChart');
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -138,7 +140,7 @@ export default function AISessionChart({ data, color = "#3b82f6", className }: A
   if (!data || data.length === 0) {
     return (
       <div className={cn("w-full h-full flex items-center justify-center text-slate-300 italic text-sm", className)}>
-        暂无趋势采样数据
+        {t("noData")}
       </div>
     );
   }
@@ -147,7 +149,7 @@ export default function AISessionChart({ data, color = "#3b82f6", className }: A
   const gridLevels = [
     { lvl: 0, label: "0" },
     { lvl: 0.5, label: "50%" },
-    { lvl: 1, label: "最大值" }
+    { lvl: 1, label: t("maxValue") }
   ];
 
   return (
@@ -265,7 +267,7 @@ export default function AISessionChart({ data, color = "#3b82f6", className }: A
                 opacity: 0.8
               }}
             >
-              {g.label === "最大值" ? `最大值: ${maxVal}` : g.label}
+              {g.label === t("maxValue") ? `${t("maxValue")}: ${maxVal}` : g.label}
             </div>
           );
         })}
@@ -351,11 +353,11 @@ export default function AISessionChart({ data, color = "#3b82f6", className }: A
                   <span className="text-[10px] text-blue-600/80 font-black tracking-[0.1em] uppercase mb-0.5">{p.date}</span>
                   <div className="flex items-baseline gap-2">
                     <span className="font-black text-3xl bg-gradient-to-br from-slate-900 to-slate-600 bg-clip-text text-transparent leading-none">{p.value}</span>
-                    <span className="text-[11px] text-slate-500 font-bold">会话</span>
+                    <span className="text-[11px] text-slate-500 font-bold">{t("sessions")}</span>
                   </div>
                   {p.subValue !== undefined && (
                     <div className="flex items-center gap-3 mt-1.5 pt-2 border-t border-slate-100 w-full justify-between">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">消息互动</span>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{t("messageInteractions")}</span>
                       <span className="text-sm font-black text-blue-600">{p.subValue}</span>
                     </div>
                   )}

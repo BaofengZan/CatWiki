@@ -17,6 +17,7 @@
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useTranslations } from "next-intl"
 import {
   Select,
   SelectContent,
@@ -48,6 +49,7 @@ export function Pagination({
   pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
   className
 }: PaginationProps) {
+  const t = useTranslations("Common")
   const startItem = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1
   const endItem = Math.min(currentPage * pageSize, totalItems)
 
@@ -104,13 +106,13 @@ export function Pagination({
   return (
     <div className={cn("flex items-center justify-between gap-4 flex-wrap", className)}>
       <div className="flex items-center gap-3 text-sm text-slate-500">
-        <span>显示 {startItem} - {endItem} 条，共 {totalItems} 条</span>
+        <span>{t("pagination.showing", { start: startItem, end: endItem, total: totalItems })}</span>
         
         {/* 每页条数选择器 */}
         {onPageSizeChange && (
           <div className="flex items-center gap-2">
             <span className="text-slate-400">|</span>
-            <span>每页</span>
+            <span>{t("pagination.perPage")}</span>
             <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
               <SelectTrigger className="h-8 w-[90px] text-sm">
                 <SelectValue />
@@ -118,7 +120,7 @@ export function Pagination({
               <SelectContent>
                 {pageSizeOptions.map((size) => (
                   <SelectItem key={size} value={size.toString()}>
-                    {size} 条
+                    {t("pagination.items", { count: size })}
                   </SelectItem>
                 ))}
               </SelectContent>

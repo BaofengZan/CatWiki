@@ -43,7 +43,7 @@ export interface ApiResponse<T = unknown> {
 /**
  * 通用响应处理器：自动校验 code === 0 并返回 data
  */
-async function wrapResponse<T>(promise: Promise<unknown>, defaultMsg = '操作失败'): Promise<T> {
+async function wrapResponse<T>(promise: Promise<unknown>, defaultMsg = 'Operation failed'): Promise<T> {
   try {
     const response = await promise as {
       code?: number

@@ -20,6 +20,7 @@ import { BookOpen, Clock, MoreHorizontal, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Streamdown } from "streamdown"
 import type { DocumentDetail as DocumentDetailType } from "@/types"
+import { useTranslations } from "next-intl"
 
 interface DocumentDetailProps {
   document: DocumentDetailType | null | undefined
@@ -86,6 +87,7 @@ function DocumentSkeleton() {
 }
 
 export function DocumentDetail({ document, isLoading }: DocumentDetailProps) {
+  const t = useTranslations("DocumentDetail")
   const scrollRef = useRef<HTMLDivElement>(null)
   const prevDocIdRef = useRef<string | null>(null)
 
@@ -120,9 +122,9 @@ export function DocumentDetail({ document, isLoading }: DocumentDetailProps) {
           <div className="w-16 h-16 md:w-20 md:h-20 bg-white rounded-2xl md:rounded-3xl flex items-center justify-center mx-auto mb-5 md:mb-6 shadow-sm border border-slate-100">
             <BookOpen className="h-8 w-8 md:h-10 md:w-10 text-slate-300" />
           </div>
-          <h3 className="text-[17px] md:text-xl font-bold text-slate-900 mb-2.5 md:mb-2">准备好探索了吗？</h3>
+          <h3 className="text-[17px] md:text-xl font-bold text-slate-900 mb-2.5 md:mb-2">{t("emptyTitle")}</h3>
           <p className="text-slate-500 text-[14px] md:text-sm leading-[1.6] md:leading-relaxed px-2">
-            从<span className="lg:hidden">菜单</span><span className="hidden lg:inline">左侧目录</span>选择一篇文章开始阅读，或者直接在搜索框使用 AI 检索您感兴趣的内容。
+            {t("emptyDescription")}
           </p>
         </div>
       </div>
@@ -134,12 +136,12 @@ export function DocumentDetail({ document, isLoading }: DocumentDetailProps) {
       {/* 次级导航/面包屑 */}
       <div className="px-4 md:px-8 py-2.5 md:py-3 flex items-center justify-between shrink-0 bg-white md:bg-slate-50/50 border-b border-slate-100">
         <div className="flex items-center gap-2 md:gap-3 text-[11px] md:text-[12px] font-medium text-slate-400 min-w-0 flex-1">
-          <span className="hover:text-primary cursor-pointer transition-colors hidden md:inline">文档列表</span>
+          <span className="hover:text-primary cursor-pointer transition-colors hidden md:inline">{t("docList")}</span>
           <span className="text-slate-300 hidden md:inline">/</span>
           <span className="text-slate-600 font-semibold truncate text-[12px] md:text-[12px]">{document.title}</span>
         </div>
         <div className="flex items-center gap-1 md:gap-2 shrink-0 ml-2">
-          <Button variant="ghost" size="icon" className="h-7 w-7 md:h-7 md:w-7 text-slate-500 rounded-lg">
+          <Button variant="ghost" size="icon-xs" className="text-slate-500">
             <MoreHorizontal className="h-3.5 w-3.5 md:h-3.5 md:w-3.5" />
           </Button>
         </div>
@@ -151,22 +153,23 @@ export function DocumentDetail({ document, isLoading }: DocumentDetailProps) {
           <div className="flex flex-wrap items-center gap-1.5 md:gap-3 text-slate-400 text-[10px] md:text-[12px] mb-5 md:mb-6">
             <div className="flex items-center gap-1 md:gap-1.5 px-2 py-1 md:px-2 md:py-0.5 bg-slate-100 rounded text-slate-500">
               <Clock className="h-3 w-3 md:h-3.5 md:w-3.5" />
-              <span className="hidden sm:inline">更新于 2023年12月</span>
-              <span className="sm:hidden">12月更新</span>
+              <span>{t("updatedAt", { date: "12/2023" })}</span>
             </div>
             {document.views !== undefined && (
               <>
                 <span className="hidden sm:inline">•</span>
                 <div className="flex items-center gap-1 md:gap-1.5 px-2 py-1 md:px-2 md:py-0.5 bg-slate-100 rounded text-slate-500">
                   <Eye className="h-3 w-3 md:h-3.5 md:w-3.5" />
-                  <span>{document.views.toLocaleString()}<span className="hidden sm:inline"> 次阅读</span></span>
+                  <span>{t("readCount", { count: document.views.toLocaleString() })}</span>
                 </div>
               </>
             )}
             {document.readingTime !== undefined && document.readingTime !== null && (
               <>
                 <span className="hidden sm:inline">•</span>
-                <span className="hidden sm:inline">预计阅读 {document.readingTime > 0 ? `${document.readingTime} 分钟` : '不到 1 分钟'}</span>
+                <span className="hidden sm:inline">
+                  {document.readingTime > 0 ? t("readingTime", { time: document.readingTime }) : t("readingTimeLess")}
+                </span>
               </>
             )}
           </div>
@@ -198,7 +201,7 @@ export function DocumentDetail({ document, isLoading }: DocumentDetailProps) {
 
               <div className="flex items-center gap-2.5 mb-4">
                 <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                <span className="text-[13px] font-bold text-amber-900/40 tracking-widest uppercase">内容提要</span>
+                <span className="text-[13px] font-bold text-amber-900/40 tracking-widest uppercase">{t("summary")}</span>
               </div>
 
               <p className="text-[16px] md:text-[18px] text-slate-700/80 leading-relaxed font-medium italic">
@@ -231,12 +234,12 @@ export function DocumentDetail({ document, isLoading }: DocumentDetailProps) {
             <div className="mt-12 md:mt-20 lg:mt-24 pt-6 md:pt-10 border-t border-slate-100">
               <div className="bg-slate-50/80 rounded-xl md:rounded-3xl lg:rounded-[2rem] p-5 md:p-8 flex flex-col sm:flex-row items-center justify-between gap-3 md:gap-6 border border-slate-100">
                 <div className="text-center sm:text-left w-full sm:w-auto">
-                  <h4 className="font-bold text-slate-900 mb-1 text-[15px] md:text-lg">这对你有帮助吗？</h4>
-                  <p className="text-slate-500 text-[13px] md:text-sm leading-relaxed">您的反馈将帮助我们优化 AI 检索结果。</p>
+                  <h4 className="font-bold text-slate-900 mb-1 text-[15px] md:text-lg">{t("wasHelpful")}</h4>
+                  <p className="text-slate-500 text-[13px] md:text-sm leading-relaxed">{t("feedbackDesc")}</p>
                 </div>
                 <div className="flex gap-2.5 md:gap-3 w-full sm:w-auto">
-                  <Button variant="outline" className="flex-1 sm:flex-none rounded-lg md:rounded-xl px-5 md:px-6 h-10 md:h-11 text-[13px] md:text-sm font-medium border-slate-200 hover:bg-white transition-all">没帮助</Button>
-                  <Button className="flex-1 sm:flex-none rounded-lg md:rounded-xl px-5 md:px-6 h-10 md:h-11 text-[13px] md:text-sm font-medium shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]">有帮助</Button>
+                  <Button variant="outline" className="flex-1 sm:flex-none px-5 md:px-6 h-10 md:h-11 text-[13px] md:text-sm">{t("notHelpful")}</Button>
+                  <Button className="flex-1 sm:flex-none px-5 md:px-6 h-10 md:h-11 text-[13px] md:text-sm">{t("helpful")}</Button>
                 </div>
               </div>
             </div>

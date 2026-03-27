@@ -98,7 +98,6 @@ export function useCreateSite() {
   return useAdminMutation({
     mutationFn: (data: SiteCreate) => api.site.create(data),
     invalidateKeys: [siteKeys.lists()],
-    successMsg: '站点创建成功',
   })
 }
 
@@ -110,7 +109,6 @@ export function useUpdateSite() {
     mutationFn: ({ siteId, data }: { siteId: number; data: SiteUpdate }) =>
       api.site.update(siteId, data),
     invalidateKeys: [siteKeys.all],
-    successMsg: '站点更新成功',
   })
 }
 
@@ -121,7 +119,6 @@ export function useDeleteSite() {
   return useAdminMutation({
     mutationFn: (id: number) => api.site.delete(id),
     invalidateKeys: [siteKeys.lists()],
-    successMsg: '站点删除成功',
   })
 }
 

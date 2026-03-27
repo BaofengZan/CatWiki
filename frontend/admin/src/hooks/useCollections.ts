@@ -92,7 +92,6 @@ export function useCreateCollection(siteId: number) {
   return useAdminMutation({
     mutationFn: (data: CollectionCreate) => api.collection.create(data),
     invalidateKeys: [collectionKeys.treeSite(siteId), collectionKeys.lists()],
-    successMsg: '目录创建成功',
   })
 }
 
@@ -104,11 +103,6 @@ export function useUpdateCollection(siteId: number) {
     mutationFn: ({ id, data }: { id: number; data: CollectionUpdate }) =>
       api.collection.update(id, data),
     invalidateKeys: [collectionKeys.trees(), collectionKeys.lists(), collectionKeys.all],
-    successMsg: (res: Collection, vars: { id: number; data: CollectionUpdate }) => {
-      const isSort = 'order' in (vars.data || {}) || 'parent_id' in (vars.data || {})
-      return isSort ? undefined : '合集更新成功'
-    },
-
   })
 }
 
@@ -120,7 +114,6 @@ export function useDeleteCollection(siteId: number) {
 
   return useAdminMutation({
     mutationFn: (id: number) => api.collection.delete(id),
-    successMsg: '目录删除成功',
     onMutate: async (deletedId) => {
       await queryClient.cancelQueries({ queryKey: collectionKeys.tree(siteId) })
       const previousData = queryClient.getQueryData(collectionKeys.tree(siteId, false))
@@ -155,6 +148,5 @@ export function useUpdateCollectionSort(siteId: number) {
   return useAdminMutation({
     mutationFn: async (sortData: { id: number; sort_order: number }[]) => true,
     invalidateKeys: [collectionKeys.trees(), collectionKeys.lists()],
-    successMsg: '排序更新成功',
   })
 }

@@ -40,40 +40,61 @@ export default withMermaid(
           {
             text: '开发指南',
             items: [
-              { text: '后端开发', link: '/development/guide/backend' },
-              { text: 'Admin 前端', link: '/development/guide/frontend-admin' },
-              { text: 'Client 前端', link: '/development/guide/frontend-client' }
-            ]
-          },
-          {
-            text: 'AI 机器人',
-            collapsed: false,
-            items: [
-              { text: '网页挂件机器人', link: '/development/bots/widget-integration' },
-              { text: '飞书机器人(应用)', link: '/development/bots/feishu-app' },
-              { text: '钉钉机器人(应用)', link: '/development/bots/dingtalk-app' },
-              { text: '企业微信机器人(应用)', link: '/development/bots/wecom-app' },
-              { text: '企业微信智能机器人', link: '/development/bots/wecom-smart' },
-              { text: '企业微信客服', link: '/development/bots/wecom-kefu' },
-              { text: '问答机器人 (OpenAI 兼容)', link: '/development/bots/chat-api' },
-              { text: 'Discord 机器人(应用)', link: '/development/bots/discord-app' },
-              { text: 'Telegram 机器人(应用)', link: '/development/bots/telegram-app' },
+              {
+                text: '后端',
+                collapsed: false,
+                items: [
+                  { text: '后端开发', link: '/development/guide/backend' },
+                ]
+              },
+              {
+                text: '前端',
+                collapsed: false,
+                items: [
+                  { text: 'Admin 前端', link: '/development/guide/frontend-admin' },
+                  { text: 'Admin 设计规范', link: '/development/guide/style-guide' },
+                  { text: 'Client 前端', link: '/development/guide/frontend-client' },
+                  { text: 'Client 设计规范', link: '/development/guide/client-style-guide' },
+                ]
+              },
             ]
           },
           {
             text: '技术文档',
             items: [
-              { text: 'AI对话与知识库检索', link: '/development/tech/ai-chat-architecture' },
-              { text: 'RustFS 对象存储', link: '/development/tech/rustfs' },
-            ]
-          },
-          {
-            text: '文档解析器',
-            items: [
-              { text: '解析器概述', link: '/development/parsers/overview' },
-              { text: 'MinerU', link: '/development/parsers/mineru' },
-              { text: 'Docling', link: '/development/parsers/docling' },
-              { text: 'PaddleOCR', link: '/development/parsers/paddleocr' }
+              {
+                text: 'AI 机器人',
+                collapsed: false,
+                items: [
+                  { text: '网页挂件机器人', link: '/development/bots/widget-integration' },
+                  { text: '飞书机器人(应用)', link: '/development/bots/feishu-app' },
+                  { text: '钉钉机器人(应用)', link: '/development/bots/dingtalk-app' },
+                  { text: '企业微信机器人(应用)', link: '/development/bots/wecom-app' },
+                  { text: '企业微信智能机器人', link: '/development/bots/wecom-smart' },
+                  { text: '企业微信客服', link: '/development/bots/wecom-kefu' },
+                  { text: '问答机器人 (OpenAI 兼容)', link: '/development/bots/chat-api' },
+                  { text: 'Discord 机器人(应用)', link: '/development/bots/discord-app' },
+                  { text: 'Telegram 机器人(应用)', link: '/development/bots/telegram-app' },
+                ]
+              },
+              {
+                text: '文档解析器',
+                collapsed: false,
+                items: [
+                  { text: '解析器概述', link: '/development/parsers/overview' },
+                  { text: 'MinerU', link: '/development/parsers/mineru' },
+                  { text: 'Docling', link: '/development/parsers/docling' },
+                  { text: 'PaddleOCR', link: '/development/parsers/paddleocr' },
+                ]
+              },
+              {
+                text: '其他',
+                collapsed: false,
+                items: [
+                  { text: 'AI对话与知识库检索', link: '/development/tech/ai-chat-architecture' },
+                  { text: 'RustFS 对象存储', link: '/development/tech/rustfs' },
+                ]
+              },
             ]
           },
           {

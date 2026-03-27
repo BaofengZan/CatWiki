@@ -15,6 +15,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useTranslations } from "next-intl"
 import Image from "next/image"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -63,6 +64,7 @@ const getConfigFlag = (config: DocProcessorConfig["config"], key: string, fallba
 }
 
 export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' | 'tenant' }) {
+  const t = useTranslations("DocProcessor")
   const [processors, setProcessors] = useState<DocProcessorConfig[]>([])
   const [testing, setTesting] = useState<string | null>(null)
 
@@ -91,6 +93,7 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
     const tenantProcessors = updatedProcessors.filter(p => p.origin !== 'platform')
     updateMutation.mutate({ processors: tenantProcessors }, {
       onSuccess: () => {
+        toast.success(t("saveSuccess"))
         // 保存成功后，前端状态需要保持合并后的视图 (平台 + 租户)
         // 但由于 updateMutation onSuccess 会触发 invalidateQueries -> useDocProcessorConfig 重新获取
         // 所以这里不需要手动 setProcessors，React Query 会自动更新
@@ -110,13 +113,13 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
             ? (response as { status: string }).status
             : undefined
         if (status === "healthy") {
-          toast.success(`${processor.name} 连接成功`)
+          toast.success(`${processor.name} ${t("testSuccess")}`)
         } else {
-          toast.error("连接失败")
+          toast.error(t("testFailed"))
         }
       },
       onError: () => {
-        toast.error("连接测试失败")
+        toast.error(t("testFailed"))
       },
       onSettled: () => {
         setTesting(null)
@@ -144,11 +147,11 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
 
   const handleSubmit = () => {
     if (!formData.name.trim()) {
-      toast.error("请输入服务名称")
+      toast.error(t("requiredName"))
       return
     }
     if (!formData.base_url.trim()) {
-      toast.error("请输入 API 端点")
+      toast.error(t("requiredUrl"))
       return
     }
 
@@ -159,7 +162,7 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
     } else {
       // 新增模式
       if (processors.some(p => p.name === formData.name)) {
-        toast.error("服务名称已存在")
+        toast.error(t("nameExists"))
         return
       }
       updated = [...processors, formData]
@@ -195,10 +198,10 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
       <Card className="border-primary/50 bg-primary/5">
         <CardHeader className="pb-4 flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">
-            {editingIndex !== null ? "编辑解析器" : "添加解析器"}
+            {editingIndex !== null ? t("editProcessor") : t("addProcessor")}
           </CardTitle>
           <div className="flex items-center gap-2">
-            <Label htmlFor="enabled" className="text-sm font-medium cursor-pointer">启用此服务</Label>
+            <Label htmlFor="enabled" className="text-sm font-medium cursor-pointer">{t("enabled")}</Label>
             <Switch
               id="enabled"
               checked={formData.enabled}
@@ -209,10 +212,10 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">名称</Label>
+              <Label htmlFor="name">{t("name")}</Label>
               <Input
                 id="name"
-                placeholder="例如：文档解析器"
+                placeholder={t("namePlaceholder")}
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 disabled={editingIndex !== null}
@@ -220,7 +223,7 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="type">类型</Label>
+              <Label htmlFor="type">{t("type")}</Label>
               <Select
                 value={formData.type}
                 onValueChange={(value: DocProcessorType) => setFormData({ ...formData, type: value })}
@@ -267,10 +270,10 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
                             rel="noopener noreferrer"
                             className="text-primary hover:underline inline-flex items-center gap-1"
                           >
-                            部署文档 <ExternalLink className="h-3 w-3" />
+                            {t("deployDoc")} <ExternalLink className="h-3 w-3" />
                           </a>
                         </>
-                      )}
+                  )}
                     </p>
                   )
                 }
@@ -280,10 +283,10 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="base_url">API 地址 (Base URL)</Label>
+            <Label htmlFor="base_url">{t("baseUrl")}</Label>
             <Input
               id="base_url"
-              placeholder="例如：http://localhost:8000"
+              placeholder={t("baseUrlPlaceholder")}
               value={formData.base_url}
               onChange={(e) => setFormData({ ...formData, base_url: e.target.value })}
             />
@@ -292,7 +295,7 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
               if (selectedType) {
                 return (
                   <p className="text-xs text-slate-500">
-                    接口调用路径: <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-700">{selectedType.endpoint}</code>
+                    {t("endpoint")}: <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-700">{selectedType.endpoint}</code>
                   </p>
                 )
               }
@@ -301,13 +304,13 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
 
           <div className="space-y-2">
             <Label htmlFor="api_key">
-              {formData.type === 'Docling' ? 'API 密钥 (X-Api-Key)' : 'API 密钥'}
-              <span className="text-slate-400 font-normal ml-1">（可选）</span>
+              {formData.type === 'Docling' ? 'API Key (X-Api-Key)' : t("apiKey")}
+              <span className="text-slate-400 font-normal ml-1">{t("optional")}</span>
             </Label>
             <Input
               id="api_key"
               type="password"
-              placeholder={formData.type === 'Docling' ? "请输入 X-Api-Key" : "如果需要认证，请输入密钥"}
+              placeholder={formData.type === 'Docling' ? t("enterApiKey") : t("apiKeyPlaceholder")}
               value={formData.api_key}
               onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
               autoComplete="new-password"
@@ -318,7 +321,7 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
           {/* 特定配置区域 */}
           {(formData.type === "Docling" || formData.type === "MinerU" || formData.type === "PaddleOCR") && (
             <div className="bg-white/50 rounded-lg p-4 border border-primary/10 space-y-3">
-              <Label className="text-xs font-medium text-primary/80 uppercase tracking-wider">处理能力配置</Label>
+              <Label className="text-xs font-medium text-primary/80 uppercase tracking-wider">{t("capabilities")}</Label>
               <div className="flex flex-wrap gap-6">
                 <div className="flex items-center gap-2">
                   <Switch
@@ -332,7 +335,7 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
                     }
                   />
                   <div className="space-y-0.5">
-                    <Label htmlFor="is_ocr" className="text-sm">OCR识别</Label>
+                    <Label htmlFor="is_ocr" className="text-sm">{t("ocr")}</Label>
                   </div>
                 </div>
 
@@ -347,7 +350,7 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
                       })
                     }
                   />
-                  <Label htmlFor="extract_images" className="text-sm">提取图片</Label>
+                  <Label htmlFor="extract_images" className="text-sm">{t("extractImages")}</Label>
                 </div>
 
                 {formData.type === "Docling" && (
@@ -362,7 +365,7 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
                         })
                       }
                     />
-                    <Label htmlFor="extract_tables" className="text-sm">表格识别</Label>
+                    <Label htmlFor="extract_tables" className="text-sm">{t("extractTables")}</Label>
                   </div>
                 )}
               </div>
@@ -372,11 +375,11 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
           <div className="flex items-center justify-end pt-2 gap-2">
             <Button variant="outline" size="sm" onClick={handleCancel}>
               <X className="h-4 w-4 mr-1" />
-              取消
+              {t("cancel")}
             </Button>
             <Button size="sm" onClick={handleSubmit} disabled={updateMutation.isPending}>
               {updateMutation.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Check className="h-4 w-4 mr-1" />}
-              保存
+              {t("save")}
             </Button>
           </div>
         </CardContent>
@@ -394,8 +397,8 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
               <FileText className="h-6 w-6" />
             </div>
             <div className="space-y-1">
-              <h2 className="text-xl font-bold tracking-tight text-slate-900">文档解析</h2>
-              <p className="text-sm text-slate-500 font-medium">配置可用的文档解析 API，实际使用时可选择。</p>
+              <h2 className="text-xl font-bold tracking-tight text-slate-900">{t("title")}</h2>
+              <p className="text-sm text-slate-500 font-medium">{t("description")}</p>
             </div>
           </div>
           {!isAdding && editingIndex === null && (
@@ -404,7 +407,7 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
               className="gap-2"
             >
               <Plus className="h-4 w-4" />
-              添加解析器
+              {t("addProcessor")}
             </Button>
           )}
         </div>
@@ -419,14 +422,14 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Server className="h-12 w-12 text-slate-300 mb-4" />
-              <p className="text-slate-500 mb-4">暂无配置的文档解析服务</p>
+              <p className="text-slate-500 mb-4">{t("noConfig")}</p>
               <Button
                 variant="outline"
                 onClick={handleStartAdd}
                 className="gap-2"
               >
                 <Plus className="h-4 w-4" />
-                添加第一个解析器
+                {t("addFirst")}
               </Button>
             </CardContent>
           </Card>
@@ -465,7 +468,7 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
                             {processor.origin === 'platform' && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-indigo-100 text-indigo-700">
                                 <Globe className="h-3 w-3 mr-1" />
-                                平台共享
+                                {t("platformShared")}
                               </span>
                             )}
                           </div>
@@ -492,7 +495,7 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
                           size="icon"
                           onClick={() => handleTest(processor)}
                           disabled={testing === processor.id || processor.origin === 'platform'}
-                          title={processor.origin === 'platform' ? "平台级资源，无需测试连接" : "测试连接性"}
+                          title={processor.origin === 'platform' ? t("platformShared") : t("testConnect")}
                         >
                           {testing === processor.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -500,7 +503,7 @@ export function DocProcessorSettings({ scope = 'tenant' }: { scope?: 'platform' 
                             <Zap className="h-4 w-4" />
                           )}
                         </Button>
-                        <div className="flex items-center gap-2" title={processor.origin === 'platform' ? "平台级资源，不可修改" : undefined}>
+                        <div className="flex items-center gap-2" title={processor.origin === 'platform' ? t("platformResourceDesc") : undefined}>
                           {processor.origin !== 'platform' && (
                             <>
                               <Button

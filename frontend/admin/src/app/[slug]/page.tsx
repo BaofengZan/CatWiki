@@ -15,8 +15,9 @@
 "use client"
 
 import Link from "next/link"
+import { useTranslations, useLocale } from "next-intl"
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui"
-import { FileText, Users, MessageSquare, Eye, Network, Flame, ChevronRight, Clock, History } from "lucide-react"
+import { FileText, Users, MessageSquare, Eye, Network, Flame, ChevronRight, Clock, History, Loader2 } from "lucide-react"
 import { useSiteData, useDocuments, useSiteStats } from "@/hooks"
 import { getRoutePath, useRouteContext } from "@/lib/routing"
 import { cn } from "@/lib/utils"
@@ -25,26 +26,28 @@ import type { Document, RecentSession, TrendData } from "@/lib/api-client"
 
 // 统计图标映射
 const statIcons = {
-  "文档总数": FileText,
-  "访问次数": Eye,
-  "问答次数": MessageSquare,
-  "访问用户数": Users,
-  "来源 IP 数": Network,
+  totalDocs: FileText,
+  totalViews: Eye,
+  aiSessions: MessageSquare,
+  aiMessages: Users,
+  uniqueVisitors: Network,
 }
 
 // 统计项配置
 const STATS_CONFIG = [
-  { title: "文档总数", description: "知识库文档", color: "text-blue-600", bg: "bg-blue-50" },
-  { title: "累计阅读", description: "文章阅读总数", color: "text-emerald-600", bg: "bg-emerald-50" },
-  { title: "AI 会话", description: "累计会话总数", color: "text-blue-600", bg: "bg-blue-50" },
-  { title: "AI 消息", description: "互动消息总量", color: "text-orange-600", bg: "bg-orange-50" },
-  { title: "独立访客", description: "历史访客总数", color: "text-rose-600", bg: "bg-rose-50" },
+  { id: "totalDocs", titleKey: "totalDocs", descKey: "totalDocsDesc", color: "text-blue-600", bg: "bg-blue-50" },
+  { id: "totalViews", titleKey: "totalViews", descKey: "totalViewsDesc", color: "text-emerald-600", bg: "bg-emerald-50" },
+  { id: "aiSessions", titleKey: "aiSessions", descKey: "aiSessionsDesc", color: "text-blue-600", bg: "bg-blue-50" },
+  { id: "aiMessages", titleKey: "aiMessages", descKey: "aiMessagesDesc", color: "text-orange-600", bg: "bg-orange-50" },
+  { id: "uniqueVisitors", titleKey: "uniqueVisitors", descKey: "uniqueVisitorsDesc", color: "text-rose-600", bg: "bg-rose-50" },
 ] as const
 
 import AISessionChart from "@/components/charts/AISessionChart"
 
 
 export default function AdminHome() {
+  const t = useTranslations("Dashboard")
+  const locale = useLocale()
   const currentSite = useSiteData()
   const routeContext = useRouteContext()
   const siteId = currentSite.id
@@ -91,46 +94,46 @@ export default function AdminHome() {
   return (
     <div className="space-y-8 pb-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          运营概览
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">
+          {t("title")}
         </h1>
-        <p className="text-slate-500 mt-2">查看当前 Wiki 站点的运行状况和关键指标。</p>
+        <p className="text-muted-foreground mt-2">{t("subtitle")}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         {STATS_CONFIG.map((stat) => {
-          const Icon = statIcons[stat.title as keyof typeof statIcons] || FileText
+          const Icon = statIcons[stat.id as keyof typeof statIcons] || FileText
           // 根据标题显示实际数据
           let displayValue = "0"
           let subValue = ""
 
-          if (stat.title === "文档总数") {
+          if (stat.id === "totalDocs") {
             displayValue = stats.totalDocuments.toString()
-          } else if (stat.title === "累计阅读") {
+          } else if (stat.id === "totalViews") {
             displayValue = stats.totalViews.toString()
             if (stats.viewsToday >= 0) {
-              subValue = `今日 +${stats.viewsToday}`
+              subValue = t("stats.today") + ` +${stats.viewsToday}`
             }
-          } else if (stat.title === "AI 会话") {
+          } else if (stat.id === "aiSessions") {
             displayValue = stats.totalChatSessions.toString()
             if (stats.newSessionsToday >= 0) {
-              subValue = `今日 +${stats.newSessionsToday}`
+              subValue = t("stats.today") + ` +${stats.newSessionsToday}`
             }
-          } else if (stat.title === "AI 消息") {
+          } else if (stat.id === "aiMessages") {
             displayValue = stats.totalChatMessages.toString()
             if (stats.newMessagesToday >= 0) {
-              subValue = `今日 +${stats.newMessagesToday}`
+              subValue = t("stats.today") + ` +${stats.newMessagesToday}`
             }
-          } else if (stat.title === "独立访客") {
+          } else if (stat.id === "uniqueVisitors") {
             displayValue = stats.totalUniqueIps.toString()
-            subValue = `今日 ${stats.uniqueIpsToday}`
+            subValue = t("stats.today") + ` ${stats.uniqueIpsToday}`
           }
 
           return (
-            <Card key={stat.title} className="hover:shadow-md transition-shadow">
+            <Card key={stat.id} className="hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-slate-600">
-                  {stat.title}
+                  {t(`stats.${stat.titleKey}` as any)}
                 </CardTitle>
                 <div className={`p-2 rounded-lg ${stat.bg}`}>
                   <Icon className={`h-4 w-4 ${stat.color}`} />
@@ -140,16 +143,16 @@ export default function AdminHome() {
                 <div className="text-2xl font-bold">{displayValue}</div>
                 <div className="flex items-center justify-between mt-1.5">
                   <p className="text-xs text-slate-500 font-medium">
-                    {stat.description}
+                    {t(`stats.${stat.descKey}` as any)}
                   </p>
-                  {stat.title === "AI 会话" || stat.title === "AI 消息" ? (
+                  {stat.id === "aiSessions" || stat.id === "aiMessages" ? (
                     <div className="flex items-center gap-1.5 font-bold">
-                      <span className="text-[10px] text-slate-400 uppercase tracking-tighter">今日</span>
+                      <span className="text-[10px] text-slate-400 uppercase tracking-tighter">{t("stats.today")}</span>
                       <span className={cn(
                         "text-xs px-2 py-0.5 rounded-full transition-all",
                         (subValue.includes("+0") || !subValue) ? "bg-slate-100 text-slate-400" : "bg-emerald-500 text-white shadow-sm"
                       )}>
-                        {subValue.replace('今日 ', '') || '0'}
+                        {subValue.replace(t("stats.today") + ' ', '') || '0'}
                       </span>
                     </div>
                   ) : subValue && (
@@ -173,18 +176,18 @@ export default function AdminHome() {
               <div className="p-2 bg-blue-500/10 rounded-xl text-blue-600">
                 <Network className="h-5 w-5" />
               </div>
-              <CardTitle className="text-base font-bold">AI 会话趋势</CardTitle>
+              <CardTitle className="text-base font-bold">{t("charts.sessionTrend")}</CardTitle>
             </div>
-            <div className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-1 rounded">最近 7 天</div>
+            <div className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-1 rounded">{t("charts.sevenDays")}</div>
           </CardHeader>
           <CardContent className="p-6 flex-1 flex flex-col">
             <div className="flex-1 w-full min-h-[200px] px-2">
               {statsError ? (
                 <div className="w-full h-full flex items-center justify-center text-rose-500 text-xs text-center p-4">
-                  加载趋势失败: {statsError instanceof Error ? statsError.message : "未知错误"}
+                  {t("charts.error")}: {statsError instanceof Error ? statsError.message : "Unknown error"}
                 </div>
               ) : statsLoading ? (
-                <div className="w-full h-full flex items-center justify-center text-slate-300 animate-pulse text-sm">正在加载统计数据...</div>
+                <div className="w-full h-full flex items-center justify-center text-slate-300 animate-pulse text-sm">{t("charts.loading")}</div>
               ) : (stats.dailyTrends && stats.dailyTrends.length > 0) ? (
                 <AISessionChart
                   data={stats.dailyTrends.map((d: TrendData) => ({
@@ -194,7 +197,7 @@ export default function AdminHome() {
                   }))}
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-slate-300 italic text-sm">暂无趋势采样数据</div>
+                <div className="w-full h-full flex items-center justify-center text-slate-300 italic text-sm">{t("charts.empty")}</div>
               )}
             </div>
           </CardContent>
@@ -207,7 +210,7 @@ export default function AdminHome() {
               <div className="p-2 bg-blue-500/10 rounded-xl text-blue-600">
                 <MessageSquare className="h-5 w-5" />
               </div>
-              <CardTitle className="text-base font-bold">最近 AI 问答</CardTitle>
+              <CardTitle className="text-base font-bold">{t("recentQA.title")}</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -216,21 +219,21 @@ export default function AdminHome() {
                 stats.recentSessions.map((session: RecentSession) => (
                   <div key={session.thread_id} className="p-4 hover:bg-muted/30 transition-colors cursor-default group">
                     <div className="flex items-center justify-between mb-1">
-                      <h4 className="text-xs font-bold text-slate-700 truncate max-w-[150px]">{session.title || '新对话'}</h4>
+                      <h4 className="text-xs font-bold text-slate-700 truncate max-w-[150px]">{session.title || t("recentQA.newChat")}</h4>
                       <span className="text-[10px] font-medium text-slate-400">
                         {new Date(session.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="bg-slate-100 px-1.5 py-0.5 rounded text-[10px] text-slate-500 font-medium">
-                        {session.message_count} 轮对话
+                        {t("recentQA.turns", { count: session.message_count })}
                       </div>
                     </div>
                   </div>
                 ))
               ) : (
                 <div className="py-20 text-center">
-                  <p className="text-xs text-muted-foreground italic">暂无对话记录</p>
+                  <p className="text-xs text-muted-foreground italic">{t("recentQA.empty")}</p>
                 </div>
               )}
             </div>
@@ -247,13 +250,13 @@ export default function AdminHome() {
                 <Flame className="h-5 w-5" />
               </div>
               <div>
-                <CardTitle className="text-base font-bold">热门文档</CardTitle>
-                <p className="text-[10px] text-muted-foreground font-medium">累计浏览量最高的活跃内容</p>
+                <CardTitle className="text-base font-bold">{t("hotDocs.title")}</CardTitle>
+                <p className="text-[10px] text-muted-foreground font-medium">{t("hotDocs.subtitle")}</p>
               </div>
             </div>
             <Link href={getRoutePath("/documents", routeContext.slug)}>
               <Button variant="ghost" size="sm" className="h-8 px-3 text-xs font-semibold text-primary hover:bg-primary/5">
-                查看全部
+                {t("hotDocs.viewAll")}
                 <ChevronRight className="ml-1 h-3 w-3" />
               </Button>
             </Link>
@@ -262,8 +265,8 @@ export default function AdminHome() {
             <div className="divide-y divide-border/30">
               {loading ? (
                 <div className="py-20 flex flex-col items-center justify-center gap-2">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                  <span className="text-xs text-muted-foreground">加载中...</span>
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <span className="text-xs text-muted-foreground">{t("charts.loading")}</span>
                 </div>
               ) : hotDocs.length > 0 ? (
                 hotDocs.map((doc: Document, i: number) => (
@@ -288,7 +291,7 @@ export default function AdminHome() {
                       <div className="flex items-center gap-3 mt-1.5">
                         <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
                           <Eye className="h-3 w-3 opacity-60" />
-                          <span>{doc.views?.toLocaleString() || 0} 次预览</span>
+                          <span>{t("hotDocs.views", { count: doc.views || 0 })}</span>
                         </div>
                         {doc.category && (
                           <span className="h-3 w-[1px] bg-border/60" />
@@ -303,7 +306,7 @@ export default function AdminHome() {
                 ))
               ) : (
                 <div className="py-20 text-center">
-                  <p className="text-sm text-muted-foreground italic">暂无热门文档数据</p>
+                  <p className="text-sm text-muted-foreground italic">{t("hotDocs.empty")}</p>
                 </div>
               )}
             </div>
@@ -318,13 +321,13 @@ export default function AdminHome() {
                 <History className="h-5 w-5" />
               </div>
               <div>
-                <CardTitle className="text-base font-bold">最近更新</CardTitle>
-                <p className="text-[10px] text-muted-foreground font-medium">知识库内容的最新动态记录</p>
+                <CardTitle className="text-base font-bold">{t("recentUpdates.title")}</CardTitle>
+                <p className="text-[10px] text-muted-foreground font-medium">{t("recentUpdates.subtitle")}</p>
               </div>
             </div>
             <Link href={getRoutePath("/documents", routeContext.slug)}>
               <Button variant="ghost" size="sm" className="h-8 px-3 text-xs font-semibold text-primary hover:bg-primary/5">
-                查看全部
+                {t("recentUpdates.viewAll")}
                 <ChevronRight className="ml-1 h-3 w-3" />
               </Button>
             </Link>
@@ -336,8 +339,8 @@ export default function AdminHome() {
 
               {loading ? (
                 <div className="py-14 flex flex-col items-center justify-center gap-2">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                  <span className="text-xs text-muted-foreground">正在获取动态...</span>
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <span className="text-xs text-muted-foreground">{t("charts.loading")}</span>
                 </div>
               ) : recentDocs.length > 0 ? (
                 recentDocs.map((doc: Document) => (
@@ -354,12 +357,12 @@ export default function AdminHome() {
                         {doc.title}
                       </p>
                       <div className="flex items-center gap-2 mt-1.5">
-                        <span className="text-[10px] font-bold text-muted-foreground/60">{doc.author || '系统'}</span>
+                        <span className="text-[10px] font-bold text-muted-foreground/60">{doc.author || t("recentUpdates.system")}</span>
                         <span className="w-1 h-1 rounded-full bg-border" />
                         <div className="flex items-center gap-1 text-[10px] text-muted-foreground/60 font-medium">
                           <Clock className="h-3 w-3 opacity-60" />
                           <span>
-                            {new Date(doc.updated_at).toLocaleString('zh-CN', {
+                            {new Date(doc.updated_at).toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US', {
                               month: 'numeric',
                               day: 'numeric',
                               hour: '2-digit',
@@ -373,7 +376,7 @@ export default function AdminHome() {
                 ))
               ) : (
                 <div className="py-14 text-center">
-                  <p className="text-sm text-muted-foreground italic">暂无更新动态</p>
+                  <p className="text-sm text-muted-foreground italic">{t("recentUpdates.empty")}</p>
                 </div>
               )}
             </div>

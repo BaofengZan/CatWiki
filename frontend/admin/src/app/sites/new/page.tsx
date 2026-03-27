@@ -15,6 +15,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useTranslations } from 'next-intl'
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -28,7 +29,8 @@ import {
   Layout,
   Palette,
   ShieldCheck,
-  Users
+  Users,
+  Loader2
 } from "lucide-react"
 import { toast } from "sonner"
 import { useCreateSite } from "@/hooks"
@@ -36,16 +38,19 @@ import { env } from "@/lib/env"
 import { ImageUpload } from "@/components/ui/ImageUpload"
 
 // 主题色配置
-const THEME_COLORS = [
-  { value: 'blue', label: '蓝色', className: 'bg-blue-500' },
-  { value: 'emerald', label: '绿色', className: 'bg-emerald-500' },
-  { value: 'purple', label: '紫色', className: 'bg-purple-500' },
-  { value: 'orange', label: '橙色', className: 'bg-orange-500' },
-  { value: 'slate', label: '灰色', className: 'bg-slate-800' },
-] as const
+const THEME_COLOR_KEYS = ['blue', 'emerald', 'purple', 'orange', 'slate'] as const
+const THEME_COLOR_CLASSES: Record<string, string> = {
+  blue: 'bg-blue-500',
+  emerald: 'bg-emerald-500',
+  purple: 'bg-purple-500',
+  orange: 'bg-orange-500',
+  slate: 'bg-slate-800',
+}
 
 export default function NewSitePage() {
   const router = useRouter()
+  const t = useTranslations('SiteNew')
+  const tf = useTranslations('SiteForm')
   const [name, setName] = useState("")
   const [slug, setSlug] = useState("")
   const [description, setDescription] = useState("")
@@ -74,16 +79,16 @@ export default function NewSitePage() {
 
   const handleCreate = () => {
     if (!name.trim()) {
-      toast.error("请输入站点名称")
+      toast.error(tf("errorName"))
       return
     }
     if (!slug.trim()) {
-      toast.error("请输入站点唯一标识")
+      toast.error(tf("errorSlug"))
       return
     }
 
     if (initAdmin && !adminEmail.trim()) {
-      toast.error("请输入管理员邮箱")
+      toast.error(tf("errorAdminEmail"))
       return
     }
 
@@ -100,6 +105,7 @@ export default function NewSitePage() {
       admin_password: (initAdmin && adminPassword) ? adminPassword : undefined,
     }, {
       onSuccess: () => {
+        toast.success(t("createSuccess"))
         router.push("/settings?tab=sites")
       }
     })
@@ -117,17 +123,17 @@ export default function NewSitePage() {
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">创建新站点</h1>
-            <p className="text-slate-500 text-sm">定义一个全新的知识领域，并为它配置唯一的标识和风格。</p>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("title")}</h1>
+            <p className="text-muted-foreground text-sm">{t("description")}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" onClick={handleBack} disabled={createSiteMutation.isPending}>
-            取消
+            {t("cancel")}
           </Button>
           <Button className="flex items-center gap-2" onClick={handleCreate} disabled={createSiteMutation.isPending}>
-            <Save className="h-4 w-4" />
-            {createSiteMutation.isPending ? "创建中..." : "完成创建"}
+            {createSiteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {createSiteMutation.isPending ? t("creating") : t("create")}
           </Button>
         </div>
       </div>
@@ -137,41 +143,41 @@ export default function NewSitePage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Settings className="h-5 w-5 text-primary" />
-              基本配置
+              {tf("basicConfig")}
             </CardTitle>
             <CardDescription>
-              设置站点的名称、唯一标识等核心信息。
+              {tf("basicConfigDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 pt-6">
             <div className="flex flex-col md:flex-row gap-8">
               {/* 站点图标上传 */}
               <div className="w-full md:w-48 space-y-2">
-                <label className="text-sm font-semibold text-slate-700 block">站点图标</label>
+                <label className="text-sm font-semibold text-slate-700 block">{tf("siteIcon")}</label>
                 <ImageUpload
                   value={icon}
                   onChange={setIcon}
-                  text="上传图标"
+                  text={tf("uploadIcon")}
                   aspect="aspect-square"
                   className="w-full"
                 />
-                <p className="text-[10px] text-slate-400 text-center">建议 200x200px <br />支持 JPG/PNG/WebP</p>
+                <p className="text-[10px] text-slate-400 text-center">{tf("iconHint1")} <br />{tf("iconHint2")}</p>
               </div>
 
               {/* 站点基本信息字段 */}
               <div className="flex-1 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700">站点名称</label>
+                    <label className="text-sm font-semibold text-slate-700">{tf("siteName")}</label>
                     <input
                       className="flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30"
-                      placeholder="例如：catWiki"
+                      placeholder={tf("siteNamePlaceholder")}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700">站点唯一标识</label>
+                    <label className="text-sm font-semibold text-slate-700">{tf("siteSlug")}</label>
                     <div className="flex items-center">
                       <span className="inline-flex items-center px-3 h-10 rounded-l-xl border border-r-0 border-slate-200 bg-slate-50 text-slate-500 text-sm font-mono whitespace-nowrap overflow-hidden max-w-[120px]">
                         /{slug}
@@ -186,10 +192,10 @@ export default function NewSitePage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700">站点描述</label>
+                  <label className="text-sm font-semibold text-slate-700">{tf("siteDescription")}</label>
                   <textarea
                     className="flex min-h-[100px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30"
-                    placeholder="简要介绍这个 Wiki 站点的主要内容..."
+                    placeholder={tf("siteDescPlaceholder")}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                   />
@@ -204,26 +210,26 @@ export default function NewSitePage() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Palette className="h-4 w-4 text-primary" />
-                界面与风格
+                {tf("styleConfig")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">主题色</label>
+                <label className="text-sm font-medium text-slate-700">{tf("themeColor")}</label>
                 <div className="flex gap-2">
-                  {THEME_COLORS.map((color) => (
+                  {THEME_COLOR_KEYS.map((colorKey) => (
                     <div
-                      key={color.value}
-                      className={`w-8 h-8 rounded-full ${color.className} cursor-pointer ring-offset-2 transition-all ${themeColor === color.value ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-2 ring-slate-300'
+                      key={colorKey}
+                      className={`w-8 h-8 rounded-full ${THEME_COLOR_CLASSES[colorKey]} cursor-pointer ring-offset-2 transition-all ${themeColor === colorKey ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-2 ring-slate-300'
                         }`}
-                      onClick={() => setThemeColor(color.value)}
-                      title={color.label}
+                      onClick={() => setThemeColor(colorKey)}
+                      title={tf(`colors.${colorKey}`)}
                     />
                   ))}
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">布局模式</label>
+                <label className="text-sm font-medium text-slate-700">{tf("layoutMode")}</label>
                 <div className="grid grid-cols-2 gap-2">
                   <div
                     className={`border rounded-lg p-3 text-center text-xs font-medium cursor-pointer transition-colors ${layoutMode === 'sidebar'
@@ -232,16 +238,16 @@ export default function NewSitePage() {
                       }`}
                     onClick={() => setLayoutMode('sidebar')}
                   >
-                    侧边栏目录
+                    {tf("sidebarLayout")}
                   </div>
                   <div
                     className="border border-slate-200 rounded-lg p-3 text-center text-xs font-medium text-slate-400 bg-slate-50 cursor-not-allowed opacity-50"
-                    title="暂不支持顶部导航"
+                    title={tf("topNavNotSupported")}
                   >
-                    顶部导航
+                    {tf("topNav")}
                   </div>
                 </div>
-                <p className="text-xs text-slate-500">目前仅支持侧边栏目录布局</p>
+                <p className="text-xs text-slate-500">{tf("layoutHint")}</p>
               </div>
             </CardContent>
           </Card>
@@ -250,14 +256,14 @@ export default function NewSitePage() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-primary" />
-                访问控制
+                {tf("accessControl")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <label className="text-sm font-medium text-slate-900">启用站点</label>
-                  <p className="text-xs text-slate-500">启用后站点将可以正常访问。</p>
+                  <label className="text-sm font-medium text-slate-900">{tf("enableSite")}</label>
+                  <p className="text-xs text-slate-500">{tf("enableSiteHint")}</p>
                 </div>
                 <div
                   className={`w-10 h-5 ${isActive ? 'bg-primary' : 'bg-slate-200'} rounded-full relative cursor-pointer`}
@@ -268,8 +274,8 @@ export default function NewSitePage() {
               </div>
               <div className="flex items-center justify-between opacity-50">
                 <div className="space-y-0.5">
-                  <label className="text-sm font-medium text-slate-900">评论功能</label>
-                  <p className="text-xs text-slate-500">启用文档下方的用户评论。</p>
+                  <label className="text-sm font-medium text-slate-900">{tf("commentFeature")}</label>
+                  <p className="text-xs text-slate-500">{tf("commentFeatureHint")}</p>
                 </div>
                 <div className="w-10 h-5 bg-slate-200 rounded-full relative cursor-not-allowed">
                   <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow-sm" />
@@ -283,17 +289,17 @@ export default function NewSitePage() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Users className="h-4 w-4 text-primary" />
-              站点管理员
+              {tf("siteAdmin")}
             </CardTitle>
             <CardDescription>
-              您可以现在指定一个用户作为站点的管理员，或者稍后在站点设置中添加。
+              {tf("siteAdminDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between mb-4">
               <div className="space-y-0.5">
-                <label className="text-sm font-medium text-slate-900">初始化管理员</label>
-                <p className="text-xs text-slate-500">开启后，可以为新站点创建一个初始管理员账户。</p>
+                <label className="text-sm font-medium text-slate-900">{tf("initAdmin")}</label>
+                <p className="text-xs text-slate-500">{tf("initAdminHint")}</p>
               </div>
               <div
                 className={`w-10 h-5 ${initAdmin ? 'bg-primary' : 'bg-slate-200'} rounded-full relative cursor-pointer`}
@@ -306,7 +312,7 @@ export default function NewSitePage() {
             {initAdmin && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">管理员邮箱 <span className="text-red-500">*</span></label>
+                  <label className="text-sm font-medium text-slate-700">{tf("adminEmail")} <span className="text-red-500">*</span></label>
                   <Input
                     placeholder="admin@example.com"
                     value={adminEmail}
@@ -314,30 +320,19 @@ export default function NewSitePage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">管理员密码</label>
+                  <label className="text-sm font-medium text-slate-700">{tf("adminPassword")}</label>
                   <Input
                     type="text"
-                    placeholder="如留空则默认为 123456"
+                    placeholder={tf("passwordHint")}
                     value={adminPassword}
                     onChange={(e) => setAdminPassword(e.target.value)}
                   />
-                  <p className="text-[10px] text-slate-500">若该邮箱已存在，系统将自动关联无需密码；若为新用户，此密码将作为初始密码。</p>
+                  <p className="text-[10px] text-slate-500">{tf("adminTip")}</p>
                 </div>
               </div>
             )}
           </CardContent>
         </Card>
-
-        <style dangerouslySetInnerHTML={{
-          __html: `
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .animate-spin-slow {
-          animation: spin-slow 8s linear infinite;
-        }
-      `}} />
       </div>
     </div>
   )

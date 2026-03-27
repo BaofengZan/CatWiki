@@ -20,6 +20,7 @@ import logging
 
 from fastapi import APIRouter, Depends
 
+from app.core.common.i18n import _
 from app.core.infra.cache import get_cache
 from app.core.web.deps import get_current_user_with_tenant
 from app.models.user import User
@@ -35,9 +36,9 @@ async def get_cache_stats(
 ) -> ApiResponse[dict]:
     """获取缓存统计信息"""
     cache = get_cache()
-    stats = cache.stats()
+    stats = await cache.async_stats() if hasattr(cache, "async_stats") else cache.stats()
 
-    return ApiResponse.ok(data=stats, msg="获取缓存统计信息成功")
+    return ApiResponse.ok(data=stats, msg=_("cache.stats_success"))
 
 
 @router.post(":clear", response_model=ApiResponse[dict], operation_id="clearAdminCache")
@@ -49,4 +50,4 @@ async def clear_cache(
     await cache.clear()
     logger.info("管理员清空了所有缓存")
 
-    return ApiResponse.ok(data={"message": "缓存已清空"}, msg="清空缓存成功")
+    return ApiResponse.ok(data={"message": _("cache.cleared")}, msg=_("cache.clear_success"))

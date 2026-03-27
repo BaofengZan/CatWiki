@@ -21,6 +21,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react"
 import { toast } from "sonner"
+import { useTranslations } from "next-intl"
 import { useAIConfig, useUpdateAIConfig } from "@/hooks"
 import type { AIConfigUpdate } from "@/lib/api-client"
 import { ModelConfig } from "@/lib/api-client"
@@ -115,6 +116,7 @@ interface SettingsContextType {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined)
 
 export function SettingsProvider({ children, scope = 'tenant' }: { children: ReactNode, scope?: 'platform' | 'tenant' }) {
+  const t = useTranslations('Models')
   const [configs, setConfigs] = useState<AIConfigs>(initialConfigs)
   const [savedConfigs, setSavedConfigs] = useState<AIConfigs>(initialConfigs)
   const [platformFallback, setPlatformFallback] = useState<Record<string, boolean>>({})
@@ -198,7 +200,7 @@ export function SettingsProvider({ children, scope = 'tenant' }: { children: Rea
       const data = await updateAIConfigMutation.mutateAsync(aiConfig)
       if (data) {
         updateStateFromResponse(data)
-        toast.success("AI 模型配置已保存")
+        toast.success(t("saveSuccess"))
       }
     } catch (error) {
       // 错误由 useAdminMutation 统一处理

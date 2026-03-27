@@ -22,6 +22,7 @@ import { ChevronRight, LayoutGrid, Hash, MessageSquare, X, Sparkles, ShieldCheck
 import type { MenuItem } from "@/types"
 import { useTheme } from "@/contexts"
 import { useHealth } from "@/hooks"
+import { useTranslations } from "next-intl"
 
 interface SidebarProps {
   items: MenuItem[]
@@ -46,8 +47,10 @@ function getAllCollectionIds(menuItems: MenuItem[]): string[] {
   return collectionIds
 }
 
-export function Sidebar({ items, selectedId, onSelect, isOpen, onClose, siteName = "知识库" }: SidebarProps) {
+export function Sidebar({ items, selectedId, onSelect, isOpen, onClose, siteName }: SidebarProps) {
+  const t = useTranslations("Sidebar")
   const { themeColor } = useTheme()
+  const displaySiteName = siteName || t("defaultSiteName")
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set())
 
   // 获取动态版本号
@@ -152,7 +155,7 @@ export function Sidebar({ items, selectedId, onSelect, isOpen, onClose, siteName
             <LayoutGrid className="text-white h-5 w-5" />
           </div>
           <span className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-slate-900 to-slate-600">
-            {siteName}
+            {displaySiteName}
           </span>
           {/* 移动端关闭按钮 */}
           <Button
@@ -160,7 +163,7 @@ export function Sidebar({ items, selectedId, onSelect, isOpen, onClose, siteName
             size="icon"
             className="lg:hidden ml-auto h-8 w-8"
             onClick={onClose}
-            aria-label="关闭菜单"
+            aria-label={t("closeMenu")}
           >
             <X className="h-5 w-5" />
           </Button>
@@ -195,14 +198,14 @@ export function Sidebar({ items, selectedId, onSelect, isOpen, onClose, siteName
                 style={selectedId === "ai-home" ? { color: "white" } : { color: "var(--theme-primary)" }}
               />
             </div>
-            <span className="text-sm font-semibold">AI 对话</span>
+            <span className="text-sm font-semibold">{t("aiChat")}</span>
           </button>
         </div>
       </div>
 
       <ScrollArea className="flex-1 px-4">
         <div className="px-2 mb-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-          合集目录
+          {t("collectionCatalog")}
         </div>
         <div className="pb-8">
           {items.map((item) => renderItem(item))}
@@ -216,7 +219,7 @@ export function Sidebar({ items, selectedId, onSelect, isOpen, onClose, siteName
           </div>
           <p className="text-xs font-bold uppercase tracking-widest opacity-80 mb-1">AI Powered</p>
           <p className="text-[13px] font-medium leading-snug relative z-10">
-            尝试直接在搜索框提问，体验 AI 语义检索。
+            {t("aiPrompt")}
           </p>
         </div>
 

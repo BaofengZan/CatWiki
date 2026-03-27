@@ -16,6 +16,7 @@
 
 import { useState } from "react"
 import { cn } from "@/lib/utils"
+import { useTranslations } from "next-intl"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ChevronRight, Hash, Folder, FolderPlus, GripVertical } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -160,6 +161,7 @@ export function DocumentDirectory({
   onCreateCollection,
   onReorder
 }: DocumentDirectoryProps) {
+  const t = useTranslations("Documents")
   const [items, setItems] = useState<DirectoryItem[]>(initialItems)
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(
     new Set(initialItems.map((i: DirectoryItem) => i.id))
@@ -260,13 +262,13 @@ export function DocumentDirectory({
       >
         <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
           <Hash className="h-4 w-4 text-primary" />
-          合集文档结构
+          {t("collections.title")}
         </h3>
         <Button
           variant="ghost"
           size="icon"
           className="h-7 w-7 text-slate-400 hover:text-primary hover:bg-primary/5"
-          title="新建文件夹"
+          title={t("collections.newCollection")}
           onClick={(e) => {
             e.stopPropagation()
             onCreateCollection?.()

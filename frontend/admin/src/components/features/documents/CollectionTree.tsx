@@ -16,6 +16,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, createContext, useContext } from "react"
 import { cn } from "@/lib/utils"
+import { useTranslations } from "next-intl"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ChevronRight, Folder, FolderPlus, Hash, FileText, Eye, EyeOff, Trash2, GripVertical } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -118,6 +119,7 @@ function CollectionNode({
   onMoveCollection?: (collectionId: string, targetParentId: string | null, insertBeforeId?: string | null) => void
 }) {
   const dragContext = useContext(DragContext)
+  const t = useTranslations("Documents")
   if (!dragContext) {
     throw new Error('CollectionNode must be used within DragContext')
   }
@@ -493,7 +495,7 @@ function CollectionNode({
                 e.stopPropagation()
                 onCreateCollection?.(item.id)
               }}
-              title="创建子合集"
+              title={t("collections.newSubCollection")}
             >
               <FolderPlus className="h-3.5 w-3.5" />
             </Button>
@@ -505,7 +507,7 @@ function CollectionNode({
                 e.stopPropagation()
                 onDeleteCollection?.(item.id, item.name)
               }}
-              title="删除合集"
+              title={t("collections.deleteCollection")}
             >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
@@ -548,6 +550,7 @@ export function CollectionTree({
   showDocuments,
   onToggleShowDocuments,
 }: CollectionTreeProps) {
+  const t = useTranslations("Documents")
   // 全局拖拽状态
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dragOverNodeId, setDragOverNodeId] = useState<string | null>(null)
@@ -620,9 +623,9 @@ export function CollectionTree({
               <div className="p-1 bg-primary/10 rounded-lg text-primary">
                 <Hash className="h-3.5 w-3.5" />
               </div>
-              <span>合集目录</span>
+              <span>{t("collections.title")}</span>
               {!selectedId && (
-                <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded-full tracking-wider font-bold">全部</span>
+                <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded-full tracking-wider font-bold">{t("collections.all")}</span>
               )}
             </h3>
             <div className="flex items-center gap-0.5">
@@ -631,7 +634,7 @@ export function CollectionTree({
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg"
-                  title={showDocuments ? "隐藏文档" : "显示文档"}
+                  title={showDocuments ? t("collections.hideDocs") : t("collections.showDocs")}
                   onClick={(e) => {
                     e.stopPropagation()
                     onToggleShowDocuments()
@@ -648,7 +651,7 @@ export function CollectionTree({
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg"
-                title="新建合集"
+                title={t("collections.newCollection")}
                 onClick={(e) => {
                   e.stopPropagation()
                   onCreateCollection?.()
@@ -683,8 +686,8 @@ export function CollectionTree({
           ) : (
             <div className="flex flex-col items-center justify-center h-32 text-slate-400">
               <Folder className="h-8 w-8 mb-2 opacity-50" />
-              <p className="text-xs">暂无目录</p>
-              <p className="text-xs mt-1">点击右上角创建</p>
+              <p className="text-xs">{t("collections.noCollections")}</p>
+              <p className="text-xs mt-1">{t("collections.clickToCreate")}</p>
             </div>
           )}
         </ScrollArea>

@@ -9,6 +9,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { api, type Task } from '@/lib/api-client'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 
 interface TaskContextType {
   tasks: Task[]
@@ -27,6 +28,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [isPanelOpen, setPanelOpen] = useState(false)
   const queryClient = useQueryClient()
+  const t = useTranslations('TaskQueue')
 
   // Polling logic
   useEffect(() => {
@@ -46,11 +48,11 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
               // Handle completion to notify
               if (latest.status === 'completed') {
                 isAnyCompleted = true
-                toast.success(`文档处理完成: ${latest.payload?.filename || '任务 ' + latest.id}`)
+                toast.success(t('docCompleted', { name: latest.payload?.filename || t('taskFallback', { id: latest.id }) }))
               }
               if (latest.status === 'failed') {
                 isAnyCompleted = true
-                toast.error(`文档处理失败: ${latest.payload?.filename || '任务 ' + latest.id} - ${latest.error || '未知错误'}`)
+                toast.error(t('docFailed', { name: latest.payload?.filename || t('taskFallback', { id: latest.id }), error: latest.error || 'Unknown error' }))
               }
 
               return latest
@@ -74,7 +76,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     }, 3000)
 
     return () => clearInterval(timer)
-  }, [tasks, queryClient])
+  }, [tasks, queryClient, t])
 
   const addTasks = useCallback((newTasks: Task[]) => {
     setTasks(prev => {

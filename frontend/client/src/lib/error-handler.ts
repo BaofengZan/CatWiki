@@ -19,7 +19,7 @@
 /**
  * 处理 API 错误
  */
-export function handleApiError(error: unknown, defaultMessage = "操作失败"): string {
+export function handleApiError(error: unknown, defaultMessage = "Operation failed"): string {
   if (error instanceof Error) {
     return error.message || defaultMessage
   }

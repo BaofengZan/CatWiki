@@ -20,6 +20,7 @@ from datetime import timedelta
 
 from fastapi import Depends, UploadFile
 
+from app.core.common.i18n import _
 from app.core.common.utils import Paginator
 from app.core.infra.config import settings
 from app.core.infra.rustfs import RustFSService, get_rustfs_service
@@ -61,7 +62,7 @@ class FileService:
     async def upload_file(self, file: UploadFile, folder: str, current_user: User) -> dict:
         """上传单个文件"""
         if not self.rustfs.is_available():
-            raise ServiceUnavailableException(detail="对象存储服务不可用")
+            raise ServiceUnavailableException(detail=_("file.storage_unavailable"))
 
         file_ext = self.ensure_valid_extension(file.filename)
         unique_filename = f"{uuid.uuid4()}.{file_ext}" if file_ext else str(uuid.uuid4())
@@ -88,7 +89,7 @@ class FileService:
         )
 
         if not success:
-            raise DatabaseException(detail="文件上传失败")
+            raise DatabaseException(detail=_("file.upload_failed"))
 
         url = self.rustfs.get_public_url(object_name, use_presigned=False)
 
@@ -105,7 +106,7 @@ class FileService:
     ) -> dict:
         """批量上传文件"""
         if not self.rustfs.is_available():
-            raise ServiceUnavailableException(detail="对象存储服务不可用")
+            raise ServiceUnavailableException(detail=_("file.storage_unavailable"))
 
         results = []
         errors = []
@@ -175,14 +176,14 @@ class FileService:
     async def download_file(self, object_name: str) -> tuple[bytes, str, str]:
         """下载文件并返回内容、Content-Type 和文件名"""
         if not self.rustfs.is_available():
-            raise ServiceUnavailableException(detail="对象存储服务不可用")
+            raise ServiceUnavailableException(detail=_("file.storage_unavailable"))
 
         if not self.rustfs.file_exists(object_name):
-            raise NotFoundException(detail="文件不存在")
+            raise NotFoundException(detail=_("file.not_found"))
 
         data = self.rustfs.download_file(object_name)
         if data is None:
-            raise DatabaseException(detail="文件下载失败")
+            raise DatabaseException(detail=_("file.download_failed"))
 
         info = self.rustfs.get_file_info(object_name)
         content_type = (
@@ -200,14 +201,14 @@ class FileService:
     async def delete_file(self, object_name: str) -> bool:
         """删除文件"""
         if not self.rustfs.is_available():
-            raise ServiceUnavailableException(detail="对象存储服务不可用")
+            raise ServiceUnavailableException(detail=_("file.storage_unavailable"))
 
         if not self.rustfs.file_exists(object_name):
-            raise NotFoundException(detail="文件不存在")
+            raise NotFoundException(detail=_("file.not_found"))
 
         success = self.rustfs.delete_file(object_name)
         if not success:
-            raise DatabaseException(detail="文件删除失败")
+            raise DatabaseException(detail=_("file.delete_failed"))
         return True
 
     async def list_files(
@@ -219,7 +220,7 @@ class FileService:
     ) -> tuple[list[dict], Paginator]:
         """列出文件（带分页）"""
         if not self.rustfs.is_available():
-            raise ServiceUnavailableException(detail="对象存储服务不可用")
+            raise ServiceUnavailableException(detail=_("file.storage_unavailable"))
 
         all_files = self.rustfs.list_files(prefix=prefix, recursive=recursive)
         total = len(all_files)
@@ -247,14 +248,14 @@ class FileService:
     async def get_file_info(self, object_name: str) -> dict:
         """获取文件信息"""
         if not self.rustfs.is_available():
-            raise ServiceUnavailableException(detail="对象存储服务不可用")
+            raise ServiceUnavailableException(detail=_("file.storage_unavailable"))
 
         if not self.rustfs.file_exists(object_name):
-            raise NotFoundException(detail="文件不存在")
+            raise NotFoundException(detail=_("file.not_found"))
 
         info = self.rustfs.get_file_info(object_name)
         if info is None:
-            raise DatabaseException(detail="获取文件信息失败")
+            raise DatabaseException(detail=_("file.info_failed"))
 
         url = self.rustfs.get_public_url(object_name, use_presigned=False)
 
@@ -282,23 +283,23 @@ class FileService:
     async def get_public_url(self, object_name: str) -> str:
         """获取公开访问 URL"""
         if not self.rustfs.is_available():
-            raise ServiceUnavailableException(detail="对象存储服务不可用")
+            raise ServiceUnavailableException(detail=_("file.storage_unavailable"))
         return self.rustfs.get_public_url(object_name, use_presigned=False)
 
     async def get_presigned_url(self, object_name: str, expires_hours: int = 1) -> str:
         """获取预签名 URL"""
         if not self.rustfs.is_available():
-            raise ServiceUnavailableException(detail="对象存储服务不可用")
+            raise ServiceUnavailableException(detail=_("file.storage_unavailable"))
 
         if not self.rustfs.file_exists(object_name):
-            raise NotFoundException(detail="文件不存在")
+            raise NotFoundException(detail=_("file.not_found"))
 
         url = self.rustfs.get_public_url(
             object_name, use_presigned=True, expires=timedelta(hours=expires_hours)
         )
 
         if url is None:
-            raise DatabaseException(detail="生成预签名 URL 失败")
+            raise DatabaseException(detail=_("file.presign_failed"))
         return url
 
 

@@ -21,6 +21,7 @@ import logging
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.common.i18n import _
 from app.core.web.deps import get_db, set_tenant_context
 from app.core.web.exceptions import NotFoundException
 from app.crud.tenant import crud_tenant
@@ -50,12 +51,12 @@ async def get_current_tenant_info(
     """
     if tenant_id is None:
         logger.info("🧭 [Tenants] getCurrentTenant: No tenant context (Global View)")
-        return ApiResponse.ok(data=None, msg="当前处于全局视图")
+        return ApiResponse.ok(data=None, msg=_("tenant.global_view"))
 
     tenant = await crud_tenant.get(db, id=tenant_id)
     if not tenant:
         logger.warning(f"⚠️ [Tenants] getCurrentTenant: Tenant {tenant_id} not found")
-        raise NotFoundException(detail="识别到的租户不存在")
+        raise NotFoundException(detail=_("tenant.identified_not_found"))
 
     schema_data = TenantSchema.model_validate(tenant)
     logger.info(

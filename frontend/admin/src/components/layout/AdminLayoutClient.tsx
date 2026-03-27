@@ -16,13 +16,14 @@
 
 import { Suspense } from 'react'
 import { usePathname, useSearchParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { Toaster } from 'sonner'
 import { ReactQueryProvider } from '@/providers/ReactQueryProvider'
 import { SiteProvider } from '@/contexts/SiteContext'
 import { TaskProvider } from '@/contexts/TaskContext'
 import { ErrorBoundary } from '@/components/ui'
-import { UserMenu, StatePersistence } from '@/components/layout'
+import { UserMenu, StatePersistence, LanguageSwitcher } from '@/components/layout'
 import { TaskQueuePanel } from '@/components/features/tasks/TaskQueuePanel'
 import { useHealth, useDemoMode } from '@/hooks/useHealth'
 import Link from 'next/link'
@@ -71,6 +72,8 @@ const PlatformModal = dynamic(
  * 必须在 ReactQueryProvider 内部使用
  */
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
+  const t = useTranslations("Layout")
+  const tu = useTranslations("UserMenu")
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -88,7 +91,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   }, [])
 
   const userInfo = mounted ? getUserInfo() : null
-  const welcomeName = userInfo?.name || "管理员"
+  const welcomeName = userInfo?.name || tu("admin")
 
   // 登录页面布局
   if (isLoginPage) {
@@ -122,7 +125,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       <ErrorBoundary
         fallback={
           <div className="w-64 bg-slate-50 border-r border-slate-200 flex items-center justify-center h-full">
-            <p className="text-sm text-slate-500">侧边栏加载失败</p>
+            <p className="text-sm text-slate-500">{t("sidebarLoadError")}</p>
           </div>
         }
       >
@@ -145,7 +148,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             </div>
             <div className="h-6 w-px bg-slate-200" />
             <div>
-              <h2 className="text-sm font-medium text-slate-500">欢迎回来, {welcomeName}</h2>
+              <h2 className="text-sm font-medium text-slate-500">{t("welcomeBack", { name: welcomeName })}</h2>
             </div>
           </div>
 
@@ -157,11 +160,11 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 onClick={() => {
                   router.push('?modal=platform')
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-xl border border-primary/20 hover:bg-primary/20 transition-all active:scale-95"
-                title="平台组织管理"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-xl border border-primary/20 hover:bg-primary/20 transition-colors"
+                title={t("platformMgmt")}
               >
                 <ShieldCheck className="h-3.5 w-3.5" />
-                <span className="text-xs font-bold">平台</span>
+                <span className="text-xs font-bold">{t("platform")}</span>
               </button>
             )}
 
@@ -169,12 +172,14 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               <Link
                 href="?modal=settings"
                 scroll={false}
-                className="p-2 transition-all hover:bg-slate-100 rounded-xl text-slate-500 hover:text-primary active:scale-95 group relative"
-                title="系统设置"
+                className="p-2 hover:bg-slate-100 rounded-xl text-slate-500 hover:text-primary transition-colors group relative"
+                title={t("systemSettings")}
               >
                 <Settings className="h-5 w-5" />
               </Link>
             )}
+            <div className="w-px h-6 bg-slate-200 mx-1" />
+            <LanguageSwitcher />
             <div className="w-px h-6 bg-slate-200 mx-1" />
             <UserMenu />
           </div>
@@ -187,7 +192,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               <ShieldCheck className="h-4 w-4" />
             </div>
             <p className="text-sm font-medium text-amber-800">
-              当前处于<span className="font-bold">演示模式</span>：出于安全考虑，系统配置中的敏感信息（如 API Key）已自动脱敏，且部分修改操作可能受限。
+              {t.rich("demoModeMessage", {
+                 bold: (chunks) => <span className="font-bold">{chunks}</span>
+              })}
             </p>
           </div>
         )}

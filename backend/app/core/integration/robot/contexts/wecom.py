@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.common.i18n import _
 from app.core.integration.robot.crypto.wecom import WXBizXmlMsgCrypt
 from app.crud.site import crud_site
 
@@ -30,11 +31,11 @@ async def get_wecom_context(kind: str, site_id: int, db: AsyncSession) -> dict:
     """获取企业微信机器人配置上下文的通用依赖项"""
     meta = _WECOM_CONTEXT_META.get(kind)
     if not meta:
-        raise HTTPException(status_code=500, detail="未知的企业微信机器人类型")
+        raise HTTPException(status_code=500, detail=_("bot.unknown_wecom_type"))
 
     site = await crud_site.get(db, id=site_id)
     if not site or not site.bot_config:
-        raise HTTPException(status_code=404, detail="未找到对应的站点或配置")
+        raise HTTPException(status_code=404, detail=_("bot.site_config_not_found"))
 
     config = site.bot_config.get(meta["config_key"], {})
     if not config or not config.get("enabled"):

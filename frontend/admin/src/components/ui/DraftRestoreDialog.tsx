@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { FileText, Trash2, Clock } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 interface DraftRestoreDialogProps {
   open: boolean
@@ -41,6 +42,7 @@ export function DraftRestoreDialog({
   onDiscard,
   savedTimeAgo
 }: DraftRestoreDialogProps) {
+  const t = useTranslations("DraftRestore")
   return (
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent className="sm:max-w-md">
@@ -50,10 +52,10 @@ export function DraftRestoreDialog({
               <FileText className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <DialogTitle className="text-lg">发现未保存的草稿</DialogTitle>
+              <DialogTitle className="text-lg">{t("title")}</DialogTitle>
               <DialogDescription className="flex items-center gap-1 mt-1">
                 <Clock className="h-3 w-3" />
-                <span>保存于 {savedTimeAgo}</span>
+                <span>{t("savedAt", { time: savedTimeAgo })}</span>
               </DialogDescription>
             </div>
           </div>
@@ -61,7 +63,7 @@ export function DraftRestoreDialog({
 
         <div className="py-4">
           <p className="text-sm text-slate-600">
-            检测到您有未完成的编辑内容，是否恢复？
+            {t("message")}
           </p>
         </div>
 
@@ -72,14 +74,14 @@ export function DraftRestoreDialog({
             className="gap-2"
           >
             <Trash2 className="h-4 w-4" />
-            丢弃草稿
+            {t("discard")}
           </Button>
           <Button
             onClick={onRestore}
             className="gap-2"
           >
             <FileText className="h-4 w-4" />
-            恢复草稿
+            {t("restore")}
           </Button>
         </DialogFooter>
       </DialogContent>

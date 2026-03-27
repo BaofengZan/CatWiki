@@ -20,6 +20,7 @@
 "use client"
 
 import { useState } from "react"
+import { useTranslations } from 'next-intl'
 import { Bot, X, Send, User, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -38,9 +39,10 @@ export function ChatWidgetPreview({
   position,
   onClose,
 }: ChatWidgetPreviewProps) {
+  const t = useTranslations('ChatWidgetPreview')
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<{ role: "assistant" | "user"; content: string }[]>([
-    { role: "assistant", content: welcomeMessage || "您好！我是 AI 助手，有什么可以帮您？" },
+    { role: "assistant", content: welcomeMessage || t("defaultWelcome") },
   ])
   const [input, setInput] = useState("")
 
@@ -52,7 +54,7 @@ export function ChatWidgetPreview({
 
     // 模拟 AI 回复
     setTimeout(() => {
-      setMessages(prev => [...prev, { role: "assistant", content: "谢谢您的提问！这是一个预览演示。在实际部署后，我将整合您的知识库为您提供专业的解答。" }])
+      setMessages(prev => [...prev, { role: "assistant", content: t("previewReply") }])
     }, 1000)
   }
 
@@ -83,10 +85,10 @@ export function ChatWidgetPreview({
                   <Bot className="w-6 h-6" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-extrabold text-sm tracking-wide">{title || "AI 智能客服"}</span>
+                  <span className="font-extrabold text-sm tracking-wide">{title || t("defaultTitle")}</span>
                   <div className="flex items-center gap-1.5">
                     <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-                    <span className="text-[10px] text-white/80 font-medium tracking-tight">在线咨询中</span>
+                    <span className="text-[10px] text-white/80 font-medium tracking-tight">{t("online")}</span>
                   </div>
                 </div>
               </div>
@@ -102,7 +104,7 @@ export function ChatWidgetPreview({
           {/* 消息区域 - 优雅的滚动条和间距 */}
           <div className="flex-1 overflow-y-auto p-5 space-y-6 bg-gradient-to-b from-slate-50/50 to-white scrollbar-hide">
             <div className="text-center pb-2">
-              <span className="px-3 py-1 bg-slate-100/80 rounded-full text-[10px] text-slate-400 font-bold uppercase tracking-widest">今天</span>
+              <span className="px-3 py-1 bg-slate-100/80 rounded-full text-[10px] text-slate-400 font-bold uppercase tracking-widest">{t("today")}</span>
             </div>
 
             {messages.map((msg: { role: "assistant" | "user"; content: string }, i: number) => (
@@ -136,7 +138,7 @@ export function ChatWidgetPreview({
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder="键入您要咨询的内容..."
+                placeholder={t("inputPlaceholder")}
                 className="flex-1 bg-transparent border-none py-2 text-[13px] text-slate-800 placeholder:text-slate-400 focus:outline-none"
               />
               <button
@@ -172,7 +174,7 @@ export function ChatWidgetPreview({
           )} onClick={() => setIsOpen(true)}>
             <span className="flex items-center gap-2">
               <Sparkles size={14} className="text-amber-400 animate-pulse" />
-              有什么可以帮您？
+              {t("bubblePrompt")}
             </span>
           </div>
         )}
@@ -205,14 +207,14 @@ export function ChatWidgetPreview({
       )}>
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 bg-sky-400 rounded-full animate-ping"></div>
-          <span className="font-bold tracking-tight">预览模式</span>
+          <span className="font-bold tracking-tight">{t("previewMode")}</span>
         </div>
         <div className="w-px h-3 bg-white/20"></div>
         <button
           onClick={onClose}
           className="hover:text-sky-400 transition-colors flex items-center gap-1 font-medium"
         >
-          关闭
+          {t("close")}
           <X size={12} />
         </button>
       </div>

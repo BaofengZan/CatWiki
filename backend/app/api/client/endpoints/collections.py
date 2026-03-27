@@ -14,6 +14,7 @@
 
 from fastapi import APIRouter, Depends, Query
 
+from app.core.common.i18n import _
 from app.schemas.collection import CollectionTree
 from app.schemas.response import ApiResponse
 from app.services.collection_service import CollectionService, get_collection_service
@@ -39,4 +40,4 @@ async def get_collection_tree(
         tenant_id=tenant_id,
         status="published",
     )
-    return ApiResponse.ok(data=tree, msg="获取成功")
+    return ApiResponse.ok(data=tree, msg=_("api.success.get"))

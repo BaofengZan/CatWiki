@@ -19,6 +19,7 @@
 "use client"
 
 import { Badge } from "@/components/ui/badge"
+import { useTranslations } from "next-intl"
 import { LucideIcon } from "lucide-react"
 import type { ModelConfig } from "@/lib/api-client"
 
@@ -50,6 +51,7 @@ export function ModelConfigCard({
   isActive,
   onClick,
 }: ModelConfigCardProps) {
+  const t = useTranslations("Models")
   return (
     <button
       onClick={onClick}
@@ -78,7 +80,7 @@ export function ModelConfigCard({
                     : "bg-slate-100 text-slate-600 border-slate-200"
                 }`}
               >
-                {required ? "必选" : "可选"}
+                {required ? t("requiredStatus") : t("optionalStatus")}
               </Badge>
             </div>
             <p className="text-[10px] text-slate-400 uppercase tracking-wider">{subtitle}</p>
@@ -90,11 +92,11 @@ export function ModelConfigCard({
         <div className="flex items-center gap-2">
           <div className={`h-2 w-2 rounded-full ${isConfigured ? "bg-emerald-500" : "bg-slate-300"}`} />
           <span className="text-[10px] text-slate-400">
-            {isConfigured ? "已配置" : "未配置"}
+            {isConfigured ? t("configuredStatus") : t("notConfiguredStatus")}
           </span>
         </div>
         <Badge variant="secondary" className="text-[10px] bg-slate-100">
-          {config.provider || "未设置"}
+          {config.provider === "openai" || config.provider === "openai-compatible" ? "OpenAI Compatible" : (config.provider || t("notSet"))}
         </Badge>
       </div>
     </button>

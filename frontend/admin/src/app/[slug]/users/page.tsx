@@ -17,6 +17,7 @@
 import { LoadingState } from "@/components/ui/loading-state"
 import { EmptyState } from "@/components/ui/empty-state"
 
+import { useTranslations, useLocale } from "next-intl"
 import { useState } from "react"
 import {
   Table,
@@ -118,6 +119,8 @@ function parsePasswordResponse(data: unknown): { password: string } | null {
 }
 
 export default function UsersPage() {
+  const t = useTranslations('SiteUsers')
+  const locale = useLocale()
   const [page, setPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState("")
   const debouncedSearchTerm = useDebounce(searchTerm, 500)
@@ -194,7 +197,7 @@ export default function UsersPage() {
       managed_site_ids: newSites
     }, {
       onSuccess: () => {
-        toast.success(isManaged ? "已移除站点权限" : "已添加站点权限")
+        toast.success(isManaged ? t("sitePermissionRemoved") : t("sitePermissionAdded"))
       }
     })
   }
@@ -203,6 +206,8 @@ export default function UsersPage() {
     updateUserRoleMutation.mutate({
       userId,
       role: newRole
+    }, {
+      onSuccess: () => toast.success(t("roleUpdated"))
     })
   }
 
@@ -210,20 +215,26 @@ export default function UsersPage() {
     updateUserStatusMutation.mutate({
       userId,
       status
+    }, {
+      onSuccess: () => toast.success(t("statusUpdated"))
     })
   }
 
 
   const handleDeleteUser = async (userId: number, userName: string) => {
-    if (!confirm(`确定要删除用户"${userName}"吗？此操作无法撤销！`)) {
+    if (!confirm(t("deleteConfirm", { name: userName }))) {
       return
     }
 
-    deleteUserMutation.mutate(userId)
+    deleteUserMutation.mutate(userId, {
+      onSuccess: () => {
+        toast.success(t("deleteSuccess"))
+      }
+    })
   }
 
   const handleResetPassword = async (userId: number, userName: string, userEmail: string) => {
-    if (!confirm(`确定要重置用户"${userName}"的密码吗？`)) {
+    if (!confirm(t("resetConfirm", { name: userName }))) {
       return
     }
 
@@ -234,18 +245,18 @@ export default function UsersPage() {
           const { password } = parsed
           toast.success(
             <div className="space-y-2">
-              <div className="font-semibold">密码重置成功！</div>
+              <div className="font-semibold">{t("resetSuccess")}</div>
               <div className="text-sm">
-                <div>用户: {userName} ({userEmail})</div>
+                <div>{t("userColon")} {userName} ({userEmail})</div>
                 <div className="flex items-center gap-2 mt-1">
-                  <span>新密码: </span>
+                  <span>{t("newPassword")} </span>
                   <code className="px-2 py-1 bg-slate-800 text-white rounded font-mono text-xs">
                     {password}
                   </code>
                 </div>
               </div>
               <div className="text-xs text-muted-foreground mt-2">
-                请将此密码告知用户，建议用户尽快修改密码
+                {t("resetSuccessTip")}
               </div>
             </div>,
             { duration: 15000 }
@@ -257,7 +268,7 @@ export default function UsersPage() {
 
   const handleInvite = async () => {
     if (!inviteEmail) {
-      toast.error("请输入邮箱")
+      toast.error(t("errorEmail"))
       return
     }
 
@@ -273,18 +284,18 @@ export default function UsersPage() {
 
           toast.success(
             <div className="space-y-2">
-              <div className="font-semibold">用户创建成功！</div>
+              <div className="font-semibold">{t("createSuccess")}</div>
               <div className="text-sm">
-                <div>邮箱: {user.email}</div>
+                <div>{t("emailColon")} {user.email}</div>
                 <div className="flex items-center gap-2 mt-1">
-                  <span>临时密码: </span>
+                  <span>{t("tempPassword")} </span>
                   <code className="px-2 py-1 bg-slate-800 text-white rounded font-mono text-xs">
                     {password}
                   </code>
                 </div>
               </div>
               <div className="text-xs text-muted-foreground mt-2">
-                请将此密码告知用户，用户首次登录后应修改密码
+                {t("createSuccessTip")}
               </div>
             </div>,
             { duration: 10000 }
@@ -305,27 +316,27 @@ export default function UsersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">用户管理</h1>
-          <p className="text-slate-500 mt-2">在这里管理系统用户及其管理的站点权限。</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("title")}</h1>
+          <p className="text-muted-foreground mt-2">{t("description")}</p>
         </div>
 
         <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
           <DialogTrigger asChild>
             <Button className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              创建用户
+              {t("createUser")}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>创建用户</DialogTitle>
+              <DialogTitle>{t("createUser")}</DialogTitle>
               <DialogDescription>
-                创建新用户并分配角色和权限，系统将自动生成临时密码。
+                {t("createUserDesc")}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground/80">邮箱地址</label>
+                <label className="text-sm font-medium text-foreground/80">{t("emailLabel")}</label>
                 <Input
                   placeholder="user@example.com"
                   value={inviteEmail}
@@ -333,29 +344,29 @@ export default function UsersPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground/80">初始角色</label>
+                <label className="text-sm font-medium text-foreground/80">{t("roleLabel")}</label>
                 <Select value={inviteRole} onValueChange={(value) => setInviteRole(value as UserRole)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择角色" />
+                    <SelectValue placeholder={t("rolePlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
                     {isSystemAdmin && (
                       <>
-                        <SelectItem value={UserRole.ADMIN}>系统管理员</SelectItem>
-                        <SelectItem value={UserRole.SITE_ADMIN}>站点管理员</SelectItem>
+                        <SelectItem value={UserRole.ADMIN}>{t("roleSysAdmin")}</SelectItem>
+                        <SelectItem value={UserRole.SITE_ADMIN}>{t("roleSiteAdmin")}</SelectItem>
                       </>
                     )}
                   </SelectContent>
                 </Select>
                 <p className="text-[10px] text-muted-foreground">
-                  {inviteRole === UserRole.ADMIN && "拥有系统最高权限，可管理所有站点和全局设置。"}
-                  {inviteRole === UserRole.SITE_ADMIN && "可管理分配站点的所有内容和配置。"}
+                  {inviteRole === UserRole.ADMIN && t("roleSysAdminDesc")}
+                  {inviteRole === UserRole.SITE_ADMIN && t("roleSiteAdminDesc")}
                 </p>
               </div>
 
               {inviteRole !== 'admin' && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground/80">分配站点</label>
+                  <label className="text-sm font-medium text-foreground/80">{t("assignSites")}</label>
                   <div className="grid grid-cols-2 gap-2">
                     {siteList.map((site: { id: number; name: string }) => (
 
@@ -389,8 +400,8 @@ export default function UsersPage() {
               )}
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsInviteOpen(false)}>取消</Button>
-              <Button onClick={handleInvite} disabled={!inviteEmail}>创建用户</Button>
+              <Button variant="outline" onClick={() => setIsInviteOpen(false)}>{t("cancel")}</Button>
+              <Button onClick={handleInvite} disabled={!inviteEmail}>{t("createUser")}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -402,7 +413,7 @@ export default function UsersPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="搜索用户名或邮箱..."
+                placeholder={t("searchPlaceholder")}
                 className="pl-9"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -416,19 +427,19 @@ export default function UsersPage() {
           ) : users.length === 0 ? (
             <EmptyState
               icon={Users}
-              title="暂无用户"
-              description="该站点暂无用户，请尝试调整搜索条件或邀请新用户。"
+              title={t("empty")}
+              description={t("emptyDesc")}
             />
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>用户信息</TableHead>
-                  <TableHead>角色</TableHead>
-                  <TableHead>管理的站点</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead>最后登录</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
+                  <TableHead>{t("table.info")}</TableHead>
+                  <TableHead>{t("table.role")}</TableHead>
+                  <TableHead>{t("table.sites")}</TableHead>
+                  <TableHead>{t("table.status")}</TableHead>
+                  <TableHead>{t("table.lastLogin")}</TableHead>
+                  <TableHead className="text-right">{t("table.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -437,7 +448,7 @@ export default function UsersPage() {
                   <TableRow key={user.id} className="group hover:bg-muted/30 transition-colors">
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shadow-sm border border-primary/10 group-hover:scale-110 transition-transform duration-300 uppercase">
+                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shadow-sm border border-primary/10 uppercase">
                           {user.name.slice(0, 2)}
                         </div>
                         <div className="flex flex-col">
@@ -461,9 +472,9 @@ export default function UsersPage() {
                                 "bg-muted text-muted-foreground"
                         )}
                       >
-                        {user.role === UserRole.ADMIN ? "系统管理员" :
-                          user.role === UserRole.TENANT_ADMIN ? "组织管理员" :
-                            user.role === UserRole.SITE_ADMIN ? "站点管理员" : user.role}
+                        {user.role === UserRole.ADMIN ? t("roles.sysAdmin") :
+                          user.role === UserRole.TENANT_ADMIN ? t("roles.orgAdmin") :
+                            user.role === UserRole.SITE_ADMIN ? t("roles.siteAdmin") : user.role}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -475,24 +486,24 @@ export default function UsersPage() {
                             return (
                               <div key={siteId} className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-blue-500/5 border border-blue-500/10 text-blue-600">
                                 <Globe className="h-3 w-3 opacity-70" />
-                                <span className="text-[11px] font-semibold">{site?.name || `站点 ID: ${siteId}`}</span>
+                                <span className="text-[11px] font-semibold">{site?.name || t("siteIdFallback", { id: siteId })}</span>
                               </div>
                             )
                           })
                         ) : (
-                          <span className="text-xs text-muted-foreground/50 italic font-medium">未分配站点</span>
+                          <span className="text-xs text-muted-foreground/50 italic font-medium">{t("noSites")}</span>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant={user.status === "active" ? "success" : "outline"}>
-                        {user.status === "active" ? "正常" : user.status === "inactive" ? "禁用" : "待激活"}
+                        {user.status === "active" ? t("status.active") : user.status === "inactive" ? t("status.disabled") : t("status.pending")}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {user.last_login_at
-                        ? new Date(user.last_login_at).toLocaleString('zh-CN')
-                        : "从未登录"
+                        ? new Date(user.last_login_at).toLocaleString(locale)
+                        : t("neverLoggedIn")
                       }
                     </TableCell>
                     <TableCell className="text-right">
@@ -503,13 +514,13 @@ export default function UsersPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-56">
-                          <DropdownMenuLabel>管理权限</DropdownMenuLabel>
+                          <DropdownMenuLabel>{t("managePermissions")}</DropdownMenuLabel>
                           <DropdownMenuSeparator />
 
                           <DropdownMenuSub>
                             <DropdownMenuSubTrigger className="flex items-center gap-2 px-3 py-2 cursor-pointer">
                               <Shield className="h-4 w-4 text-muted-foreground" />
-                              <span>修改角色</span>
+                              <span>{t("changeRole")}</span>
                             </DropdownMenuSubTrigger>
                             <DropdownMenuPortal>
                               <DropdownMenuSubContent className="w-48">
@@ -519,14 +530,14 @@ export default function UsersPage() {
                                       onSelect={() => updateRole(user.id, UserRole.ADMIN)}
                                       className="flex items-center justify-between"
                                     >
-                                      <span>系统管理员</span>
+                                      <span>{t("roleSysAdmin")}</span>
                                       {user.role === UserRole.ADMIN && <Check className="h-4 w-4 text-primary" />}
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                       onSelect={() => updateRole(user.id, UserRole.SITE_ADMIN)}
                                       className="flex items-center justify-between"
                                     >
-                                      <span>站点管理员</span>
+                                      <span>{t("roleSiteAdmin")}</span>
                                       {user.role === UserRole.SITE_ADMIN && <Check className="h-4 w-4 text-primary" />}
                                     </DropdownMenuItem>
                                   </>
@@ -537,7 +548,7 @@ export default function UsersPage() {
 
                           <DropdownMenuSeparator />
                           <div className="p-2">
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2 px-2">分配站点</p>
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2 px-2">{t("assignSitesAction")}</p>
                             {siteList.map((site: { id: number; name: string }) => (
 
                               <DropdownMenuItem
@@ -563,25 +574,25 @@ export default function UsersPage() {
                             onSelect={() => handleResetPassword(user.id, user.name, user.email)}
                           >
                             <KeyRound className="h-4 w-4 text-blue-500" />
-                            <span>重置密码</span>
+                            <span>{t("resetPassword")}</span>
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-orange-600"
                             onSelect={() => {
                               const newStatus = user.status === UserStatus.ACTIVE ? UserStatus.INACTIVE : UserStatus.ACTIVE
-                              if (confirm(`确定要${newStatus === UserStatus.INACTIVE ? '禁用' : '启用'}该账户吗？`)) {
+                              if (confirm(newStatus === UserStatus.INACTIVE ? t("disableConfirm") : t("enableConfirm"))) {
                                 updateStatus(user.id, newStatus)
                               }
                             }}
                           >
-                            {user.status === UserStatus.ACTIVE ? '禁用该账户' : '启用该账户'}
+                            {user.status === UserStatus.ACTIVE ? t("disableAccount") : t("enableAccount")}
                           </DropdownMenuItem>
 
                           <DropdownMenuItem
                             className="text-red-600"
                             onSelect={() => handleDeleteUser(user.id, user.name)}
                           >
-                            删除用户
+                            {t("deleteUser")}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

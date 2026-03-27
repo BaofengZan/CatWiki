@@ -23,6 +23,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.common.auth import decode_access_token
+from app.core.common.i18n import _
 from app.core.infra.config import settings
 from app.core.infra.rustfs import RustFSService, get_rustfs_service
 from app.core.web.exceptions import NotFoundException, UnauthorizedException
@@ -111,26 +112,26 @@ async def get_current_user(
     # 解码 token
     payload = decode_access_token(token)
     if payload is None:
-        raise UnauthorizedException(detail="无效的 token")
+        raise UnauthorizedException(detail=_("auth.invalid_token"))
 
     # 从 token 中获取用户ID
     user_id_str = payload.get("sub")
     if user_id_str is None:
-        raise UnauthorizedException(detail="token 中缺少用户信息")
+        raise UnauthorizedException(detail=_("auth.missing_user_info"))
 
     try:
         user_id = int(user_id_str)
     except (ValueError, TypeError):
-        raise UnauthorizedException(detail="无效的用户ID")
+        raise UnauthorizedException(detail=_("auth.invalid_user_id"))
 
     # 从数据库获取用户
     user = await crud_user.get(db, id=user_id)
     if user is None:
-        raise UnauthorizedException(detail="用户不存在")
+        raise UnauthorizedException(detail=_("auth.user_not_found"))
 
     # 检查用户状态
     if user.status != UserStatus.ACTIVE:
-        raise UnauthorizedException(detail="用户已被禁用")
+        raise UnauthorizedException(detail=_("auth.user_disabled"))
 
     return user
 
@@ -255,7 +256,7 @@ async def get_current_user_with_tenant(
                     logger.warning(
                         f"🚫 [DemoMode] Auto-blocked {request.method} {path} for tenant_id={tenant_id}"
                     )
-                    raise BadRequestException(detail="当前处于演示模式，暂不支持此操作")
+                    raise BadRequestException(detail=_("auth.demo_mode"))
 
     return current_user
 
@@ -307,7 +308,7 @@ async def get_valid_site(
     """
     site = await crud_site.get(db, id=site_id)
     if not site:
-        raise NotFoundException(detail=f"站点 {site_id} 不存在")
+        raise NotFoundException(detail=_("site.not_found", id=site_id))
     return site
 
 

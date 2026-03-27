@@ -18,6 +18,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.core.common.i18n import _
 from app.schemas.chat_session import (
     ChatSessionListResponse,
     ChatSessionMessagesResponse,
@@ -87,7 +88,7 @@ async def get_session(
     session = await service.get_session_by_thread_id(thread_id=thread_id)
 
     if not session:
-        raise HTTPException(status_code=404, detail="会话不存在")
+        raise HTTPException(status_code=404, detail=_("session.not_found"))
 
     return ApiResponse.ok(data=ChatSessionResponse.model_validate(session))
 
@@ -131,6 +132,6 @@ async def delete_session(
     success = await service.delete_session_by_thread_id(thread_id=thread_id)
 
     if not success:
-        raise HTTPException(status_code=404, detail="会话不存在")
+        raise HTTPException(status_code=404, detail=_("session.not_found"))
 
     return ApiResponse.ok(data={"message": "会话已删除", "thread_id": thread_id})

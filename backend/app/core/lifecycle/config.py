@@ -72,7 +72,7 @@ async def sync_ai_config_to_db():
 
         ai_config = {
             "chat": {
-                "provider": "openai",
+                "provider": "openai-compatible",
                 "model": settings.AI_CHAT_MODEL or "",
                 "api_key": settings.AI_CHAT_API_KEY or "",
                 "base_url": settings.AI_CHAT_API_BASE or "",
@@ -80,7 +80,7 @@ async def sync_ai_config_to_db():
                 "mode": "custom",
             },
             "embedding": {
-                "provider": "openai",
+                "provider": "openai-compatible",
                 "model": settings.AI_EMBEDDING_MODEL or "",
                 "api_key": settings.AI_EMBEDDING_API_KEY or "",
                 "base_url": settings.AI_EMBEDDING_API_BASE or "",
@@ -88,14 +88,14 @@ async def sync_ai_config_to_db():
                 "mode": "custom",
             },
             "rerank": {
-                "provider": "openai",
+                "provider": "openai-compatible",
                 "model": settings.AI_RERANK_MODEL or "",
                 "api_key": settings.AI_RERANK_API_KEY or "",
                 "base_url": settings.AI_RERANK_API_BASE or "",
                 "mode": "custom",
             },
             "vl": {
-                "provider": "openai",
+                "provider": "openai-compatible",
                 "model": settings.AI_VL_MODEL or "",
                 "api_key": settings.AI_VL_API_KEY or "",
                 "base_url": settings.AI_VL_API_BASE or "",
@@ -131,8 +131,10 @@ async def sync_ai_config_to_db():
                     db, config_key=key, config_value=value, tenant_id=tenant_id
                 )
 
+            await db.commit()
             logger.info("📡 [同步] 已成功将环境变量中的 AI 配置加载到独立数据库 Key。")
         except Exception as e:
+            await db.rollback()
             logger.error(f"❌ [同步失败] 无法将 AI 配置同步到数据库: {e}")
 
 
@@ -222,8 +224,10 @@ async def sync_doc_processor_config_to_db():
                 config_value=config_value,
                 tenant_id=tenant_id,
             )
+            await db.commit()
             logger.info("📡 [同步] 已成功将环境变量中的文档解析配置加载到数据库。")
         except Exception as e:
+            await db.rollback()
             logger.error(f"❌ [同步失败] 无法将文档解析配置同步到数据库: {e}")
 
 

@@ -8,6 +8,7 @@ from fastapi import BackgroundTasks, Depends, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.common.document_utils import build_collection_map, enrich_document_dict
+from app.core.common.i18n import _
 from app.core.common.utils import NAMESPACE_CATWIKI, Paginator
 from app.core.infra.tenant import get_current_tenant, temporary_tenant_context
 from app.core.vector.vector_store import VectorStoreManager
@@ -166,16 +167,16 @@ class DocumentService:
             await v_mgr.validate_config(tenant_id=active_tenant_id)
         except Exception as e:
             logger.warning(f"⚠️ 导入文档前配置检查失败: {e}")
-            raise BadRequestException(detail=f"导入失败：{str(e)}")
+            raise BadRequestException(detail=_("doc.import_failed", error=str(e)))
 
         site = await crud_site.get(self.db, id=site_id)
         if not site:
-            raise BadRequestException(detail=f"站点 {site_id} 不存在")
+            raise BadRequestException(detail=_("doc.site_not_found", id=site_id))
 
         filename = file.filename or "unknown"
         suffix = Path(filename).suffix.lower()
         if suffix not in [".pdf", ".jpg", ".jpeg", ".png"]:
-            raise BadRequestException(detail="目前仅支持 PDF 和图片文件")
+            raise BadRequestException(detail=_("doc.unsupported_format"))
 
         # 2. 获取处理器配置 (显式获取，mask=False 以带上真实 API Key 到后台任务)
         processor_config_list = await self.system_config_service.get_doc_processor_config(
@@ -186,12 +187,12 @@ class DocumentService:
             None,
         )
         if not target_processor_config:
-            raise BadRequestException(detail=f"处理器 {processor_type} 未配置或无效")
+            raise BadRequestException(detail=_("doc.processor_invalid", type=processor_type))
 
         # 3. 准备上传至 RustFS 暂存区 (云端共享，解耦存储)
         rustfs = get_rustfs_service()
         if not rustfs.is_available():
-            raise BadRequestException(detail="云端存储服务不可用，无法处理文档导入")
+            raise BadRequestException(detail=_("doc.storage_unavailable"))
 
         object_name = f"temp_imports/{uuid.uuid4()}{suffix}"
         file_content = await file.read()
@@ -307,7 +308,7 @@ class DocumentService:
                 status=VectorStatus.FAILED,
                 error=f"配置缺失: {error_msg}",
             )
-            raise BadRequestException(detail=f"学习失败：{error_msg}")
+            raise BadRequestException(detail=_("doc.learn_failed", error=error_msg))
 
         for doc_id in success_ids:
             # 使用新的任务系统分发向量化任务
@@ -398,7 +399,7 @@ class DocumentService:
         """获取文档详情"""
         document = await crud_document.get_with_related_site(self.db, id=document_id)
         if not document:
-            raise NotFoundException(detail=f"文档 {document_id} 不存在")
+            raise NotFoundException(detail=_("doc.not_found", id=document_id))
         return await enrich_document_dict(
             document, self.db, crud_collection, include_site_info=True
         )
@@ -408,7 +409,7 @@ class DocumentService:
         """创建文档"""
         site = await crud_site.get(self.db, id=document_in.site_id)
         if not site:
-            raise BadRequestException(detail=f"站点 {document_in.site_id} 不存在")
+            raise BadRequestException(detail=_("doc.site_not_found", id=document_in.site_id))
 
         # 执行关键操作
         document = await crud_document.create(self.db, obj_in=document_in)
@@ -423,7 +424,7 @@ class DocumentService:
         """更新文档"""
         document = await crud_document.get(self.db, id=document_id)
         if not document:
-            raise NotFoundException(detail=f"文档 {document_id} 不存在")
+            raise NotFoundException(detail=_("doc.not_found", id=document_id))
 
         document = await crud_document.update(self.db, db_obj=document, obj_in=document_in)
         return await enrich_document_dict(document, self.db, crud_collection)
@@ -433,7 +434,7 @@ class DocumentService:
         """删除文档"""
         doc = await crud_document.get(self.db, id=document_id)
         if not doc:
-            raise NotFoundException(detail=f"文档 {document_id} 不存在")
+            raise NotFoundException(detail=_("doc.not_found", id=document_id))
 
         site_id = doc.site_id
 
@@ -462,7 +463,7 @@ class DocumentService:
         """手动清空文档向量数据"""
         doc = await crud_document.get(self.db, id=document_id)
         if not doc:
-            raise NotFoundException(detail=f"文档 {document_id} 不存在")
+            raise NotFoundException(detail=_("doc.not_found", id=document_id))
 
         # 注册提交后回调执行向量删除
         from app.db.transaction import on_commit
@@ -478,7 +479,7 @@ class DocumentService:
         """获取文档切片"""
         document = await crud_document.get(self.db, id=document_id)
         if not document:
-            raise NotFoundException(detail=f"文档 {document_id} 不存在")
+            raise NotFoundException(detail=_("doc.not_found", id=document_id))
 
         try:
             vector_store = await VectorStoreManager.get_instance()
@@ -494,18 +495,16 @@ class DocumentService:
         """为单个文档触发向量化（返回文档详情字典）"""
         document = await crud_document.get(self.db, id=document_id)
         if not document:
-            raise NotFoundException(detail=f"文档 {document_id} 不存在")
+            raise NotFoundException(detail=_("doc.not_found", id=document_id))
 
         # 使用已有的批量分发逻辑
-        success_ids, _ = await self.dispatch_vectorization_tasks(
+        success_ids, _skipped = await self.dispatch_vectorization_tasks(
             background_tasks, [document_id], current_username
         )
 
         if not success_ids:
             # 说明不可向量化 (can_vectorize 返回 False)
-            raise BadRequestException(
-                detail=f"文档当前状态为 {document.vector_status}，无法重新学习"
-            )
+            raise BadRequestException(detail=_("doc.cannot_relearn", status=document.vector_status))
 
         # 重新获取文档以返回最新状态
         document = await crud_document.get(self.db, id=document_id)
@@ -522,7 +521,7 @@ class DocumentService:
         """获取已发布文档详情（客户端，增加浏览量）"""
         document = await crud_document.get_with_related_site(self.db, id=document_id)
         if not document or document.status != DocumentStatus.PUBLISHED:
-            raise NotFoundException(detail=f"文档 {document_id} 不存在")
+            raise NotFoundException(detail=_("doc.not_found", id=document_id))
 
         # 自动增加浏览量并记录浏览事件
         document = await crud_document.increment_views(

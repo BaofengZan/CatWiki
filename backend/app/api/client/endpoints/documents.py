@@ -14,6 +14,7 @@
 
 from fastapi import APIRouter, Depends, Query, Request
 
+from app.core.common.i18n import _
 from app.schemas.document import Document
 from app.schemas.response import ApiResponse, PaginatedResponse
 from app.services.document_service import DocumentService, get_document_service
@@ -57,7 +58,7 @@ async def list_published_documents(
             list=enriched_docs,
             pagination=paginator.to_pagination_info(),
         ),
-        msg="获取成功",
+        msg=_("api.success.get"),
     )
 
 
@@ -76,4 +77,4 @@ async def get_document(
     referer = request.headers.get("referer")
 
     document_dict = await service.get_client_document(document_id, ip_address, user_agent, referer)
-    return ApiResponse.ok(data=document_dict, msg="获取成功")
+    return ApiResponse.ok(data=document_dict, msg=_("api.success.get"))

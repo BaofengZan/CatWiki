@@ -3,6 +3,7 @@ import logging
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.common.i18n import _
 from app.core.common.masking import mask_bot_config_inplace
 from app.core.common.utils import Paginator, generate_token
 from app.core.infra.cache import cached, get_cache
@@ -61,9 +62,7 @@ class SiteService:
             app_id = (feishu.get("app_id") or "").strip()
             app_secret = (feishu.get("app_secret") or "").strip()
             if not app_id or not app_secret:
-                raise BadRequestException(
-                    detail="启用飞书机器人时，App ID 和 App Secret 均不能为空。"
-                )
+                raise BadRequestException(detail=_("bot.feishu_missing_config"))
 
         dingtalk = bot_config.get("dingtalk_app") or {}
         if not dingtalk.get("enabled"):
@@ -72,16 +71,12 @@ class SiteService:
         client_secret = (dingtalk.get("client_secret") or "").strip()
         template_id = (dingtalk.get("template_id") or "").strip()
         if not client_id or not client_secret or not template_id:
-            raise BadRequestException(
-                detail="启用钉钉机器人时，Client ID、Client Secret、模板 ID 均不能为空。"
-            )
+            raise BadRequestException(detail=_("bot.dingtalk_missing_config"))
 
         wecom_smart = bot_config.get("wecom_smart") or {}
         if wecom_smart.get("enabled"):
             if not wecom_smart.get("bot_id") or not wecom_smart.get("secret"):
-                raise BadRequestException(
-                    detail="启用企业微信智能机器人时，Bot ID 和 Secret 不能为空。"
-                )
+                raise BadRequestException(detail=_("bot.wecom_smart_missing_config"))
 
         wecom_kefu = bot_config.get("wecom_kefu") or {}
         if wecom_kefu.get("enabled"):
@@ -91,9 +86,7 @@ class SiteService:
                 or not wecom_kefu.get("token")
                 or not wecom_kefu.get("encoding_aes_key")
             ):
-                raise BadRequestException(
-                    detail="启用企业微信客服时，企业 ID、Secret、Token 和 Encoding AES Key 均不能为空。"
-                )
+                raise BadRequestException(detail=_("bot.wecom_kf_missing_config"))
 
         wecom_app = bot_config.get("wecom_app") or {}
         if wecom_app.get("enabled"):
@@ -103,9 +96,7 @@ class SiteService:
                 or not wecom_app.get("token")
                 or not wecom_app.get("encoding_aes_key")
             ):
-                raise BadRequestException(
-                    detail="启用企业微信机器人(应用)时，企业 ID、Secret、Token 和 Encoding AES Key 均不能为空。"
-                )
+                raise BadRequestException(detail=_("bot.wecom_app_missing_config"))
 
     @transactional()
     async def list_sites(
@@ -132,7 +123,7 @@ class SiteService:
         """获取站点详情"""
         site = await crud_site.get_with_tenant(self.db, id=site_id)
         if not site:
-            raise NotFoundException(detail=f"站点 {site_id} 不存在")
+            raise NotFoundException(detail=_("site.not_found", id=site_id))
 
         if is_demo:
             if site.bot_config:
@@ -146,7 +137,7 @@ class SiteService:
         """通过 slug 获取站点详情"""
         site = await crud_site.get_by_slug_with_tenant(self.db, slug=slug)
         if not site:
-            raise NotFoundException(detail=f"站点 {slug} 不存在")
+            raise NotFoundException(detail=_("site.not_found", id=slug))
 
         if is_demo:
             if site.bot_config:
@@ -160,13 +151,13 @@ class SiteService:
         # 检查名称是否已存在
         existing = await crud_site.get_by_name(self.db, name=site_in.name)
         if existing:
-            raise ConflictException(detail=f"站点名称 '{site_in.name}' 已存在")
+            raise ConflictException(detail=_("site.name_exists", name=site_in.name))
 
         # 检查标识是否已存在
         if site_in.slug:
             existing_slug = await crud_site.get_by_slug(self.db, slug=site_in.slug)
             if existing_slug:
-                raise ConflictException(detail=f"标识 '{site_in.slug}' 已存在")
+                raise ConflictException(detail=_("site.slug_exists", slug=site_in.slug))
 
         # 处理机器人配置：如果启用 API Bot 且没填 Key，自动生成一个
         if site_in.bot_config:
@@ -188,9 +179,7 @@ class SiteService:
             if not existing_user:
                 admin_password = (site_in.admin_password or "").strip()
                 if not admin_password:
-                    raise BadRequestException(
-                        detail="提供管理员邮箱时，必须同时提供管理员密码（至少 8 位）。"
-                    )
+                    raise BadRequestException(detail=_("site.admin_password_required"))
 
         # 初始化站点及其管理员
         site = await crud_site.create(self.db, obj_in=site_in)
@@ -240,24 +229,25 @@ class SiteService:
         cache = get_cache()
         await cache.delete_by_prefix("service:sites:client_list")
         await cache.delete_by_prefix("service:sites:client_detail")
+        await cache.delete_by_prefix("site:active:")
 
     @transactional()
     async def update_site(self, site_id: int, site_in: SiteUpdate) -> SiteModel:
         site = await crud_site.get(self.db, id=site_id)
         if not site:
-            raise NotFoundException(detail=f"站点 {site_id} 不存在")
+            raise NotFoundException(detail=_("site.not_found", id=site_id))
 
         # 检查名称冲突
         if site_in.name:
             existing = await crud_site.get_by_name(self.db, name=site_in.name)
             if existing and existing.id != site_id:
-                raise ConflictException(detail=f"站点名称 '{site_in.name}' 已存在")
+                raise ConflictException(detail=_("site.name_exists", name=site_in.name))
 
         # 检查标识冲突
         if site_in.slug:
             existing_slug = await crud_site.get_by_slug(self.db, slug=site_in.slug)
             if existing_slug and existing_slug.id != site_id:
-                raise ConflictException(detail=f"标识 '{site_in.slug}' 已存在")
+                raise ConflictException(detail=_("site.slug_exists", slug=site_in.slug))
 
         # 处理机器人配置：如果启用 API Bot 且没填 Key，尝试沿用旧的或生成新的
         if site_in.bot_config:
@@ -292,7 +282,7 @@ class SiteService:
         """删除站点及其关联数据"""
         success = await crud_site.remove_with_relationships(self.db, id=site_id)
         if not success:
-            raise NotFoundException(detail=f"站点 {site_id} 不存在")
+            raise NotFoundException(detail=_("site.not_found", id=site_id))
 
         # 注册提交后回调
         from app.db.transaction import on_commit
@@ -330,7 +320,7 @@ class SiteService:
         """获取激活的站点详情（客户端）"""
         site = await crud_site.get_active(self.db, site_id=site_id, slug=slug)
         if not site:
-            raise NotFoundException(detail=f"站点 {site_id or slug} 不存在")
+            raise NotFoundException(detail=_("site.not_found", id=site_id or slug))
 
         return site
 
@@ -342,13 +332,13 @@ class SiteService:
         if not site:
             from app.core.web.exceptions import HTTPException
 
-            raise HTTPException(status_code=401, detail="无效的 API 密钥")
+            raise HTTPException(status_code=401, detail=_("site.invalid_api_key"))
 
         # 状态校验：检查站点是否被管理员禁用
         if site.status != "active":
             from app.core.web.exceptions import HTTPException
 
-            raise HTTPException(status_code=403, detail="该站点已被禁用")
+            raise HTTPException(status_code=403, detail=_("site.disabled"))
 
         return site
 
@@ -357,4 +347,5 @@ def get_site_service(
     db: AsyncSession = Depends(get_db),
 ) -> SiteService:
     """获取 SiteService 实例的依赖注入函数"""
+    return SiteService(db)
     return SiteService(db)

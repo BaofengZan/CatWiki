@@ -21,6 +21,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends
 
+from app.core.common.i18n import _
 from app.core.web.deps import get_current_user_with_tenant
 from app.models.user import User
 from app.schemas.response import ApiResponse
@@ -56,7 +57,7 @@ async def get_ai_config(
 
     return ApiResponse.ok(
         data=AIConfigResponse(**full_state),
-        msg="获取成功",
+        msg=_("api.success.get"),
     )
 
 
@@ -79,7 +80,7 @@ async def update_ai_config(
 
     return ApiResponse.ok(
         data=AIConfigResponse(**full_state),
-        msg="保存成功",
+        msg=_("api.success.save"),
     )
 
 
@@ -103,7 +104,7 @@ async def delete_config(
 
     await service.delete_config(config_key, target_tenant_id)
 
-    return ApiResponse.ok(data={"deleted": True}, msg="配置删除成功")
+    return ApiResponse.ok(data={"deleted": True}, msg=_("config.delete_success"))
 
 
 @router.post(
@@ -131,7 +132,7 @@ async def test_model_connection(
     result = await service.test_model_connection(
         target_tenant_id, request.model_type, request.config
     )
-    return ApiResponse.ok(data=result, msg="连接成功")
+    return ApiResponse.ok(data=result, msg=_("api.success.connect"))
 
 
 # ============ 文档处理服务配置端点 ============
@@ -151,7 +152,7 @@ async def get_doc_processor_config(
     target_tenant_id = service.resolve_target_tenant_id(scope)
 
     response_val = await service.get_doc_processor_config(target_tenant_id, scope)
-    return ApiResponse.ok(data=DocProcessorResponse(**response_val), msg="获取成功")
+    return ApiResponse.ok(data=DocProcessorResponse(**response_val), msg=_("api.success.get"))
 
 
 @router.put(
@@ -175,7 +176,7 @@ async def update_doc_processor_config(
     # 2. 重新加载最新全量配置 (含 origin 标记)
     response_val = await service.get_doc_processor_config(target_tenant_id, scope)
 
-    return ApiResponse.ok(data=DocProcessorResponse(**response_val), msg="保存成功")
+    return ApiResponse.ok(data=DocProcessorResponse(**response_val), msg=_("api.success.save"))
 
 
 @router.post(
@@ -200,4 +201,4 @@ async def test_doc_processor_connection(
     )
 
     result = await service.test_doc_processor_connection(target_tenant_id, request.config)
-    return ApiResponse.ok(data=result, msg="连接成功")
+    return ApiResponse.ok(data=result, msg=_("api.success.connect"))

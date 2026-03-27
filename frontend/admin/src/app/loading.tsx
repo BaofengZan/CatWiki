@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { Loader2 } from "lucide-react"
+
 export default function Loading() {
   return (
     <div className="flex items-center justify-center min-h-screen">
       <div className="flex flex-col items-center gap-3">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <div className="text-slate-500">加载中...</div>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     </div>
   )

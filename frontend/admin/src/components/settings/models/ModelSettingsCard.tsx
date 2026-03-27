@@ -20,6 +20,7 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
+import { useTranslations } from "next-intl"
 import { CircuitBoard } from "lucide-react"
 import { ManualModeConfig } from "./ManualModeConfig"
 import { ShieldCheck } from "lucide-react"
@@ -33,6 +34,7 @@ interface ModelSettingsCardProps {
 }
 
 export function ModelSettingsCard({ onSelectModel, activeTab }: ModelSettingsCardProps) {
+  const t = useTranslations("Models")
 
   return (
     <div className="space-y-6">
@@ -42,14 +44,14 @@ export function ModelSettingsCard({ onSelectModel, activeTab }: ModelSettingsCar
             <CircuitBoard className="h-6 w-6" />
           </div>
           <div className="space-y-1">
-            <h2 className="text-xl font-bold tracking-tight text-slate-900">模型配置</h2>
-            <p className="text-sm text-slate-500 font-medium">配置您的 AI 模型参数 (基于 OpenAI 兼容协议)。</p>
+            <h2 className="text-xl font-bold tracking-tight text-slate-900">{t("title")}</h2>
+            <p className="text-sm text-slate-500 font-medium">{t("description")}</p>
           </div>
         </div>
       </div>
 
 
-      <Card className="border-border/60 shadow-md rounded-2xl min-h-[500px] overflow-hidden">
+      <Card className="border-border/60 min-h-[500px] overflow-hidden">
         <CardContent className="pt-6">
           <ManualModeConfig onSelectModel={onSelectModel} activeTab={activeTab} />
         </CardContent>

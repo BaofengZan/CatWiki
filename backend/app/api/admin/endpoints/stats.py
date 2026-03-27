@@ -18,6 +18,7 @@
 
 from fastapi import APIRouter, Depends, Query
 
+from app.core.common.i18n import _
 from app.core.web.deps import get_current_user_with_tenant
 from app.models.user import User
 from app.schemas.response import ApiResponse
@@ -42,4 +43,4 @@ async def get_site_stats(
 
     stats = await service.get_site_stats(site_id=site_id)
 
-    return ApiResponse.ok(data=SiteStats(**stats), msg="获取成功")
+    return ApiResponse.ok(data=SiteStats(**stats), msg=_("api.success.get"))

@@ -22,7 +22,7 @@ interface LoadingStateProps {
 }
 
 export function LoadingState({
-  text = "加载中...",
+  text = "Loading...",
   className,
   spinnerClassName
 }: LoadingStateProps) {

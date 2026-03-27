@@ -17,6 +17,7 @@ import logging
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.common.i18n import _
 from app.core.common.utils import Paginator
 from app.core.web.exceptions import (
     BadRequestException,
@@ -131,9 +132,9 @@ class CollectionService:
         """获取合集详情"""
         collection = await crud_collection.get(self.db, id=collection_id)
         if not collection:
-            raise NotFoundException(detail=f"合集 {collection_id} 不存在")
+            raise NotFoundException(detail=_("collection.not_found", id=collection_id))
         if tenant_id is not None and collection.tenant_id != tenant_id:
-            raise ForbiddenException(detail="无权访问该租户的合集")
+            raise ForbiddenException(detail=_("collection.no_tenant_access"))
         return collection
 
     @transactional()
@@ -147,14 +148,14 @@ class CollectionService:
         """
         site = await crud_site.get(self.db, id=collection_in.site_id)
         if not site:
-            raise BadRequestException(detail=f"站点 {collection_in.site_id} 不存在")
+            raise BadRequestException(detail=_("doc.site_not_found", id=collection_in.site_id))
 
         if collection_in.parent_id:
             parent = await self.get_collection(
                 collection_id=collection_in.parent_id, tenant_id=tenant_id
             )
             if parent.site_id != collection_in.site_id:
-                raise BadRequestException(detail="父合集必须属于同一站点")
+                raise BadRequestException(detail=_("collection.parent_must_same_site"))
 
         # 确保包含 tenant_id
         obj_in_dict = collection_in.model_dump()
@@ -177,13 +178,13 @@ class CollectionService:
 
         if collection_in.parent_id:
             if collection_in.parent_id == collection_id:
-                raise BadRequestException(detail="不能将合集设置为自己的子合集")
+                raise BadRequestException(detail=_("collection.cannot_set_self_child"))
 
             parent = await self.get_collection(
                 collection_id=collection_in.parent_id, tenant_id=tenant_id
             )
             if parent.site_id != collection.site_id:
-                raise BadRequestException(detail="父合集必须属于同一站点")
+                raise BadRequestException(detail=_("collection.parent_must_same_site"))
 
         return await crud_collection.update(self.db, db_obj=collection, obj_in=collection_in)
 
@@ -192,7 +193,7 @@ class CollectionService:
         """
         删除合集（带级联检查）
         """
-        _ = await self.get_collection(collection_id=collection_id, tenant_id=tenant_id)
+        await self.get_collection(collection_id=collection_id, tenant_id=tenant_id)
 
         collection_ids = await crud_collection.get_descendant_ids(
             self.db, collection_id=collection_id
@@ -201,11 +202,11 @@ class CollectionService:
             self.db, collection_ids=collection_ids, skip=0, limit=1
         )
         if documents:
-            raise BadRequestException(detail="无法删除合集，该合集下还有文档。")
+            raise BadRequestException(detail=_("collection.has_documents"))
 
         children = await crud_collection.list(self.db, parent_id=collection_id)
         if children:
-            raise BadRequestException(detail="无法删除合集，该合集下还有子合集。")
+            raise BadRequestException(detail=_("collection.has_children"))
 
         await crud_collection.delete(self.db, id=collection_id)
 
@@ -226,19 +227,19 @@ class CollectionService:
 
         if target_parent_id is not None:
             if target_parent_id == collection_id:
-                raise BadRequestException(detail="不能将合集移动到自己下面")
+                raise BadRequestException(detail=_("collection.cannot_move_to_self"))
 
             target_parent = await self.get_collection(
                 collection_id=target_parent_id, tenant_id=tenant_id
             )
             if target_parent.site_id != site_id:
-                raise BadRequestException(detail="目标父合集必须属于同一站点")
+                raise BadRequestException(detail=_("collection.target_must_same_site"))
 
             descendant_ids = await crud_collection.get_descendant_ids(
                 self.db, collection_id=collection_id
             )
             if target_parent_id in descendant_ids:
-                raise BadRequestException(detail="不能将合集移动到自己的后代节点下")
+                raise BadRequestException(detail=_("collection.cannot_move_to_descendant"))
 
         siblings = await crud_collection.list(self.db, site_id=site_id, parent_id=target_parent_id)
         siblings = [s for s in siblings if s.id != collection_id]

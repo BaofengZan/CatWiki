@@ -64,6 +64,14 @@ export function useAutosave(
     if (!enabled) return
 
     const currentData = dataRef.current
+
+    // 没有实际内容时不保存
+    const hasContent = currentData.title?.trim() || currentData.content?.trim() || currentData.summary?.trim()
+    if (!hasContent) {
+      setIsSaving(false)
+      return
+    }
+
     const draftData: DraftData = {
       ...currentData,
       savedAt: Date.now()
@@ -113,6 +121,17 @@ export function useAutosave(
       }
     }
   }, [dataString, delay, enabled, saveDraft]) // 依赖 dataString
+
+  // 页面离开时立即保存未完成的草稿
+  useEffect(() => {
+    const handleBeforeUnload = () => saveDraft()
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      // 组件卸载时也立即保存
+      saveDraft()
+    }
+  }, [saveDraft])
 
   // 清除草稿
   const clearDraft = useCallback(() => {

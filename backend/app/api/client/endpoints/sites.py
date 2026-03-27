@@ -14,7 +14,7 @@
 
 from fastapi import APIRouter, Depends, Query
 
-from app.core.infra.cache import cached
+from app.core.common.i18n import _
 from app.schemas.response import ApiResponse, PaginatedResponse
 from app.schemas.site import ClientSite
 from app.services.site_service import SiteService, get_site_service
@@ -47,29 +47,27 @@ async def list_active_sites(
             list=client_sites,
             pagination=paginator.to_pagination_info(),
         ),
-        msg="获取成功",
+        msg=_("api.success.get"),
     )
 
 
 @router.get(
     ":bySlug/{slug}", response_model=ApiResponse[ClientSite], operation_id="getClientSiteBySlug"
 )
-@cached(ttl=10, key_prefix="client:site:slug")  # 降低缓存时间到 10 秒
 async def get_site_by_slug(
     slug: str,
     service: SiteService = Depends(get_site_service),
 ) -> ApiResponse[ClientSite]:
     """通过 slug 获取站点详情（客户端）"""
     client_site = await service.get_client_site(slug=slug)
-    return ApiResponse.ok(data=client_site, msg="获取成功")
+    return ApiResponse.ok(data=client_site, msg=_("api.success.get"))
 
 
 @router.get("/{site_id}", response_model=ApiResponse[ClientSite], operation_id="getClientSite")
-@cached(ttl=10, key_prefix="client:site:id")  # 降低缓存时间到 10 秒
 async def get_site(
     site_id: int,
     service: SiteService = Depends(get_site_service),
 ) -> ApiResponse[ClientSite]:
     """获取站点详情（客户端）"""
     client_site = await service.get_client_site(site_id=site_id)
-    return ApiResponse.ok(data=client_site, msg="获取成功")
+    return ApiResponse.ok(data=client_site, msg=_("api.success.get"))

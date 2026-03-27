@@ -16,6 +16,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { getLastSiteSlug, setLastSiteSlug, getUserInfo } from "@/lib/auth"
 import { useSite } from "@/contexts/SiteContext"
 import { Button } from "@/components/ui/button"
@@ -23,6 +24,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Globe, Plus, Loader2 } from "lucide-react"
 
 export default function AdminHome() {
+  const t = useTranslations("AdminHome")
   const router = useRouter()
   const [loading, setLoading] = useState(true)
 
@@ -86,7 +88,7 @@ export default function AdminHome() {
     return (
       <div className="h-screen flex flex-col items-center justify-center gap-3 bg-slate-50/50">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        <p className="text-sm text-slate-500 font-medium">正在加载站点...</p>
+        <p className="text-sm text-slate-500 font-medium">{t("loading")}</p>
       </div>
     )
   }
@@ -94,27 +96,27 @@ export default function AdminHome() {
   // Empty State
   return (
     <div className="h-screen flex items-center justify-center bg-slate-50/50 p-4">
-      <Card className="max-w-md w-full shadow-xl shadow-slate-200/50 border-slate-200 bg-white/80 backdrop-blur-sm">
+      <Card className="max-w-md w-full">
         <CardContent className="pt-12 pb-12 px-8 flex flex-col items-center text-center">
-          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 ring-4 ring-primary/5">
+          <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center mb-6">
             <Globe className="h-8 w-8 text-primary" />
           </div>
 
-          <h1 className="text-xl font-bold text-slate-900 mb-2">
-            欢迎来到 CatWiki
+          <h1 className="text-xl font-bold text-foreground mb-2">
+            {t("welcome")}
           </h1>
 
-          <p className="text-sm text-slate-500 mb-8 leading-relaxed max-w-xs mx-auto">
-            当前组织下暂无任何站点。您可以创建一个新的知识库站点来开始使用。
+          <p className="text-sm text-muted-foreground mb-8 leading-relaxed max-w-xs mx-auto">
+            {t("noSites")}
           </p>
 
           <Button
             size="lg"
-            className="w-full h-11 text-sm font-bold shadow-lg shadow-primary/20 rounded-xl"
+            className="w-full"
             onClick={handleCreateSite}
           >
             <Plus className="h-4 w-4 mr-2" />
-            创建第一个站点
+            {t("createFirstSite")}
           </Button>
         </CardContent>
       </Card>

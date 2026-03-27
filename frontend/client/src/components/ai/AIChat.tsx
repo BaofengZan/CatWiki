@@ -32,6 +32,7 @@ import { Streamdown } from "streamdown"
 import { useAIChat } from "@/hooks"
 import { MessageSources } from "./MessageSources"
 import { ToolCallCard } from "./ToolCallCard"
+import { useTranslations } from "next-intl"
 
 interface AIChatProps {
   open: boolean
@@ -42,15 +43,14 @@ interface AIChatProps {
   allSites?: ClientSite[]
 }
 
-const WELCOME_MESSAGE = {
-  id: "welcome",
-  role: "assistant" as const,
-  content: "你好！我是 catWiki 的 AI 助手，有什么可以帮助你的吗？",
-}
-
 export function AIChat({ open, onOpenChange, initialQuery, siteId, tenantId, allSites }: AIChatProps) {
+  const t = useTranslations("AIChat")
   const { messages, isLoading, sendMessage } = useAIChat({
-    initialMessages: [WELCOME_MESSAGE],
+    initialMessages: [{
+      id: "welcome",
+      role: "assistant" as const,
+      content: t("welcome"),
+    }],
     selectedSiteId: siteId,
     selectedTenantId: tenantId,
   })
@@ -96,9 +96,9 @@ export function AIChat({ open, onOpenChange, initialQuery, siteId, tenantId, all
               <Bot className="h-5 w-5 md:h-6 md:w-6 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <DialogTitle className="text-lg md:text-xl font-bold text-slate-900">AI 智能助手</DialogTitle>
+              <DialogTitle className="text-lg md:text-xl font-bold text-slate-900">{t("title")}</DialogTitle>
               <DialogDescription className="text-xs md:text-sm text-slate-500">
-                基于 RAG 技术的语义检索与问答
+                {t("description")}
               </DialogDescription>
             </div>
           </div>
@@ -173,24 +173,24 @@ export function AIChat({ open, onOpenChange, initialQuery, siteId, tenantId, all
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="询问关于知识库内容的问题..."
+                placeholder={t("inputPlaceholder")}
                 disabled={isLoading}
                 className="flex-1 bg-transparent border-none focus-visible:ring-0 text-sm md:text-[15px] shadow-none"
-                aria-label="输入您的问题"
+                aria-label={t("inputAria")}
               />
               <Button
                 type="submit"
                 disabled={!input.trim() || isLoading}
                 size="icon"
                 className="rounded-lg md:rounded-xl shadow-lg shadow-primary/20 h-9 w-9 md:h-10 md:w-10"
-                aria-label="发送消息"
+                aria-label={t("sendAria")}
               >
                 <Send className="h-3.5 w-3.5 md:h-4 md:w-4" />
               </Button>
             </div>
           </div>
           <p className="mt-2 md:mt-3 text-[10px] md:text-[11px] text-center text-slate-400">
-            AI 可能会产生误差，建议参考原始文档。
+            {t("disclaimer")}
           </p>
         </form>
       </DialogContent>

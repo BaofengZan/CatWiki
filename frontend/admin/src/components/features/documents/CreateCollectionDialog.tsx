@@ -15,6 +15,8 @@
 "use client"
 
 import { useState } from "react"
+import { useTranslations } from "next-intl"
+import { Loader2 } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -50,6 +52,7 @@ export function CreateCollectionDialog({
   onSuccess,
   collections
 }: CreateCollectionDialogProps) {
+  const t = useTranslations("Documents")
   const [name, setName] = useState("")
   const [parentId, setParentId] = useState<string>("root")
 
@@ -77,31 +80,31 @@ export function CreateCollectionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] rounded-2xl">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>创建新合集</DialogTitle>
+          <DialogTitle>{t("dialogs.createCollection.title")}</DialogTitle>
           <DialogDescription>
-            为您的文档创建一个新的合集，用于分类管理。
+            {t("dialogs.createCollection.description")}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-700">合集名称</label>
+            <label className="text-sm font-bold text-slate-700">{t("dialogs.createCollection.labelName")}</label>
             <Input
-              placeholder="例如：入门指南、API 文档..."
+              placeholder={t("dialogs.createCollection.placeholderName")}
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="rounded-xl border-slate-200"
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-700">父级合集（可选）</label>
+            <label className="text-sm font-bold text-slate-700">{t("dialogs.createCollection.labelParent")}</label>
             <Select value={parentId} onValueChange={setParentId}>
               <SelectTrigger className="rounded-xl border-slate-200">
-                <SelectValue placeholder="选择父级合集" />
+                <SelectValue placeholder={t("dialogs.createCollection.placeholderParent")} />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
-                <SelectItem value="root">无（根级别）</SelectItem>
+                <SelectItem value="root">{t("dialogs.createCollection.root")}</SelectItem>
                 {collections.map(col => (
                   <SelectItem key={col.id} value={col.id.toString()}>
                     <span style={{ paddingLeft: `${(col.level || 0) * 12}px` }}>
@@ -114,15 +117,16 @@ export function CreateCollectionDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-xl border-slate-200">
-            取消
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            {t("dialogs.createCollection.cancel")}
           </Button>
           <Button
             onClick={handleCreate}
             disabled={!name.trim() || createCollectionMutation.isPending}
-            className="rounded-xl shadow-lg shadow-primary/20"
+            className="flex items-center gap-2"
           >
-            {createCollectionMutation.isPending ? "创建中..." : "创建合集"}
+            {createCollectionMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {createCollectionMutation.isPending ? t("dialogs.createCollection.creating") : t("dialogs.createCollection.create")}
           </Button>
         </DialogFooter>
       </DialogContent>

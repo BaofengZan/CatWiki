@@ -15,6 +15,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.common.i18n import _
 from app.core.web.deps import get_current_user_with_tenant, get_effective_tenant_id
 from app.core.web.exceptions import NotFoundException
 from app.crud.task import crud_task
@@ -55,9 +56,9 @@ async def get_task_status(
     """获取单个任务详情和状态"""
     task = await crud_task.get(db, id=task_id)
     if not task:
-        raise NotFoundException(detail="任务未找到")
+        raise NotFoundException(detail=_("task.not_found"))
 
     if tenant_id is not None and task.tenant_id != tenant_id:
-        raise NotFoundException(detail="任务未找到")
+        raise NotFoundException(detail=_("task.not_found"))
 
     return ApiResponse.ok(data=task)
