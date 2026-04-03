@@ -114,6 +114,10 @@ class DingTalkAdapter(BaseRobotAdapter):
             return
 
         if not session.context_id:
+            if is_error:
+                # 卡片未创建就出错，无法回复
+                logger.error("DingTalkAdapter: 卡片未创建即发生错误，无法回复")
+                return
             # 初始化卡片
             card_instance_id = await self.client.create_streaming_card(
                 client_id=client_id,

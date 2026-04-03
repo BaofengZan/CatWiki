@@ -101,31 +101,37 @@ class CRUDSystemConfig(CRUDBase[SystemConfig, SystemConfigCreate, SystemConfigUp
         # PostgreSQL 的唯一约束对 NULL 默认视为不相等，tenant_id=NULL 会绕过冲突检测。
         # 对平台级配置（tenant_id=None）采用“先查再改/插”避免重复行继续增长。
         if tenant_id is None:
-            existing = await self.get_by_key(db, config_key=config_key, tenant_id=None)
-            if existing:
-                existing.config_value = config_value
-                existing.is_active = True
-                db.add(existing)
+            # 必须临时切换到 None 租户上下文，否则：
+            # 1. get_by_key 查询会被 apply_tenant_filter 注入当前租户过滤条件，找不到 tenant_id IS NULL 的记录
+            # 2. INSERT 时 apply_tenant_on_insert 会把 tenant_id=None 篡改为当前租户 ID，导致唯一约束冲突
+            from app.core.infra.tenant import temporary_tenant_context
+
+            with temporary_tenant_context(None):
+                existing = await self.get_by_key(db, config_key=config_key, tenant_id=None)
+                if existing:
+                    existing.config_value = config_value
+                    existing.is_active = True
+                    db.add(existing)
+                    if auto_commit:
+                        await db.commit()
+                        await db.refresh(existing)
+                    else:
+                        await db.flush()
+                    return existing
+
+                db_obj = SystemConfig(
+                    tenant_id=None,
+                    config_key=config_key,
+                    config_value=config_value,
+                    is_active=True,
+                )
+                db.add(db_obj)
                 if auto_commit:
                     await db.commit()
-                    await db.refresh(existing)
+                    await db.refresh(db_obj)
                 else:
                     await db.flush()
-                return existing
-
-            db_obj = SystemConfig(
-                tenant_id=None,
-                config_key=config_key,
-                config_value=config_value,
-                is_active=True,
-            )
-            db.add(db_obj)
-            if auto_commit:
-                await db.commit()
-                await db.refresh(db_obj)
-            else:
-                await db.flush()
-            return db_obj
+                return db_obj
 
         stmt = insert(SystemConfig).values(
             tenant_id=tenant_id,

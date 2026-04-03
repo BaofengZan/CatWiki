@@ -651,12 +651,12 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
             borderColor="border-indigo-100"
             textColor="text-indigo-700"
             items={[
-              t("feishu.step1"),
-              t("feishu.step2"),
-              t("feishu.step3"),
-              t("feishu.step4"),
-              t("feishu.step5"),
-              t("feishu.step6")
+              t.raw("feishu.step1"),
+              t.raw("feishu.step2"),
+              t.raw("feishu.step3"),
+              t.raw("feishu.step4"),
+              t.raw("feishu.step5"),
+              t.raw("feishu.step6")
             ]}
             footer={
               <p className="text-[11px] text-indigo-800/80">
@@ -720,11 +720,11 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
             borderColor="border-orange-100"
             textColor="text-orange-700"
             items={[
-              t("dingtalk.step1"),
-              t("dingtalk.step2"),
-              t("dingtalk.step3"),
-              t("dingtalk.step4"),
-              t("dingtalk.step5")
+              t.raw("dingtalk.step1"),
+              t.raw("dingtalk.step2"),
+              t.raw("dingtalk.step3"),
+              t.raw("dingtalk.step4"),
+              t.raw("dingtalk.step5")
             ]}
             footer={
               <p className="text-[11px] text-orange-800/80">
@@ -820,10 +820,10 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
             borderColor="border-green-100"
             textColor="text-green-700"
             items={[
-              t("wecom.step1"),
-              t("wecom.step2"),
-              t("wecom.step3"),
-              t("wecom.step4")
+              t.raw("wecom.step1"),
+              t.raw("wecom.step2"),
+              t.raw("wecom.step3"),
+              t.raw("wecom.step4")
             ]}
             footer={
               <p className="text-[11px] text-green-800/80">
@@ -921,11 +921,11 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
             borderColor="border-teal-100"
             textColor="text-teal-700"
             items={[
-              t("wecomKefu.step1"),
-              t("wecomKefu.step2"),
-              t("wecomKefu.step3"),
-              t("wecomKefu.step4"),
-              t("wecomKefu.step5")
+              t.raw("wecomKefu.step1"),
+              t.raw("wecomKefu.step2"),
+              t.raw("wecomKefu.step3"),
+              t.raw("wecomKefu.step4"),
+              t.raw("wecomKefu.step5")
             ]}
             footer={
               <p className="text-[11px] text-teal-800/80">
@@ -980,9 +980,9 @@ export function SiteBotSettings({ siteId, config, onChange, chatModel }: SiteBot
             borderColor="border-sky-100"
             textColor="text-sky-700"
             items={[
-              t("wecomSmart.step1"),
-              t("wecomSmart.step2"),
-              t("wecomSmart.step3")
+              t.raw("wecomSmart.step1"),
+              t.raw("wecomSmart.step2"),
+              t.raw("wecomSmart.step3")
             ]}
             footer={
               <p className="text-[11px] text-sky-800/80">

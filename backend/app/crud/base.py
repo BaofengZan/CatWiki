@@ -52,7 +52,6 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
                 query = query.where(getattr(self.model, key) == value)
         return query
 
-
     async def _cached_get(
         self, db: AsyncSession, cache_key: str, fetch_fn, ttl: int = 600
     ) -> ModelType | None:
@@ -67,6 +66,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
         if cached is not None:
             from sqlalchemy.orm import make_transient_to_detached
+
             instance = self.model(**cached)
             make_transient_to_detached(instance)
             return await db.merge(instance, load=False)

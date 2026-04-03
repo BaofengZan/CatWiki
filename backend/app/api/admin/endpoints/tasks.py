@@ -21,7 +21,7 @@ from app.core.web.exceptions import NotFoundException
 from app.crud.task import crud_task
 from app.db.database import get_db
 from app.models.user import User
-from app.schemas.response import ApiResponse, PaginatedResponse
+from app.schemas.response import ApiResponse, PaginatedResponse, PaginationInfo
 from app.schemas.task import Task as TaskSchema
 
 router = APIRouter()
@@ -42,8 +42,12 @@ async def list_tasks(
         db, tenant_id=tenant_id, site_id=site_id, skip=skip, limit=size
     )
 
-    # 这里简略处理分页真相
-    return ApiResponse.ok(data=PaginatedResponse(list=tasks))
+    return ApiResponse.ok(
+        data=PaginatedResponse(
+            list=tasks,
+            pagination=PaginationInfo(page=page, size=size, total=len(tasks)),
+        )
+    )
 
 
 @router.get("/{task_id}", response_model=ApiResponse[TaskSchema])

@@ -41,7 +41,7 @@ class SHA1:
             sha.update("".join(sortlist).encode("utf-8"))
             return ierror.WXBizMsgCrypt_OK, sha.hexdigest()
         except Exception as e:
-            logger.error(f"SHA1 签名计算失败: {e}")
+            logger.error("SHA1 签名计算失败: %s", e)
             return ierror.WXBizMsgCrypt_ComputeSignature_Error, None
 
 
@@ -93,7 +93,7 @@ class Prpcrypt:
             ciphertext = cryptor.encrypt(text)
             return ierror.WXBizMsgCrypt_OK, base64.b64encode(ciphertext)
         except Exception as e:
-            logger.error(f"AES 加密失败: {e}")
+            logger.error("AES 加密失败: %s", e)
             return ierror.WXBizMsgCrypt_EncryptAES_Error, None
 
     def decrypt(self, text, receiveid):
@@ -102,7 +102,7 @@ class Prpcrypt:
             cryptor = AES.new(self.key, self.mode, self.key[:16])
             plain_text = cryptor.decrypt(base64.b64decode(text))
         except Exception as e:
-            logger.error(f"AES 解密失败: {e}")
+            logger.error("AES 解密失败: %s", e)
             return ierror.WXBizMsgCrypt_DecryptAES_Error, None
         try:
             pad = plain_text[-1]
@@ -111,10 +111,10 @@ class Prpcrypt:
             msg_content = content[4 : msg_len + 4].decode("utf-8")
             from_receiveid = content[msg_len + 4 :].decode("utf-8")
         except Exception as e:
-            logger.error(f"解密消息提取失败: {e}")
+            logger.error("解密消息提取失败: %s", e)
             return ierror.WXBizMsgCrypt_IllegalBuffer, None
         if from_receiveid != receiveid:
-            logger.error(f"receiveid 不匹配: 预期={receiveid}, 实际={from_receiveid}")
+            logger.error("receiveid 不匹配: 预期=%s, 实际=%s", receiveid, from_receiveid)
             return ierror.WXBizMsgCrypt_ValidateCorpid_Error, None
         return 0, msg_content
 

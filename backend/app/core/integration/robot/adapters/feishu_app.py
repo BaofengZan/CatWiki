@@ -115,8 +115,8 @@ class FeishuAdapter(BaseRobotAdapter):
                 display_content += " ▌"
 
         # 飞书 Markdown 长度限制约为 30,000 字符
-        if len(display_content) > 30000:
-            display_content = display_content[:30000] + "\n\n（内容过长，已截断）"
+        if len(display_content) > 29980:
+            display_content = display_content[:29980] + "\n\n（内容过长，已截断）"
 
         card = self._build_interactive_card(display_content, status)
 

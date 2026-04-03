@@ -42,15 +42,15 @@ class SiteService:
         try:
             await FeishuRobotService.get_instance().refresh()
         except Exception as e:
-            logger.warning(f"刷新飞书长连接失败: {e}")
+            logger.warning("刷新飞书长连接失败: %s", e)
         try:
             await DingTalkRobotService.get_instance().refresh()
         except Exception as e:
-            logger.warning(f"刷新钉钉 Stream 失败: {e}")
+            logger.warning("刷新钉钉 Stream 失败: %s", e)
         try:
             await WeComSmartService.get_instance().refresh()
         except Exception as e:
-            logger.warning(f"刷新企微智能机器人长连接失败: {e}")
+            logger.warning("刷新企微智能机器人长连接失败: %s", e)
 
     def ensure_bot_config_valid(self, bot_config: dict | None) -> None:
         """校验站点机器人配置，避免启用后静默失效。"""
@@ -65,13 +65,12 @@ class SiteService:
                 raise BadRequestException(detail=_("bot.feishu_missing_config"))
 
         dingtalk = bot_config.get("dingtalk_app") or {}
-        if not dingtalk.get("enabled"):
-            return
-        client_id = (dingtalk.get("client_id") or "").strip()
-        client_secret = (dingtalk.get("client_secret") or "").strip()
-        template_id = (dingtalk.get("template_id") or "").strip()
-        if not client_id or not client_secret or not template_id:
-            raise BadRequestException(detail=_("bot.dingtalk_missing_config"))
+        if dingtalk.get("enabled"):
+            client_id = (dingtalk.get("client_id") or "").strip()
+            client_secret = (dingtalk.get("client_secret") or "").strip()
+            template_id = (dingtalk.get("template_id") or "").strip()
+            if not client_id or not client_secret or not template_id:
+                raise BadRequestException(detail=_("bot.dingtalk_missing_config"))
 
         wecom_smart = bot_config.get("wecom_smart") or {}
         if wecom_smart.get("enabled"):
@@ -114,7 +113,7 @@ class SiteService:
             for s in sites:
                 if s.bot_config:
                     mask_bot_config_inplace(s.bot_config)
-            logger.info(f"🔒 [Sites] Demo Mode: Masked {len(sites)} sites' bot config")
+            logger.info("🔒 [Sites] Demo Mode: Masked %d sites' bot config", len(sites))
 
         return sites, paginator
 
@@ -128,7 +127,7 @@ class SiteService:
         if is_demo:
             if site.bot_config:
                 mask_bot_config_inplace(site.bot_config)
-            logger.info(f"🔒 [Sites] Demo Mode: Masked bot config for site {site_id}")
+            logger.info("🔒 [Sites] Demo Mode: Masked bot config for site %s", site_id)
 
         return site
 
@@ -142,7 +141,7 @@ class SiteService:
         if is_demo:
             if site.bot_config:
                 mask_bot_config_inplace(site.bot_config)
-            logger.info(f"🔒 [Sites] Demo Mode: Masked bot config for site slug={slug}")
+            logger.info("🔒 [Sites] Demo Mode: Masked bot config for site slug=%s", slug)
 
         return site
 

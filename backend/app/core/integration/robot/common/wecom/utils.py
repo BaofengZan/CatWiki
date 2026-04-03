@@ -13,13 +13,21 @@ class WeComTokenManager:
     """企业微信 Access Token 管理器 (带缓存)。"""
 
     _cache: dict[str, dict[str, Any]] = {}
+    _MAX_CACHE_SIZE = 200
     _lock: asyncio.Lock | None = None
+    _http_client: httpx.AsyncClient | None = None
 
     @classmethod
     def _get_lock(cls) -> asyncio.Lock:
         if cls._lock is None:
             cls._lock = asyncio.Lock()
         return cls._lock
+
+    @classmethod
+    def _get_http_client(cls) -> httpx.AsyncClient:
+        if cls._http_client is None or cls._http_client.is_closed:
+            cls._http_client = httpx.AsyncClient(timeout=10.0)
+        return cls._http_client
 
     @classmethod
     async def get_access_token(cls, corp_id: str, secret: str) -> str:
@@ -41,19 +49,23 @@ class WeComTokenManager:
                 if now < cache["expires_at"]:
                     return cache["token"]
 
-            async with httpx.AsyncClient() as client:
-                resp = await client.get(
-                    "https://qyapi.weixin.qq.com/cgi-bin/gettoken",
-                    params={"corpid": corp_id, "corpsecret": secret},
-                    timeout=10,
-                )
-                data = resp.json()
-                if data.get("errcode") != 0:
-                    logger.error(f"获取企业微信 Access Token 失败: {data}")
-                    raise ValueError(f"获取 Access Token 失败: {data.get('errmsg')}")
+            client = cls._get_http_client()
+            resp = await client.get(
+                "https://qyapi.weixin.qq.com/cgi-bin/gettoken",
+                params={"corpid": corp_id, "corpsecret": secret},
+            )
+            data = resp.json()
+            if data.get("errcode") != 0:
+                logger.error("获取企业微信 Access Token 失败: %s", data)
+                raise ValueError(f"获取 Access Token 失败: {data.get('errmsg')}")
 
-                token = data["access_token"]
-                # 提前 5 分钟过期
-                expires_at = now + data["expires_in"] - 300
-                cls._cache[cache_key] = {"token": token, "expires_at": expires_at}
-                return token
+            token = data["access_token"]
+            # 提前 5 分钟过期
+            expires_at = now + data["expires_in"] - 300
+            # 淘汰过期条目，防止缓存无限增长
+            if len(cls._cache) >= cls._MAX_CACHE_SIZE:
+                expired = [k for k, v in cls._cache.items() if now >= v["expires_at"]]
+                for k in expired:
+                    del cls._cache[k]
+            cls._cache[cache_key] = {"token": token, "expires_at": expires_at}
+            return token

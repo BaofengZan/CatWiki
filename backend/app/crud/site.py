@@ -62,6 +62,7 @@ class CRUDSite(CRUDBase[Site, SiteCreate, SiteUpdate]):
 
     async def get(self, db: AsyncSession, id: Any) -> Site | None:
         """获取站点 (带缓存)"""
+
         async def _fetch():
             return await super(CRUDSite, self).get(db, id)
 
@@ -74,6 +75,7 @@ class CRUDSite(CRUDBase[Site, SiteCreate, SiteUpdate]):
 
     async def get_by_slug(self, db: AsyncSession, *, slug: str) -> Site | None:
         """根据标识获取站点 (带缓存)"""
+
         async def _fetch():
             result = await db.execute(select(self.model).where(self.model.slug == slug))
             return result.scalar_one_or_none()
@@ -82,6 +84,7 @@ class CRUDSite(CRUDBase[Site, SiteCreate, SiteUpdate]):
 
     async def get_by_api_token(self, db: AsyncSession, *, api_token: str) -> Site | None:
         """根据 API Token 获取站点 (查询 bot_config->api_bot->api_key)"""
+
         async def _fetch_from_db():
             result = await db.execute(
                 select(self.model).where(
@@ -220,7 +223,35 @@ class CRUDSite(CRUDBase[Site, SiteCreate, SiteUpdate]):
             coll_del = coll_del.where(Collection.tenant_id == tenant_id)
         await db.execute(coll_del)
 
-        # 4. 清理向量库数据
+        # 4. 批量删除聊天会话
+        from app.models.chat_session import ChatSession
+
+        session_del = delete(ChatSession).where(ChatSession.site_id == id)
+        if tenant_id is not None:
+            session_del = session_del.where(ChatSession.tenant_id == tenant_id)
+        await db.execute(session_del)
+
+        # 5. 批量删除异步任务
+        from app.models.task import Task
+
+        task_del = delete(Task).where(Task.site_id == id)
+        if tenant_id is not None:
+            task_del = task_del.where(Task.tenant_id == tenant_id)
+        await db.execute(task_del)
+
+        # 6. 清理用户 managed_site_ids 中对该站点的引用
+        from app.models.user import User
+
+        site_id_str = str(id)
+        tenant_filter = User.tenant_id == tenant_id if tenant_id is not None else True
+        result = await db.execute(
+            select(User).where(tenant_filter, User.managed_site_ids.contains(site_id_str))
+        )
+        for user in result.scalars().all():
+            new_ids = [sid for sid in user.managed_sites if sid != id]
+            user.set_managed_sites(new_ids)
+
+        # 7. 清理向量库数据
         try:
             from app.core.vector.vector_store import VectorStoreManager
 
@@ -230,14 +261,14 @@ class CRUDSite(CRUDBase[Site, SiteCreate, SiteUpdate]):
         except Exception as e:
             logger.warning(f"⚠️ [Cleanup] 站点 {id} 向量清理失败: {e}")
 
-        # 5. 删除站点
+        # 8. 删除站点
         await db.delete(site)
         if auto_commit:
             await db.commit()
         else:
             await db.flush()
 
-        # 6. 清理缓存
+        # 9. 清理缓存
         from app.core.infra.cache import get_cache
 
         cache = get_cache()

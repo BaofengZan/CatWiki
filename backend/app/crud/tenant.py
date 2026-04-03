@@ -31,6 +31,7 @@ class CRUDTenant(CRUDBase[Tenant, TenantCreate, TenantUpdate]):
 
     async def get(self, db: AsyncSession, id: Any) -> Tenant | None:
         """获取租户 (带缓存)"""
+
         async def _fetch():
             return await super(CRUDTenant, self).get(db, id)
 
@@ -38,6 +39,7 @@ class CRUDTenant(CRUDBase[Tenant, TenantCreate, TenantUpdate]):
 
     async def get_by_slug(self, db: AsyncSession, *, slug: str) -> Tenant | None:
         """根据 slug 获取租户 (带缓存)"""
+
         async def _fetch():
             result = await db.execute(select(Tenant).where(Tenant.slug == slug))
             return result.scalar_one_or_none()

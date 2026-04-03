@@ -239,7 +239,7 @@ class DingTalkClient:
                 raise RuntimeError(f"不支持的请求方法: {method}")
             resp_text = resp.text
         except Exception as e:
-            logger.error(f"钉钉 {action} 网络异常: {e}")
+            logger.error("钉钉 %s 网络异常: %s", action, e)
             raise RuntimeError(f"{action} 网络连接失败: {e}") from e
 
         if resp.status_code >= 400:

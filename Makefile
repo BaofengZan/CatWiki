@@ -67,13 +67,13 @@ help:
 	@echo "  make format             - 运行代码格式化 (后端+前端)"
 	@echo "  make check-changed      - 仅检查已暂存改动 (增量)"
 	@echo "  make check-all          - 全量规范检查 (后端+前端+类型)"
-	@echo "  make smoke-test         - 运行 API 冒烟测试 (ai=0 跳过AI测试)"
+	@echo "  make smoke-test          - 运行冒烟测试 (t=platform 平台级, ai=0 跳过AI, c=0 保留数据)"
 	@echo "  make setup-hooks        - 配置 Git hooksPath 到 scripts/git-hooks"
 	@echo "  make help               - 显示此帮助信息"
 	@echo ""
 	@echo " 📦  [发布同步] (Release & Sync)"
 	@echo "  make publish-ce-images  - 构建 CE 镜像并推送到 Docker Hub (公开仓库)"
-	@echo "  make set-version v=1.0.5 - 统一修改项目版本号 (代码, 配置, 镜像标签)"
+	@echo "  make set-version v=1.0.6 - 统一修改项目版本号 (代码, 配置, 镜像标签)"
 	@echo ""
 	@echo " ⚠️  Windows 用户注意: 请使用 WSL2 或 Git Bash 运行 make 命令"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -210,9 +210,13 @@ prod-clean: check-prod-env
 # ------------------------------------------------------------------------------
 # 5. [通用命令] Common Targets
 # ------------------------------------------------------------------------------
-# API 冒烟测试 (ai=0 跳过AI测试)
+# API 冒烟测试
+# 用法: make smoke-test            (默认租户级测试)
+#       make smoke-test ai=0       (跳过AI测试)
+#       make smoke-test c=0        (保留测试数据不删除)
+#       make smoke-test t=platform  (平台管理测试)
 smoke-test:
-	@docker compose -f docker-compose.dev.yml exec backend uv run python scripts/smoke_test.py $(if $(filter 0,$(ai)),--skip-ai)
+	@docker compose -f docker-compose.dev.yml exec backend uv run python scripts/smoke_tests/smoke_test_$(or $(t),tenant).py $(if $(filter 0,$(ai)),--skip-ai) $(if $(filter 0,$(c)),--no-cleanup)
 
 # 生成前端 SDK
 gen-sdk:

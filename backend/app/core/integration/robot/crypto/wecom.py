@@ -28,7 +28,7 @@ class XMLParse:
             encrypt = xml_tree.find("Encrypt")
             return ierror.WXBizMsgCrypt_OK, encrypt.text
         except Exception as e:
-            logger.error(f"XML 解析提取失败: {e}")
+            logger.error("XML 解析提取失败: %s", e)
             return ierror.WXBizMsgCrypt_ParseXml_Error, None
 
     def generate(self, encrypt, signature, timestamp, nonce):
@@ -93,7 +93,7 @@ class WXBizXmlMsgCrypt:
         if ret != 0:
             return ret, None
         if not signature == s_msg_signature:
-            logger.error(f"签名不匹配: 计算值={signature}, 预期值={s_msg_signature}")
+            logger.error("签名不匹配: 计算值=%s, 预期值=%s", signature, s_msg_signature)
             return ierror.WXBizMsgCrypt_ValidateSignature_Error, None
         pc = Prpcrypt(self.key)
         ret, xml_content = pc.decrypt(encrypt, self.m_sReceiveId)

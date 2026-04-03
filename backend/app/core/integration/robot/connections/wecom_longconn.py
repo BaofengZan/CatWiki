@@ -46,81 +46,64 @@ async def start_wecom_smart_longconn_client(
     config: WeComSmartLongConnConfig,
     on_event: Callable[[str, dict[str, Any]], None],
 ) -> None:
-    """启动企业微信智能机器人长连接 (WebSocket)。"""
+    """启动企业微信智能机器人单次长连接 (WebSocket)，断开后直接返回，由调用方负责重连。"""
     uri = "wss://openws.work.weixin.qq.com"
     bot_id = config.bot_id
     secret = config.secret
     site_id = config.site_id
 
-    retry_delay = 5
+    async with websockets.connect(uri, ping_interval=None, ping_timeout=None) as websocket:
+        # 1. 发送订阅请求
+        req_id = str(uuid.uuid4())
+        subscribe_req = {
+            "cmd": "aibot_subscribe",
+            "headers": {"req_id": req_id},
+            "body": {"bot_id": bot_id, "secret": secret},
+        }
+        await websocket.send(json.dumps(subscribe_req))
+        logger.info("企微智能机器人长连接已发起订阅: site_id=%s, bot_id=%s", site_id, bot_id)
 
-    while True:
+        # 注册连接供 Adapter 使用
+        await WeComSmartLongConnRegistry.register(site_id, websocket)
+
         try:
-            async with websockets.connect(uri, ping_interval=None, ping_timeout=None) as websocket:
-                # 1. 发送订阅请求
-                req_id = str(uuid.uuid4())
-                subscribe_req = {
-                    "cmd": "aibot_subscribe",
-                    "headers": {"req_id": req_id},
-                    "body": {"bot_id": bot_id, "secret": secret},
-                }
-                await websocket.send(json.dumps(subscribe_req))
-                logger.info(
-                    "企微智能机器人长连接已发起订阅: site_id=%s, bot_id=%s", site_id, bot_id
-                )
-
-                # 注册连接供 Adapter 使用
-                await WeComSmartLongConnRegistry.register(site_id, websocket)
-
+            async for message in websocket:
                 try:
-                    async for message in websocket:
-                        try:
-                            data = json.loads(message)
-                        except json.JSONDecodeError:
-                            logger.error("企微智能机器人长连接收到无效 JSON: %s", message)
-                            continue
+                    data = json.loads(message)
+                except json.JSONDecodeError:
+                    logger.error("企微智能机器人长连接收到无效 JSON: %s", message)
+                    continue
 
-                        cmd = data.get("cmd") or data.get("headers", {}).get("cmd")
+                cmd = data.get("cmd") or data.get("headers", {}).get("cmd")
 
-                        if cmd == "aibot_subscribe":
-                            if data.get("errcode") == 0:
-                                logger.info("企微智能机器人长连接订阅成功: site_id=%s", site_id)
-                            else:
-                                logger.error(
-                                    "企微智能机器人长连接订阅失败: site_id=%s, error=%s",
-                                    site_id,
-                                    data,
-                                )
-                                break  # 跳出循环进行重连
+                if cmd == "aibot_subscribe":
+                    if data.get("errcode") == 0:
+                        logger.info("企微智能机器人长连接订阅成功: site_id=%s", site_id)
+                    else:
+                        logger.error(
+                            "企微智能机器人长连接订阅失败: site_id=%s, error=%s",
+                            site_id,
+                            data,
+                        )
+                        break  # 订阅失败，返回让调用方重连
 
-                        elif cmd in ("aibot_msg_callback", "aibot_event_callback"):
-                            # 交给 Service 处理
-                            on_event(cmd, data)
+                elif cmd in ("aibot_msg_callback", "aibot_event_callback"):
+                    on_event(cmd, data)
 
-                        elif cmd == "aibot_ping":
-                            # 响应心跳
-                            ping_headers = data.get("headers", {})
-                            pong = {
-                                "cmd": "aibot_pong",
-                                "headers": {"req_id": ping_headers.get("req_id")},
-                            }
-                            await websocket.send(json.dumps(pong))
+                elif cmd == "aibot_ping":
+                    ping_headers = data.get("headers", {})
+                    pong = {
+                        "cmd": "aibot_pong",
+                        "headers": {"req_id": ping_headers.get("req_id")},
+                    }
+                    await websocket.send(json.dumps(pong))
 
-                        elif "errcode" in data and data.get("errcode") != 0:
-                            # 处理报错信息
-                            logger.warning(
-                                "企微智能机器人长连接收到错误响应: site_id=%s, data=%s",
-                                site_id,
-                                data,
-                            )
+                elif "errcode" in data and data.get("errcode") != 0:
+                    logger.warning(
+                        "企微智能机器人长连接收到错误响应: site_id=%s, data=%s",
+                        site_id,
+                        data,
+                    )
 
-                finally:
-                    await WeComSmartLongConnRegistry.unregister(site_id)
-
-        except websockets.exceptions.ConnectionClosed:
-            logger.info("企微智能机器人长连接已断开，准备重连: site_id=%s", site_id)
-        except Exception as e:
-            logger.exception("企微智能机器人长连接异常: site_id=%s, error=%s", site_id, e)
-
-        await asyncio.sleep(retry_delay)
-        retry_delay = min(retry_delay * 2, 60)  # 指数退避
+        finally:
+            await WeComSmartLongConnRegistry.unregister(site_id)

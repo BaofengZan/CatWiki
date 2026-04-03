@@ -132,6 +132,8 @@ class DingTalkRobotService:
         thread.start()
 
     def _run_stream_client(self, config: DingTalkStreamConfig, generation: int) -> None:
+        import time as _time
+
         def _on_text_event(raw_data: Any) -> None:
             if not self._is_worker_active(config.site_id, generation, config):
                 return
@@ -164,14 +166,27 @@ class DingTalkRobotService:
                 lambda f: self._handle_process_result(f, config.site_id, inbound_event.from_user)
             )
 
-        try:
-            start_longconn_client(config=config, on_text_event=_on_text_event)
-        except Exception:
-            logger.exception(
-                "钉钉 Stream 客户端异常退出: generation=%s site_id=%s",
-                generation,
-                config.site_id,
+        retry_delay = 5
+        while self._is_worker_active(config.site_id, generation, config):
+            started_at = _time.monotonic()
+            try:
+                start_longconn_client(config=config, on_text_event=_on_text_event)
+            except Exception:
+                logger.exception(
+                    "钉钉 Stream 客户端异常退出: generation=%s site_id=%s",
+                    generation,
+                    config.site_id,
+                )
+            if not self._is_worker_active(config.site_id, generation, config):
+                break
+            # 运行超过 60s 视为曾成功连接，重置退避
+            if _time.monotonic() - started_at > 60:
+                retry_delay = 5
+            logger.info(
+                "钉钉 Stream 客户端已退出，%ds 后重连: site_id=%s", retry_delay, config.site_id
             )
+            _time.sleep(retry_delay)
+            retry_delay = min(retry_delay * 2, 60)
 
     @staticmethod
     def _handle_process_result(future, site_id: int, from_user: str) -> None:

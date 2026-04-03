@@ -1,5 +1,5 @@
 import abc
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from pydantic import BaseModel
@@ -22,7 +22,7 @@ class RobotInboundEvent:
     chat_id: str | None = None
     raw_data: Any = None
     # 扩展字段（如钉钉的 session_webhook, 企微的 stream_id 等）
-    extra: dict[str, Any] = None
+    extra: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass

@@ -121,6 +121,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
 
     async def get(self, db: AsyncSession, id: Any) -> User | None:
         """获取用户 (带缓存)"""
+
         async def _fetch():
             return await super(CRUDUser, self).get(db, id)
 
@@ -128,6 +129,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
 
     async def get_by_email(self, db: AsyncSession, *, email: str) -> User | None:
         """根据邮箱获取用户 (带缓存)"""
+
         async def _fetch():
             result = await db.execute(select(self.model).where(self.model.email == email))
             return result.scalar_one_or_none()

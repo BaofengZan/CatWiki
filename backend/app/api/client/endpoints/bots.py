@@ -2,7 +2,6 @@ import logging
 
 from fastapi import (
     APIRouter,
-    BackgroundTasks,
     Depends,
     Query,
     Request,
@@ -45,7 +44,6 @@ async def verify_kefu_url(
 @router.post("/wecom-kefu")
 async def handle_kefu_message(
     request: Request,
-    background_tasks: BackgroundTasks,
     msg_signature: str = Query(...),
     timestamp: str = Query(...),
     nonce: str = Query(...),
@@ -61,7 +59,6 @@ async def handle_kefu_message(
             msg_signature=msg_signature,
             timestamp=timestamp,
             nonce=nonce,
-            background_tasks=background_tasks,
         )
         return Response(content=response_text, media_type="text/plain")
     except ValueError:
@@ -94,7 +91,6 @@ async def verify_app_url(
 @router.post("/wecom-app")
 async def handle_app_message(
     request: Request,
-    background_tasks: BackgroundTasks,
     msg_signature: str = Query(...),
     timestamp: str = Query(...),
     nonce: str = Query(...),
@@ -110,9 +106,8 @@ async def handle_app_message(
             msg_signature=msg_signature,
             timestamp=timestamp,
             nonce=nonce,
-            background_tasks=background_tasks,
         )
         return Response(content=response_text, media_type="text/plain")
     except Exception as e:
-        logger.error(f"处理企业微信应用 Webhook 异常: {e}")
+        logger.error("处理企业微信应用 Webhook 异常: %s", e)
         return Response(status_code=400)

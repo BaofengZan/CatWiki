@@ -128,6 +128,10 @@ class WeComSmartService:
         thread.start()
 
     def _run_ws_client(self, config: WeComSmartLongConnConfig, generation: int) -> None:
+        import time as _time
+
+        import websockets
+
         def _on_event(cmd: str, raw_data: Any) -> None:
             if not self._is_worker_active(config.site_id, generation, config):
                 return
@@ -157,15 +161,31 @@ class WeComSmartService:
                 # 获取事件类型并处理（如进入会话提示欢迎语）
                 pass
 
-        try:
-            # 运行异步长连接客户端
-            asyncio.run(start_wecom_smart_longconn_client(config=config, on_event=_on_event))
-        except Exception:
-            logger.exception(
-                "企微智能机器人长连接客户端异常退出: generation=%s site_id=%s",
-                generation,
+        retry_delay = 5
+        while self._is_worker_active(config.site_id, generation, config):
+            started_at = _time.monotonic()
+            try:
+                asyncio.run(start_wecom_smart_longconn_client(config=config, on_event=_on_event))
+            except Exception as e:
+                if isinstance(e, websockets.exceptions.ConnectionClosed):
+                    logger.info("企微智能机器人长连接已断开: site_id=%s", config.site_id)
+                else:
+                    logger.exception(
+                        "企微智能机器人长连接客户端异常退出: generation=%s site_id=%s",
+                        generation,
+                        config.site_id,
+                    )
+            if not self._is_worker_active(config.site_id, generation, config):
+                break
+            if _time.monotonic() - started_at > 60:
+                retry_delay = 5
+            logger.info(
+                "企微智能机器人长连接已退出，%ds 后重连: site_id=%s",
+                retry_delay,
                 config.site_id,
             )
+            _time.sleep(retry_delay)
+            retry_delay = min(retry_delay * 2, 60)
 
     def _is_worker_active(
         self, site_id: int, generation: int, config: WeComSmartLongConnConfig
@@ -181,7 +201,6 @@ class WeComSmartService:
         adapter = RobotFactory.get_adapter("wecom_smart")
         session = RobotSession(event=inbound_event)
 
-        # 调用统一编排流程
         # 调用统一编排流程
         await RobotOrchestrator.orchestrate_as_task(
             adapter=adapter,
