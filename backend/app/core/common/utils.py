@@ -129,36 +129,49 @@ def remove_none_values(data: dict[str, Any]) -> dict[str, Any]:
 class Paginator:
     """分页器"""
 
-    def __init__(self, page: int = 1, size: int = 10, total: int = 0):
-        self.page = max(1, page)
-        self.size = max(1, size)
+    def __init__(self, page: int = 1, size: int = 10, total: int = 0, is_pager: int = 1):
+        self.is_pager = is_pager
+        if is_pager == 0:
+            self.page = 1
+            self.size = None
+        else:
+            self.page = max(1, page)
+            self.size = max(1, size)
         self.total = max(0, total)
 
     @property
     def skip(self) -> int:
         """跳过的记录数"""
+        if self.is_pager == 0:
+            return 0
         return (self.page - 1) * self.size
 
     @property
     def total_pages(self) -> int:
         """总页数"""
+        if self.is_pager == 0:
+            return 1
         return (self.total + self.size - 1) // self.size if self.total > 0 else 0
 
     @property
     def has_next(self) -> bool:
         """是否有下一页"""
+        if self.is_pager == 0:
+            return False
         return self.page < self.total_pages
 
     @property
     def has_prev(self) -> bool:
         """是否有上一页"""
+        if self.is_pager == 0:
+            return False
         return self.page > 1
 
     def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
         return {
             "page": self.page,
-            "size": self.size,
+            "size": self.size if self.size is not None else self.total,
             "total": self.total,
             "total_pages": self.total_pages,
             "has_next": self.has_next,
@@ -169,6 +182,8 @@ class Paginator:
         """转换为 PaginationInfo 模型"""
         from app.schemas.response import PaginationInfo
 
+        if self.is_pager == 0:
+            return PaginationInfo(is_pager=0, page=1, size=self.total, total=self.total)
         return PaginationInfo(
             is_pager=1,
             page=self.page,

@@ -28,6 +28,7 @@ router = APIRouter()
 async def list_published_documents(
     page: int = 1,
     size: int = 10,
+    is_pager: int = Query(1, description="是否分页，0=返回全部，1=分页"),
     site_id: int | None = Query(None, description="站点ID"),
     collection_id: int | None = Query(None, description="合集ID"),
     keyword: str | None = Query(None, description="搜索关键词"),
@@ -52,6 +53,7 @@ async def list_published_documents(
         exclude_content=exclude_content,
         tenant_id=tenant_id,
         include_site=include_site_info,
+        is_pager=is_pager,
     )
     return ApiResponse.ok(
         data=PaginatedResponse(

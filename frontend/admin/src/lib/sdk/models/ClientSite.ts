@@ -20,5 +20,8 @@ export type ClientSite = {
     layout_mode?: (string | null);
     quick_questions?: (Array<QuickQuestion> | null);
     web_widget?: (Record<string, any> | null);
+    is_public?: boolean;
+    requires_password?: boolean;
+    has_password?: boolean;
 };
 

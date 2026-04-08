@@ -338,9 +338,10 @@ class DocumentService:
         exclude_content: bool,
         tenant_id: int | None = None,
         include_site: bool = False,
+        is_pager: int = 1,
     ) -> tuple[list[dict], Paginator]:
         """获取文档列表（分页）"""
-        paginator = Paginator(page=page, size=size, total=0)
+        paginator = Paginator(page=page, size=size, total=0, is_pager=is_pager)
 
         if collection_id:
             collection_ids = await crud_collection.get_descendant_ids(

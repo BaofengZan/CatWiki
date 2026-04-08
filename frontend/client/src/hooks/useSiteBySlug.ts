@@ -30,16 +30,15 @@ export function useSiteBySlug(slug: string) {
     queryFn: async () => {
       try {
         return await api.site.getBySlug(slug)
-
       } catch (error) {
         logError('加载站点', error)
         throw error
       }
     },
     enabled: !!slug,
-    // 站点信息很少变化，可以缓存更长时间
-    staleTime: 10 * 60 * 1000, // 10 分钟
-    gcTime: 30 * 60 * 1000, // 30 分钟
+    // 站点信息缓存（staleTime 内不重新请求）
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   })
 }
 

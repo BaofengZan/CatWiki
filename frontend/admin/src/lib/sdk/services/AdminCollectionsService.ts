@@ -23,6 +23,7 @@ export class AdminCollectionsService {
         siteId,
         page = 1,
         size = 20,
+        isPager = 1,
         parentId,
     }: {
         siteId: number,
@@ -35,6 +36,10 @@ export class AdminCollectionsService {
          */
         size?: number,
         /**
+         * 是否分页，0=返回全部，1=分页
+         */
+        isPager?: number,
+        /**
          * 父合集ID，为空则获取根合集
          */
         parentId?: (number | null),
@@ -45,6 +50,7 @@ export class AdminCollectionsService {
             query: {
                 'page': page,
                 'size': size,
+                'is_pager': isPager,
                 'parent_id': parentId,
                 'site_id': siteId,
             },

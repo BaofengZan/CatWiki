@@ -5,9 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.common.i18n import _
 from app.core.common.masking import mask_bot_config_inplace
-from app.core.common.utils import Paginator, generate_token
+from app.core.common.utils import Paginator
 from app.core.infra.cache import cached, get_cache
-from app.core.infra.config import settings
 from app.core.integration.robot.services.dingtalk_app import DingTalkRobotService
 from app.core.integration.robot.services.feishu_app import FeishuRobotService
 from app.core.integration.robot.services.wecom_smart import WeComSmartService
@@ -99,11 +98,11 @@ class SiteService:
 
     @transactional()
     async def list_sites(
-        self, page: int, size: int, status: str | None, is_demo: bool
+        self, page: int, size: int, status: str | None, is_demo: bool, is_pager: int = 1
     ) -> tuple[list[SiteModel], Paginator]:
         """获取站点列表（分页）"""
         total = await crud_site.count(self.db, status=status)
-        paginator = Paginator(page=page, size=size, total=total)
+        paginator = Paginator(page=page, size=size, total=total, is_pager=is_pager)
 
         sites = await crud_site.list_with_tenant(
             self.db, skip=paginator.skip, limit=paginator.size, status=status
@@ -158,15 +157,9 @@ class SiteService:
             if existing_slug:
                 raise ConflictException(detail=_("site.slug_exists", slug=site_in.slug))
 
-        # 处理机器人配置：如果启用 API Bot 且没填 Key，自动生成一个
+        # 处理机器人配置（api_bot 已迁移到 EE 扩展表，此处只做基础校验）
         if site_in.bot_config:
             self.ensure_bot_config_valid(site_in.bot_config)
-            api_bot = site_in.bot_config.get("api_bot")
-            # CE 版本不支持 API Bot（企业版专属功能）
-            if api_bot and settings.CATWIKI_EDITION == "community":
-                api_bot["enabled"] = False
-            elif api_bot and api_bot.get("enabled") and not api_bot.get("api_key"):
-                api_bot["api_key"] = f"sk-{generate_token(24)}"
 
         # 先完成管理员参数与用户状态校验，避免后续报错时站点已创建
         admin_email: str | None = None
@@ -248,22 +241,9 @@ class SiteService:
             if existing_slug and existing_slug.id != site_id:
                 raise ConflictException(detail=_("site.slug_exists", slug=site_in.slug))
 
-        # 处理机器人配置：如果启用 API Bot 且没填 Key，尝试沿用旧的或生成新的
+        # 处理机器人配置（api_bot 已迁移到 EE 扩展表，此处只做基础校验）
         if site_in.bot_config:
             self.ensure_bot_config_valid(site_in.bot_config)
-            api_bot = site_in.bot_config.get("api_bot")
-            # CE 版本不支持 API Bot（企业版专属功能）
-            if api_bot and settings.CATWIKI_EDITION == "community":
-                api_bot["enabled"] = False
-            elif api_bot and api_bot.get("enabled") and not api_bot.get("api_key"):
-                # 尝试从原有配置中获取
-                old_bot_config = site.bot_config or {}
-                old_api_bot = old_bot_config.get("api_bot")
-                if old_api_bot and old_api_bot.get("api_key"):
-                    api_bot["api_key"] = old_api_bot["api_key"]
-                else:
-                    # 原来也没有，生成一个新的
-                    api_bot["api_key"] = f"sk-{generate_token(24)}"
 
         site = await crud_site.update(self.db, db_obj=site, obj_in=site_in)
         # 预加载租户信息以填充 tenant_slug
@@ -297,6 +277,7 @@ class SiteService:
         tenant_id: int | None,
         tenant_slug: str | None,
         keyword: str | None,
+        is_pager: int = 1,
     ) -> tuple[list[SiteModel], Paginator]:
         """获取激活的站点列表（客户端）"""
         sites, total = await crud_site.list_active(
@@ -306,9 +287,10 @@ class SiteService:
             tenant_id=tenant_id,
             tenant_slug=tenant_slug,
             keyword=keyword,
+            is_pager=is_pager,
         )
 
-        paginator = Paginator(page=page, size=size, total=total)
+        paginator = Paginator(page=page, size=size, total=total, is_pager=is_pager)
         return sites, paginator
 
     @cached(ttl=60, key_prefix="service:sites:client_detail")
@@ -323,28 +305,9 @@ class SiteService:
 
         return site
 
-    @transactional()
-    async def get_site_by_api_token(self, token: str) -> SiteModel:
-        """根据 API Token 获取站点，并进行基础校验。"""
-        site = await crud_site.get_by_api_token(self.db, api_token=token)
-
-        if not site:
-            from app.core.web.exceptions import HTTPException
-
-            raise HTTPException(status_code=401, detail=_("site.invalid_api_key"))
-
-        # 状态校验：检查站点是否被管理员禁用
-        if site.status != "active":
-            from app.core.web.exceptions import HTTPException
-
-            raise HTTPException(status_code=403, detail=_("site.disabled"))
-
-        return site
-
 
 def get_site_service(
     db: AsyncSession = Depends(get_db),
 ) -> SiteService:
     """获取 SiteService 实例的依赖注入函数"""
-    return SiteService(db)
     return SiteService(db)

@@ -35,6 +35,7 @@ export class AdminUsersService {
     public listAdminUsers({
         page = 1,
         size = 10,
+        isPager = 1,
         role,
         status,
         search,
@@ -50,6 +51,10 @@ export class AdminUsersService {
          * 每页数量
          */
         size?: number,
+        /**
+         * 是否分页，0=返回全部，1=分页
+         */
+        isPager?: number,
         /**
          * 角色筛选
          */
@@ -81,6 +86,7 @@ export class AdminUsersService {
             query: {
                 'page': page,
                 'size': size,
+                'is_pager': isPager,
                 'role': role,
                 'status': status,
                 'search': search,

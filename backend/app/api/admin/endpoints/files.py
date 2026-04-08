@@ -90,11 +90,12 @@ async def list_files(
     recursive: bool = Query(True, description="是否递归列出"),
     page: int = Query(1, ge=1, description="页码"),
     size: int = Query(20, ge=1, le=100, description="每页数量"),
+    is_pager: int = Query(1, description="是否分页，0=返回全部，1=分页"),
     service: FileService = Depends(get_file_service),
     current_user: User = Depends(get_current_user_with_tenant),
 ) -> ApiResponse[PaginatedResponse[dict]]:
     """列出文件"""
-    files, paginator = await service.list_files(prefix, recursive, page, size)
+    files, paginator = await service.list_files(prefix, recursive, page, size, is_pager=is_pager)
     return ApiResponse.ok(
         data=PaginatedResponse(list=files, pagination=paginator.to_pagination_info()),
         msg=_("api.success.get"),

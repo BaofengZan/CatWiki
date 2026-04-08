@@ -109,12 +109,13 @@ class CollectionService:
         parent_id: int | None = None,
         page: int = 1,
         size: int = 20,
+        is_pager: int = 1,
     ) -> tuple[list[CollectionModel], Paginator]:
         """获取合集列表（带分页）"""
         total = await crud_collection.count(
             self.db, site_id=site_id, tenant_id=tenant_id, parent_id=parent_id
         )
-        paginator = Paginator(page=page, size=size, total=total)
+        paginator = Paginator(page=page, size=size, total=total, is_pager=is_pager)
         collections = await crud_collection.list(
             self.db,
             site_id=site_id,

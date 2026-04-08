@@ -726,7 +726,16 @@
     },
     "access": {
       "title": "Access Control",
-      "description": "Manage site accessibility."
+      "description": "Manage site accessibility.",
+      "isPublic": "Public Listing",
+      "isPublicTip": "When enabled, the site is listed on the plaza. When disabled, an access password is required to visit.",
+      "accessPassword": "Access Password",
+      "accessPasswordTip": "When set, visitors must enter a password to view site content.",
+      "passwordPlaceholder": "Enter access password",
+      "passwordSet": "Password set",
+      "passwordNotSet": "No password set",
+      "eeBadge": "Enterprise",
+      "enterpriseOnly": "Public listing and access password are Enterprise Edition features."
     }
   },
   "Dashboard": {
@@ -1074,6 +1083,7 @@
     "errorSlug": "Please enter site slug",
     "errorAdminEmail": "Please enter admin email",
     "saveSuccess": "Site configuration saved",
+    "saveError": "Failed to save site configuration",
     "layoutHint": "Only sidebar layout is supported currently",
     "commentFeature": "Comments",
     "commentFeatureHint": "Enable user comments below documents."

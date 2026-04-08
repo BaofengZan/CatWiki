@@ -166,6 +166,7 @@ class ChatSessionService:
         keyword: str | None = None,
         page: int = 1,
         size: int = 20,
+        is_pager: int = 1,
     ) -> tuple[list[ChatSession], Paginator]:
         """获取会话列表
 
@@ -192,7 +193,7 @@ class ChatSessionService:
 
         count_result = await self.db.execute(count_query)
         total = count_result.scalar() or 0
-        paginator = Paginator(page=page, size=size, total=total)
+        paginator = Paginator(page=page, size=size, total=total, is_pager=is_pager)
 
         query = select(ChatSession)
         if tenant_id is not None:
@@ -209,11 +210,9 @@ class ChatSessionService:
             query = query.where(keyword_filter)
 
         # 按更新时间倒序，分页
-        query = (
-            query.order_by(desc(ChatSession.updated_at))
-            .offset(paginator.skip)
-            .limit(paginator.size)
-        )
+        query = query.order_by(desc(ChatSession.updated_at)).offset(paginator.skip)
+        if paginator.size is not None:
+            query = query.limit(paginator.size)
 
         result = await self.db.execute(query)
         sessions = list(result.scalars().all())

@@ -43,7 +43,13 @@
     "loading": "Loading site...",
     "retrieving": "Retrieving knowledge base...",
     "openMenu": "Open Menu",
-    "defaultSiteName": "Knowledge Base"
+    "defaultSiteName": "Knowledge Base",
+    "passwordRequired": "This site requires an access password",
+    "siteNotPublic": "This site is not public. Please contact the administrator for access.",
+    "passwordPlaceholder": "Enter access password",
+    "passwordSubmit": "Verify",
+    "passwordError": "Incorrect password, please try again",
+    "passwordVerifying": "Verifying..."
   },
   "TenantPortal": {
     "loading": "Loading...",

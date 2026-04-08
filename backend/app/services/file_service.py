@@ -217,6 +217,7 @@ class FileService:
         recursive: bool = True,
         page: int = 1,
         size: int = 20,
+        is_pager: int = 1,
     ) -> tuple[list[dict], Paginator]:
         """列出文件（带分页）"""
         if not self.rustfs.is_available():
@@ -224,10 +225,13 @@ class FileService:
 
         all_files = self.rustfs.list_files(prefix=prefix, recursive=recursive)
         total = len(all_files)
-        paginator = Paginator(page=page, size=size, total=total)
+        paginator = Paginator(page=page, size=size, total=total, is_pager=is_pager)
 
         # 手动切片（RustFS 当前不支持原生的 offset/limit）
-        paged_files = all_files[paginator.skip : paginator.skip + paginator.size]
+        if paginator.size is not None:
+            paged_files = all_files[paginator.skip : paginator.skip + paginator.size]
+        else:
+            paged_files = all_files
 
         serializable_files = []
         for file in paged_files:

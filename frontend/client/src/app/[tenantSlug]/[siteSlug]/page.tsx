@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense, useMemo } from "react"
+import { useState, useEffect, Suspense, useMemo, useCallback } from "react"
 import { useParams, useSearchParams, useRouter, notFound } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { Sidebar } from "@/components/layout"
@@ -13,6 +13,8 @@ import { PageLoading, NotFoundState, Button } from "@/components/ui"
 import type { MenuItem } from "@/types"
 import { ThemeProvider, type ThemeColor } from "@/contexts"
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher"
+import { SitePasswordGate } from "@/components/auth/SitePasswordGate"
+import { HttpError } from "@/lib/api-client"
 
 function SlugPageContent() {
   const t = useTranslations("SlugPage")
@@ -26,16 +28,42 @@ function SlugPageContent() {
   // 使用 React Query 获取站点信息（自动缓存）
   const { data: site, isLoading: siteLoading } = useSiteBySlug(siteSlug)
 
+  // 站点访问验证状态
+  const [siteAccessVerified, setSiteAccessVerified] = useState(() => {
+    if (typeof window === "undefined") return false
+    return !!sessionStorage.getItem(`site_access_token:${siteSlug}`)
+  })
+
+  // 403 回调：token 失效时清除并重新要求验证
+  const resetSiteAccess = useCallback(() => {
+    sessionStorage.removeItem(`site_access_token:${siteSlug}`)
+    setSiteAccessVerified(false)
+  }, [siteSlug])
+
+  // 是否被密码门拦截（需要密码且尚未验证）
+  const isPasswordGated = !!site?.requires_password && !siteAccessVerified
+  // 站点内容可加载（站点已获取 + 密码已通过）
+  const contentReady = !!site?.id && !isPasswordGated
+
   // 从站点信息中提取配置
   const siteName = site?.name || t("defaultSiteName")
   const themeColor = (site?.theme_color || "blue") as ThemeColor
   const layoutMode = (site?.layout_mode || "sidebar") as "sidebar" | "top"
 
-  // 使用 React Query 获取菜单树（自动缓存）
-  const { data: menuItems = [] } = useMenuTree(site?.id || null)
+  // 使用 React Query 获取菜单树（仅在验证通过后请求）
+  const { data: menuItems = [], error: menuError } = useMenuTree(contentReady ? site!.id : null)
 
   // 使用 React Query 获取文档详情（自动缓存）
-  const { data: selectedDocument, isLoading: documentLoading } = useDocument(documentIdFromUrl)
+  const { data: selectedDocument, isLoading: documentLoading } = useDocument(
+    contentReady ? documentIdFromUrl : null
+  )
+
+  // 检测 403：token 失效（管理员改了密码），重新要求验证
+  useEffect(() => {
+    if (menuError instanceof HttpError && menuError.status === 403) {
+      resetSiteAccess()
+    }
+  }, [menuError, resetSiteAccess])
 
   // 计算当前视图（使用 useMemo 避免不必要的重新计算）
   const currentView = useMemo(() => {
@@ -92,6 +120,18 @@ function SlugPageContent() {
   if (!site) {
     // 触发 not-found.tsx
     notFound()
+  }
+
+  // 密码保护拦截
+  if (isPasswordGated) {
+    return (
+      <SitePasswordGate
+        siteSlug={siteSlug}
+        siteName={site.name}
+        hasPassword={site.has_password ?? false}
+        onVerified={() => setSiteAccessVerified(true)}
+      />
+    )
   }
 
   return (

@@ -43,13 +43,7 @@ def mask_bot_config_inplace(config_value: dict) -> None:
     if not config_value:
         return
 
-    # 1. API Bot
-    api_bot = config_value.get("api_bot", {})
-    if api_bot:
-        if "api_key" in api_bot:
-            api_bot["api_key"] = mask_variable(api_bot["api_key"])
-
-    # 2. WeCom Smart Robot
+    # 1. WeCom Smart Robot
     wecom = config_value.get("wecom_smart", {})
     if wecom:
         if "bot_id" in wecom:

@@ -17,14 +17,11 @@ import { Models } from './sdk'
 import { env } from './env'
 import { ApiError } from './sdk/core/ApiError'
 import type { ApiRequestOptions } from './sdk/core/ApiRequestOptions'
-import { CancelablePromise } from './sdk/core/CancelablePromise'
 import { FetchHttpRequest } from './sdk/core/FetchHttpRequest'
 
 // ==================== SDK 类型统一导出 ====================
 export * from './sdk/models'
 export * as Models from './sdk/models'
-
-
 
 // ==================== 配置 ====================
 
@@ -63,14 +60,24 @@ async function wrapResponse<T>(promise: Promise<unknown>, defaultMsg = 'Operatio
           : typeof body === 'string'
             ? body
             : error.message
-      throw new Error(msg || defaultMsg)
+      throw new HttpError(error.status, msg || defaultMsg)
     }
     throw error
   }
 }
 
+/**
+ * 带 HTTP 状态码的业务错误，供上层按状态码做差异化处理。
+ */
+export class HttpError extends Error {
+  constructor(public readonly status: number, message: string) {
+    super(message)
+    this.name = 'HttpError'
+  }
+}
+
 class CustomHttpRequest extends FetchHttpRequest {
-  public override request<T>(options: ApiRequestOptions): CancelablePromise<T> {
+  public override request<T>(options: ApiRequestOptions) {
     let isInitialized = false
     if (typeof document !== 'undefined') {
       try {
@@ -90,6 +97,17 @@ class CustomHttpRequest extends FetchHttpRequest {
     const headers: Record<string, string> = { ...(options.headers as Record<string, string> || {}) }
     headers['X-App-State'] = stateCode
     headers['X-Client-Origin'] = origin
+
+    // 注入站点访问 token (EE 密码保护)
+    if (typeof window !== 'undefined') {
+      const siteSlug = window.location.pathname.split('/')[2]
+      if (siteSlug) {
+        const token = sessionStorage.getItem(`site_access_token:${siteSlug}`)
+        if (token) {
+          headers['X-Site-Access-Token'] = token
+        }
+      }
+    }
 
     return super.request<T>({
       ...options,
@@ -264,8 +282,20 @@ export const api = {
   chatSession: chatSessionApi,
   bot: client.bot,
   health: healthApi,
+  siteAccess: {
+    verifyPassword: (slug: string, password: string) => {
+      // EE 功能：CE 版本中 eeSiteAccess 服务不存在（gen-sdk 不会生成）
+      const service = (client as any).eeSiteAccess
+      if (!service?.verifySitePassword) {
+        return Promise.reject(new HttpError(501, 'Site access control is an EE feature'))
+      }
+      return wrapResponse<{ access_token: string; expires_in: number }>(service.verifySitePassword({
+        slug,
+        requestBody: { password },
+      }))
+    },
+  },
 }
 
 export default api
-
 

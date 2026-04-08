@@ -45,6 +45,7 @@ router = APIRouter()
 async def list_users(
     page: int = Query(1, ge=1, description="页码"),
     size: int = Query(10, ge=1, le=100, description="每页数量"),
+    is_pager: int = Query(1, description="是否分页，0=返回全部，1=分页"),
     role: UserRole | None = Query(None, description="角色筛选"),
     status: UserStatus | None = Query(None, description="状态筛选"),
     search: str | None = Query(None, description="搜索关键词"),
@@ -76,6 +77,7 @@ async def list_users(
         site_id=site_id,
         order_by=order_by,
         order_dir=order_dir,
+        is_pager=is_pager,
     )
 
     return ApiResponse.ok(

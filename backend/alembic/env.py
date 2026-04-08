@@ -18,6 +18,12 @@ from app.db.base import Base
 # 导入所有模型以确保它们被注册到 Base.metadata
 from app.models import Collection, Document, Site, SystemConfig, User  # noqa
 
+# EE 模型 (CE 中不存在，import 失败则跳过)
+try:
+    from app.ee.models import SiteEEConfig, TenantEEConfig  # noqa
+except ImportError:
+    pass
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config

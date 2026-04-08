@@ -10,6 +10,8 @@ import { ChatService } from './services/ChatService';
 import { ChatSessionsService } from './services/ChatSessionsService';
 import { CollectionsService } from './services/CollectionsService';
 import { DocumentsService } from './services/DocumentsService';
+import { EeBotService } from './services/EeBotService';
+import { EeSiteAccessService } from './services/EeSiteAccessService';
 import { FilesService } from './services/FilesService';
 import { HealthService } from './services/HealthService';
 import { SitesService } from './services/SitesService';
@@ -20,6 +22,8 @@ export class CatWikiClientSdk {
     public readonly chatSessions: ChatSessionsService;
     public readonly collections: CollectionsService;
     public readonly documents: DocumentsService;
+    public readonly eeBot: EeBotService;
+    public readonly eeSiteAccess: EeSiteAccessService;
     public readonly files: FilesService;
     public readonly health: HealthService;
     public readonly sites: SitesService;
@@ -27,7 +31,7 @@ export class CatWikiClientSdk {
     constructor(config?: Partial<OpenAPIConfig>, HttpRequest: HttpRequestConstructor = FetchHttpRequest) {
         this.request = new HttpRequest({
             BASE: config?.BASE ?? '',
-            VERSION: config?.VERSION ?? '1.0.6',
+            VERSION: config?.VERSION ?? '1.0.7',
             WITH_CREDENTIALS: config?.WITH_CREDENTIALS ?? false,
             CREDENTIALS: config?.CREDENTIALS ?? 'include',
             TOKEN: config?.TOKEN,
@@ -41,6 +45,8 @@ export class CatWikiClientSdk {
         this.chatSessions = new ChatSessionsService(this.request);
         this.collections = new CollectionsService(this.request);
         this.documents = new DocumentsService(this.request);
+        this.eeBot = new EeBotService(this.request);
+        this.eeSiteAccess = new EeSiteAccessService(this.request);
         this.files = new FilesService(this.request);
         this.health = new HealthService(this.request);
         this.sites = new SitesService(this.request);

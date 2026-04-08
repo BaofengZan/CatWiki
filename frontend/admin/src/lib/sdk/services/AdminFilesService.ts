@@ -124,6 +124,7 @@ export class AdminFilesService {
         recursive = true,
         page = 1,
         size = 20,
+        isPager = 1,
     }: {
         /**
          * 文件路径前缀
@@ -141,6 +142,10 @@ export class AdminFilesService {
          * 每页数量
          */
         size?: number,
+        /**
+         * 是否分页，0=返回全部，1=分页
+         */
+        isPager?: number,
     }): CancelablePromise<ApiResponse_PaginatedResponse_dict__> {
         return this.httpRequest.request({
             method: 'GET',
@@ -150,6 +155,7 @@ export class AdminFilesService {
                 'recursive': recursive,
                 'page': page,
                 'size': size,
+                'is_pager': isPager,
             },
             errors: {
                 422: `Validation Error`,

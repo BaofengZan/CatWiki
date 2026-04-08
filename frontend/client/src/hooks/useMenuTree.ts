@@ -68,8 +68,6 @@ export function useMenuTree(siteId: number | null) {
       try {
         // 一次性获取完整的目录树（包含文档节点）
         const tree = await api.collection.getTree(siteId!, true)
-
-
         // 转换为菜单项
         return convertTreeToMenuItems(tree)
       } catch (error) {

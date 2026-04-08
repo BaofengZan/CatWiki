@@ -510,7 +510,19 @@ export const api = {
   task: taskApi,
   tenant: {
     getCurrent: () => wrapResponse<Models.TenantSchema | null>(client.adminTenants.getAdminCurrentTenant()),
-  }
+  },
+  siteEEConfig: {
+    get: (siteId: number) =>
+      wrapResponse<Models.SiteEEConfigResponse>(client.eeAdminSiteAccess.getSiteEeConfig({ siteId })),
+    updateAccess: (siteId: number, data: Models.AccessConfigUpdate) =>
+      wrapResponse<Models.SiteEEConfigResponse>(client.eeAdminSiteAccess.updateSiteAccessConfig({ siteId, requestBody: data })),
+  },
+  apiBotConfig: {
+    get: (siteId: number) =>
+      wrapResponse<Models.ApiBotConfigResponse>(client.eeAdminApiBot.getApiBotConfig({ siteId })),
+    update: (siteId: number, data: Models.ApiBotConfigUpdate) =>
+      wrapResponse<Models.ApiBotConfigResponse>(client.eeAdminApiBot.updateApiBotConfig({ siteId, requestBody: data })),
+  },
 }
 
 export default api

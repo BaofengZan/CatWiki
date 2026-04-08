@@ -50,11 +50,26 @@ CatWiki API 遵循 [Google API Design Guide](https://cloud.google.com/apis/desig
 - 创建/更新时自动检查名称和 slug 唯一性
 - 删除时级联删除所有关联的合集、文档等数据及向量库数据
 
+#### EE 站点访问控制 👑
+
+**Admin API** (`/admin/v1/sites`) - [企业版专属]
+
+| 方法 | 路径 | 说明 | 参数 |
+|------|------|------|------|
+| `GET` | `/{site_id}/ee-config` | 获取站点 EE 配置（公开状态、密码状态） | - |
+| `PUT` | `/{site_id}/ee-config/access` | 更新站点访问控制（公开展示、访问密码） | `AccessConfigUpdate` (is_public, password) |
+
+**特性**:
+- `is_public`: 控制站点是否在广场中公开展示
+- 切换为公开时自动清除访问密码
+- 修改密码时 `password_version` 自增，旧访问凭证自动失效
+- 响应中 `has_password` 仅告知是否设置了密码，不暴露密码哈希
+
 #### Client API (`/v1/sites`)
 
 | 方法 | 路径 | 说明 | 参数 |
 |------|------|------|------|
-| `GET` | `/` | 获取激活的站点列表（分页） | `page`, `size`, `tenant_slug` (可选), `keyword` (可选) |
+| `GET` | `/` | 获取激活的站点列表（分页） | `page`, `size`, `tenant_id` (可选), `tenant_slug` (可选), `keyword` (可选) |
 | `GET` | `/{site_id}` | 获取站点详情 | - |
 | `GET` | `:bySlug/{slug}` | 通过 slug 标识获取站点详情 | - |
 
@@ -64,6 +79,21 @@ CatWiki API 遵循 [Google API Design Guide](https://cloud.google.com/apis/desig
 - 传 `tenant_slug`：仅返回该租户下的站点
 - 详情接口有 10 秒缓存
 - 自动脱敏，过滤敏感数据
+- 响应包含 `requires_password` (是否需要密码验证) 和 `has_password` (是否已设置密码) 字段
+
+#### EE 站点密码验证 👑
+
+**Client API** (`/v1/client/sites`) - [企业版专属]
+
+| 方法 | 路径 | 说明 | 参数 |
+|------|------|------|------|
+| `POST` | `/{slug}/verify-password` | 验证站点访问密码，返回短期访问 token | `VerifyPasswordRequest` (password) |
+
+**特性**:
+- 验证成功返回 JWT 格式的 `access_token`（有效期 24 小时）
+- Token 中包含 `password_version`，管理员改密码后旧 token 自动失效
+- 客户端通过 `X-Site-Access-Token` 请求头携带 token
+- 非公开站点的所有带 `site_id` 参数的接口均受中间件保护
 
 ---
 
@@ -97,7 +127,7 @@ CatWiki API 遵循 [Google API Design Guide](https://cloud.google.com/apis/desig
 
 | 方法 | 路径 | 说明 | 参数 |
 |------|------|------|------|
-| `GET` | `/` | 获取已发布文档列表（分页） | `page`, `size`, `tenant_slug` (可选), `site_id`, `collection_id`, `keyword`, `exclude_content` |
+| `GET` | `/` | 获取已发布文档列表（分页） | `page`, `size`, `site_id`, `collection_id`, `keyword`, `exclude_content`, `order_by`, `order_dir`, `include_site_info`, `tenant_id` |
 | `GET` | `/{document_id}` | 获取文档详情（自动增加浏览量） | - |
 
 **特性**:
@@ -114,8 +144,8 @@ CatWiki API 遵循 [Google API Design Guide](https://cloud.google.com/apis/desig
 
 | 方法 | 路径 | 说明 | 参数 |
 |------|------|------|------|
-| `GET` | `/` | 获取合集列表 | `parent_id` (可选，获取指定父合集下的子合集), `site_id` (通过 `get_valid_site` 依赖项) |
-| `GET` | `:tree` | 获取合集树形结构 | `type` (可选：`collection` 仅显示合集，不指定则包含文档), `site_id` (通过 `get_valid_site` 依赖项) |
+| `GET` | `/` | 获取合集列表 | `page`, `size`, `parent_id` (可选), `site_id` |
+| `GET` | `:tree` | 获取合集树形结构 | `type` (可选：`collection` 仅显示合集), `site_id` |
 | `GET` | `/{collection_id}` | 获取合集详情 | - |
 | `POST` | `/` | 创建合集 | `CollectionCreate` |
 | `PUT` | `/{collection_id}` | 更新合集 | `CollectionUpdate` |
@@ -132,7 +162,7 @@ CatWiki API 遵循 [Google API Design Guide](https://cloud.google.com/apis/desig
 
 | 方法 | 路径 | 说明 | 参数 |
 |------|------|------|------|
-| `GET` | `:tree` | 获取合集树形结构 | `site_id` (必填), `include_documents` (是否包含文档节点) |
+| `GET` | `:tree` | 获取合集树形结构 | `site_id` (必填), `include_documents` (是否包含文档节点), `tenant_id` (可选) |
 
 **特性**:
 - 仅返回已发布的合集和文档
@@ -151,7 +181,7 @@ CatWiki 接入 RustFS/MinIO 存储，支持标准对象存储操作。
 | `POST` | `:upload` | 单文件上传 | `file`, `folder` (默认: uploads) |
 | `POST` | `:batchUpload` | 批量上传文件 | `files`, `folder` |
 | `GET` | `/{object_name}:download` | 下载文件 | - |
-| `GET` | `/` | 列出存储文件 | `prefix`, `recursive` |
+| `GET` | `/` | 列出存储文件 | `prefix`, `recursive`, `page`, `size` |
 | `GET` | `/{object_name}:info` | 获取文件详细信息 | - |
 | `GET` | `/{object_name}:presignedUrl` | 获取预签名 URL | `expires_hours` (1-168 小时) |
 | `DELETE` | `/{object_name}` | 删除文件 | - |
@@ -263,13 +293,28 @@ CatWiki 接入 RustFS/MinIO 存储，支持标准对象存储操作。
 
 ---
 
-### 9. 会话记录 (Chat Sessions)
+### 9. 任务管理 (Tasks)
+
+**仅 Admin API** (`/admin/v1/tasks`)
+
+| 方法 | 路径 | 说明 | 参数 |
+|------|------|------|------|
+| `GET` | `/` | 获取任务列表 | `page`, `size`, `site_id` (可选) |
+| `GET` | `/{task_id}` | 获取任务状态 | - |
+
+**特性**:
+- 查看文档导入、向量化等异步任务的执行状态
+- 支持按任务 ID 查询详细进度
+
+---
+
+### 10. 会话记录 (Chat Sessions)
 
 **Client API** (`/v1/chat`)
 
 | 方法 | 路径 | 说明 | 参数 |
 |------|------|------|------|
-| `GET` | `/sessions` | 获取会话列表 | `tenant_slug` (可选), `site_id`, `member_id`, `keyword`, `page`, `size` |
+| `GET` | `/sessions` | 获取会话列表 | `site_id`, `member_id`, `keyword`, `page`, `size`, `tenant_id` (可选) |
 | `GET` | `/sessions/{thread_id}` | 获取会话详情 | - |
 | `GET` | `/sessions/{thread_id}/messages` | 获取会话历史消息 | - |
 | `DELETE` | `/sessions/{thread_id}` | 删除会话（同步删除历史） | - |
@@ -281,22 +326,23 @@ CatWiki 接入 RustFS/MinIO 存储，支持标准对象存储操作。
 
 ---
 
-### 10. AI 对话 (Chat Completions)
+### 11. AI 对话 (Chat Completions)
 
 **Client API** (`/v1/chat`)
 
 | 方法 | 路径 | 说明 | 参数 |
 |------|------|------|------|
-| `POST` | `/completions` | 创建聊天补全 (OpenAI 兼容接口) | `ChatCompletionRequest` |
+| `POST` | `/completions` | 创建聊天补全 (内部接口) | `InternalChatCompletionRequest` |
 
 **特性**:
 - **内部专用接口**，采用精简的单条消息模型
 - 自动集成 RAG 检索
 - 支持流式 (SSE) 和非流式响应
+- 自动提取 `origin` 和 `referer` 请求头用于来源追踪
 
 ---
 
-### 11. 机器人 Webhook (Bot)
+### 12. 机器人 Webhook (Bot)
 
 **Client API** (`/v1/bot`)
 
@@ -314,7 +360,7 @@ CatWiki 接入 RustFS/MinIO 存储，支持标准对象存储操作。
 
 ---
 
-### 12. 租户管理 (Tenants)
+### 13. 租户管理 (Tenants)
 
 #### 基础版 (CE)
 
@@ -357,21 +403,30 @@ CatWiki 接入 RustFS/MinIO 存储，支持标准对象存储操作。
 
 ---
 
-### 13. 健康检查 (Health)
+### 14. 健康检查 (Health)
 
 #### Admin API (`/admin/v1/health`)
 
 | 方法 | 路径 | 说明 | 参数 |
 |------|------|---------|------|
-| `GET` | `/` | 增强健康检查（数据库 + RustFS 存储） | - |
-
-**返回状态**: `healthy` / `degraded` / `unhealthy`
+| `GET` | `/` | 系统健康检查 | - |
 
 #### Client API (`/v1/health`)
 
 | 方法 | 路径 | 说明 | 参数 |
 |------|------|---------|------|
-| `GET` | `/` | 基础健康检查（数据库） | - |
+| `GET` | `/` | 系统健康检查 | - |
+
+#### 通用返回字段
+
+| 字段 | 说明 |
+|------|------|
+| `status` | `healthy` / `degraded` |
+| `version` | 系统版本号 |
+| `environment` | 运行环境 (`dev` / `prod`) |
+| `edition` | 版本类型 (`community` / `enterprise`)，受 License 状态约束 |
+| `is_licensed` | License 是否有效 |
+| `checks.cache` | 缓存后端类型 (`redis` / `memory`) |
 
 ---
 
@@ -387,7 +442,7 @@ make gen-sdk
 
 ### 目录结构
 - **Admin SDK**: `frontend/admin/src/lib/sdk`
-- **Client SDK**: `frontend/client/lib/sdk`
+- **Client SDK**: `frontend/client/src/lib/sdk`
 
 ---
 

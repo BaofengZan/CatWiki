@@ -41,5 +41,5 @@ async def health_check(
     - 检查 RustFS 对象存储状态 (Detailed)
     - 返回版本和环境信息
     """
-    health_status = await service.get_health_status(detailed=True)
+    health_status = await service.get_health_status()
     return ApiResponse.ok(data=health_status)

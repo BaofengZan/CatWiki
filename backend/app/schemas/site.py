@@ -91,3 +91,6 @@ class ClientSite(BaseModel):
     layout_mode: str | None = None
     quick_questions: list[QuickQuestion] | None = None
     web_widget: dict | None = None
+    is_public: bool = True
+    requires_password: bool = False
+    has_password: bool = False

@@ -20,12 +20,17 @@ export class SitesService {
     public listClientSites({
         page = 1,
         size = 10,
+        isPager = 1,
         tenantId,
         tenantSlug,
         keyword,
     }: {
         page?: number,
         size?: number,
+        /**
+         * 是否分页，0=返回全部，1=分页
+         */
+        isPager?: number,
         /**
          * 租户ID
          */
@@ -45,6 +50,7 @@ export class SitesService {
             query: {
                 'page': page,
                 'size': size,
+                'is_pager': isPager,
                 'tenant_id': tenantId,
                 'tenant_slug': tenantSlug,
                 'keyword': keyword,

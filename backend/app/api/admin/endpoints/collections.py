@@ -43,6 +43,7 @@ router = APIRouter()
 async def list_collections(
     page: int = Query(1, ge=1, description="页码"),
     size: int = Query(20, ge=1, le=100, description="每页大小"),
+    is_pager: int = Query(1, description="是否分页，0=返回全部，1=分页"),
     parent_id: int | None = Query(None, description="父合集ID，为空则获取根合集"),
     service: CollectionService = Depends(get_collection_service),
     site: Site = Depends(get_valid_site),
@@ -55,6 +56,7 @@ async def list_collections(
         parent_id=parent_id,
         page=page,
         size=size,
+        is_pager=is_pager,
     )
     return ApiResponse.ok(
         data=PaginatedResponse(

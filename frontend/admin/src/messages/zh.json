@@ -726,7 +726,16 @@
     },
     "access": {
       "title": "访问控制",
-      "description": "管理站点的开放状态。"
+      "description": "管理站点的开放状态。",
+      "isPublic": "公开展示",
+      "isPublicTip": "开启后站点将在广场中公开展示，关闭后需要设置访问密码才能访问。",
+      "accessPassword": "访问密码",
+      "accessPasswordTip": "设置后访问者需要输入密码才能查看站点内容。",
+      "passwordPlaceholder": "输入访问密码",
+      "passwordSet": "已设置密码",
+      "passwordNotSet": "未设置密码",
+      "eeBadge": "企业版",
+      "enterpriseOnly": "公开展示与访问密码为企业版专属功能。"
     }
   },
   "Dashboard": {
@@ -1074,6 +1083,7 @@
     "errorSlug": "请输入站点唯一标识",
     "errorAdminEmail": "请输入管理员邮箱",
     "saveSuccess": "站点配置已保存",
+    "saveError": "保存站点配置失败",
     "layoutHint": "目前仅支持侧边栏目录布局",
     "commentFeature": "评论功能",
     "commentFeatureHint": "启用文档下方的用户评论。"

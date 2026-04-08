@@ -92,6 +92,7 @@ class UserService:
         site_id: int | None = None,
         order_by: str = "created_at",
         order_dir: str = "desc",
+        is_pager: int = 1,
     ) -> tuple[list[User], Paginator]:
         """
         获取用户列表（带权限过滤）
@@ -125,7 +126,7 @@ class UserService:
             exclude_roles=exclude_roles,
             site_ids=filter_site_ids,
         )
-        paginator = Paginator(page=page, size=size, total=total)
+        paginator = Paginator(page=page, size=size, total=total, is_pager=is_pager)
 
         users = await crud_user.list(
             self.db,

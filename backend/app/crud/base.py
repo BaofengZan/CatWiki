@@ -118,7 +118,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         db: AsyncSession,
         *,
         skip: int = 0,
-        limit: int = 100,
+        limit: int | None = 100,
         order_by: str | None = None,
         order_dir: str = "desc",
         **kwargs,
@@ -151,7 +151,10 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
             query = query.order_by(desc(self.model.created_at))
 
-        result = await db.execute(query.offset(skip).limit(limit))
+        query = query.offset(skip)
+        if limit is not None:
+            query = query.limit(limit)
+        result = await db.execute(query)
         return list(result.scalars())
 
     async def create(

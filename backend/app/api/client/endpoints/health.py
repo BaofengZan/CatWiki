@@ -36,5 +36,5 @@ async def health_check(
     """
     客户端专用的健康检查接口
     """
-    health_status = await service.get_health_status(detailed=False)
+    health_status = await service.get_health_status()
     return ApiResponse.ok(data=health_status)

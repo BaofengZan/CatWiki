@@ -39,7 +39,7 @@ export function mergeSiteBotConfig(raw: unknown): BotConfig {
 
   return {
     web_widget: mergeSection<"web_widget">(base.web_widget, raw.web_widget),
-    api_bot: mergeSection<"api_bot">(base.api_bot, raw.api_bot),
+    api_bot: base.api_bot,  // api_bot 由 EE API 单独加载，不从主表 merge
     wecom_smart: mergeSection<"wecom_smart">(base.wecom_smart, raw.wecom_smart),
     feishu_app: mergeSection<"feishu_app">(base.feishu_app, raw.feishu_app),
     dingtalk_app: mergeSection<"dingtalk_app">(base.dingtalk_app, raw.dingtalk_app),

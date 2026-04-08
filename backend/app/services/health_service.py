@@ -18,11 +18,9 @@ import logging
 from datetime import UTC, datetime
 
 from fastapi import Depends
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.infra.config import settings
-from app.core.infra.rustfs import get_rustfs_service
 from app.db.database import get_db
 
 
@@ -30,12 +28,8 @@ class HealthService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get_health_status(self, detailed: bool = False) -> dict:
-        """获取系统健康状态
-
-        Args:
-            detailed: 是否进行详细检查（包含对象存储等）
-        """
+    async def get_health_status(self) -> dict:
+        """获取系统健康状态"""
         logger = logging.getLogger(__name__)
 
         try:
@@ -48,56 +42,23 @@ class HealthService:
         status = "healthy"
         checks = {}
 
-        # 1. 检查数据库
-        try:
-            await self.db.execute(text("SELECT 1"))
-            checks["database"] = "ok"
-        except Exception as e:
-            checks["database"] = f"error: {str(e)}"
-            status = "unhealthy"
-            logger.error(f"健康检查: 数据库连接失败 - {e}")
-
-        # 2. 检查缓存
+        # 检查缓存
         try:
             from app.core.infra.cache import get_cache
 
             cache = get_cache()
             stats = cache.stats()
-            # 获取后端名称 (如 redis 或 memory)
-            backend_type = stats.get("backend", "unknown")
-            checks["cache"] = backend_type
+            checks["cache"] = stats.get("backend", "unknown")
         except Exception as e:
             checks["cache"] = f"error: {str(e)}"
-            if status == "healthy":
-                status = "degraded"
+            status = "degraded"
             logger.error(f"健康检查: 缓存检查失败 - {e}")
-
-        # 3. 详细检查 (仅在需要时)
-        if detailed:
-            try:
-                rustfs = get_rustfs_service()
-                if rustfs.is_available():
-                    if rustfs.client.bucket_exists(rustfs.bucket_name):
-                        checks["storage"] = "ok"
-                    else:
-                        checks["storage"] = "warning: bucket not found"
-                        if status == "healthy":
-                            status = "degraded"
-                else:
-                    checks["storage"] = "unavailable"
-                    if status == "healthy":
-                        status = "degraded"
-            except Exception as e:
-                checks["storage"] = f"error: {str(e)}"
-                if status == "healthy":
-                    status = "degraded"
-                logger.error(f"健康检查: RustFS 检查失败 - {e}")
 
         return {
             "status": status,
             "version": settings.VERSION,
             "environment": settings.ENVIRONMENT,
-            "edition": settings.CATWIKI_EDITION,
+            "edition": settings.CATWIKI_EDITION if is_licensed else "community",
             "is_licensed": is_licensed,
             "timestamp": datetime.now(UTC).isoformat(),
             "checks": checks,

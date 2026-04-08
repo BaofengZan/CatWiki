@@ -111,6 +111,14 @@ def create_application() -> FastAPI:
     except ImportError:
         pass
 
+    # 注册 EE 站点访问守卫中间件
+    try:
+        from app.ee.middleware.site_access_guard import site_access_guard
+
+        application.middleware("http")(site_access_guard)
+    except ImportError:
+        pass
+
     # 配置异常处理器
     setup_exception_handlers(application)
 

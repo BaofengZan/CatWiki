@@ -32,7 +32,7 @@ import {
 import { toast } from "sonner"
 import { useSiteById, useUpdateSite } from "@/hooks"
 import { QuickQuestionsConfig } from "@/components/features"
-import type { QuickQuestion } from "@/lib/api-client"
+import { api, type QuickQuestion } from "@/lib/api-client"
 import { SiteBotSettings, SiteUsers } from "@/components/sites"
 import { initialConfigs, type BotConfig } from "@/types/settings"
 import { env } from "@/lib/env"
@@ -90,6 +90,19 @@ export default function EditSitePage() {
     if (siteData && !initialDataRef.current) {
       const bConfig = mergeSiteBotConfig(siteData.bot_config)
 
+      // 从 EE API 加载 api_bot 配置（EE 版本）
+      api.apiBotConfig.get(siteId).then((apiBotData) => {
+        bConfig.api_bot = {
+          enabled: apiBotData.enabled,
+          api_key: apiBotData.api_key,
+          timeout: apiBotData.timeout,
+        }
+        setBotConfig({ ...bConfig })
+        initialDataRef.current = { ...initialDataRef.current!, botConfig: { ...bConfig } }
+      }).catch(() => {
+        // CE 版本或 EE 未启用，api_bot 保持默认值
+      })
+
       setName(siteData.name)
       setSlug(siteData.slug || "")
       setDescription(siteData.description || "")
@@ -112,7 +125,7 @@ export default function EditSitePage() {
         botConfig: bConfig
       }
     }
-  }, [siteData])
+  }, [siteData, siteId])
 
   const handleBack = () => {
     router.back()
@@ -142,7 +155,11 @@ export default function EditSitePage() {
 
     const cleanedQuestions = quickQuestions.filter(q => q.text.trim())
 
-    updateSiteMutation.mutate({
+    // api_bot 单独走 EE API，从主表 bot_config 中剔除
+    const { api_bot, ...botConfigWithoutApiBot } = botConfig
+
+    // 并行保存：主表 + EE api_bot
+    const saveMain = updateSiteMutation.mutateAsync({
       siteId,
       data: {
         name: name.trim(),
@@ -153,27 +170,37 @@ export default function EditSitePage() {
         theme_color: themeColor,
         layout_mode: layoutMode,
         quick_questions: cleanedQuestions.length > 0 ? cleanedQuestions : null,
-        bot_config: botConfig
+        bot_config: botConfigWithoutApiBot
       }
-    }, {
-      onSuccess: () => {
-        initialDataRef.current = {
-          name: name.trim(),
-          slug: slug.trim(),
-          description: description.trim(),
-          icon,
-          isActive,
-          themeColor,
-          layoutMode,
-          quickQuestions: cleanedQuestions,
-          botConfig
-        }
-        toast.success(tf("saveSuccess"))
+    })
+
+    const saveApiBot = api.apiBotConfig.update(siteId, {
+      enabled: api_bot.enabled,
+      ...(api_bot.api_key ? { api_key: api_bot.api_key } : {}),
+      timeout: api_bot.timeout,
+    }).catch(() => {
+      // CE 版本静默忽略
+    })
+
+    Promise.all([saveMain, saveApiBot]).then(() => {
+      initialDataRef.current = {
+        name: name.trim(),
+        slug: slug.trim(),
+        description: description.trim(),
+        icon,
+        isActive,
+        themeColor,
+        layoutMode,
+        quickQuestions: cleanedQuestions,
+        botConfig
       }
+      toast.success(tf("saveSuccess"))
+    }).catch(() => {
+      toast.error(tf("saveError") || "保存失败")
     })
   }
 
-  const handleBotConfigChange = <S extends keyof BotConfig>(
+  const handleBotConfigChange = <S extends keyof BotConfig,>(
     section: S,
     field: keyof BotConfig[S],
     value: BotConfig[S][keyof BotConfig[S]]

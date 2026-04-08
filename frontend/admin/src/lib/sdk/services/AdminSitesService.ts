@@ -19,10 +19,15 @@ export class AdminSitesService {
     public listAdminSites({
         page = 1,
         size = 10,
+        isPager = 1,
         status,
     }: {
         page?: number,
         size?: number,
+        /**
+         * 是否分页，0=返回全部，1=分页
+         */
+        isPager?: number,
         status?: (string | null),
     }): CancelablePromise<ApiResponse_PaginatedResponse_Site__> {
         return this.httpRequest.request({
@@ -31,6 +36,7 @@ export class AdminSitesService {
             query: {
                 'page': page,
                 'size': size,
+                'is_pager': isPager,
                 'status': status,
             },
             errors: {

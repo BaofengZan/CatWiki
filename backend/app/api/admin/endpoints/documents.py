@@ -47,6 +47,7 @@ logger = logging.getLogger(__name__)
 async def list_documents(
     page: int = 1,
     size: int = 10,
+    is_pager: int = Query(1, description="是否分页，0=返回全部，1=分页"),
     site_id: int | None = Query(None, description="站点ID"),
     collection_id: int | None = Query(None, description="合集ID"),
     status: str | None = Query(None, description="状态过滤: published, draft"),
@@ -72,6 +73,7 @@ async def list_documents(
         order_dir,
         exclude_content,
         tenant_id=current_user.tenant_id,
+        is_pager=is_pager,
     )
     return ApiResponse.ok(
         data=PaginatedResponse(

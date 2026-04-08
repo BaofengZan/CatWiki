@@ -26,9 +26,14 @@ import {
   Users,
   Save,
   Loader2,
+  Eye,
+  EyeOff,
+  Lock,
+  Crown,
 } from "lucide-react"
 import { toast } from "sonner"
-import { useSiteById, useUpdateSite } from "@/hooks"
+import { useSiteById, useUpdateSite, useHealth } from "@/hooks"
+import { api } from "@/lib/api-client"
 import { QuickQuestionsConfig } from "@/components/features"
 import type { QuickQuestion } from "@/lib/api-client"
 import { SiteBotSettings, SiteUsers } from "@/components/sites"
@@ -77,6 +82,14 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
   const [botConfig, setBotConfig] = useState(initialConfigs.bot_config)
   const [mounted, setMounted] = useState(false)
 
+  // EE: 站点访问控制状态
+  const { data: healthData } = useHealth()
+  const isEnterprise = healthData?.edition === 'enterprise'
+  const [eeIsPublic, setEeIsPublic] = useState(true)
+  const [eeHasPassword, setEeHasPassword] = useState(false)
+  const [eeNewPassword, setEeNewPassword] = useState("")
+  const [eeShowPassword, setEeShowPassword] = useState(false)
+
   const initialDataRef = useRef<SiteSettingsSnapshot | null>(null)
 
   // 确保水合一致性
@@ -100,6 +113,19 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
     if (siteData && !initialDataRef.current) {
       const bConfig = mergeSiteBotConfig(siteData.bot_config)
 
+      // 从 EE API 加载 api_bot 配置
+      api.apiBotConfig.get(siteId).then((apiBotData) => {
+        bConfig.api_bot = {
+          enabled: apiBotData.enabled,
+          api_key: apiBotData.api_key,
+          timeout: apiBotData.timeout,
+        }
+        setBotConfig({ ...bConfig })
+        initialDataRef.current = { ...initialDataRef.current!, botConfig: { ...bConfig } }
+      }).catch(() => {
+        // CE 版本静默忽略
+      })
+
       setName(siteData.name)
       setSlug(siteData.slug || "")
       setDescription(siteData.description || "")
@@ -122,7 +148,36 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
         botConfig: bConfig
       }
     }
-  }, [siteData])
+  }, [siteData, siteId])
+
+  // EE: 加载站点访问控制配置
+  useEffect(() => {
+    if (!mounted || !isEnterprise || !siteId) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const config = await api.siteEEConfig.get(siteId)
+        if (!cancelled) {
+          setEeIsPublic(config.is_public ?? true)
+          setEeHasPassword(config.has_password ?? false)
+        }
+      } catch { /* not licensed */ }
+    })()
+    return () => { cancelled = true }
+  }, [mounted, isEnterprise, siteId])
+
+  // EE: 保存访问控制配置
+  const handleSaveAccessConfig = async (updates: { is_public?: boolean; password?: string | null }) => {
+    try {
+      const config = await api.siteEEConfig.updateAccess(siteId, updates)
+      setEeIsPublic(config.is_public ?? true)
+      setEeHasPassword(config.has_password ?? false)
+      setEeNewPassword("")
+      toast.success(t("saveSuccess"))
+    } catch (e: any) {
+      toast.error(e.message || "保存失败")
+    }
+  }
 
   const isDirty = initialDataRef.current && JSON.stringify({
     name,
@@ -147,8 +202,9 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
     }
 
     const cleanedQuestions = quickQuestions.filter(q => q.text.trim())
+    const { api_bot, ...botConfigWithoutApiBot } = botConfig
 
-    updateSiteMutation.mutate({
+    const saveMain = updateSiteMutation.mutateAsync({
       siteId,
       data: {
         name: name.trim(),
@@ -159,37 +215,46 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
         theme_color: themeColor,
         layout_mode: layoutMode,
         quick_questions: cleanedQuestions.length > 0 ? cleanedQuestions : null,
-        bot_config: botConfig
+        bot_config: botConfigWithoutApiBot
       }
-    }, {
-      onSuccess: (updatedSite) => {
-        // 使用服务器返回的数据更新本地状态和对比基准
-        const bConfig = mergeSiteBotConfig(updatedSite.bot_config)
+    })
 
-        // 更新本地状态，以便 UI 立即映射新生成的 Key 等
-        setBotConfig(bConfig)
-        setName(updatedSite.name)
-        setSlug(updatedSite.slug || "")
-        setDescription(updatedSite.description || "")
-        setIcon(updatedSite.icon || null)
-        setIsActive(updatedSite.status === "active")
-        setThemeColor(updatedSite.theme_color || "blue")
-        setLayoutMode(updatedSite.layout_mode || "sidebar")
-        setQuickQuestions(updatedSite.quick_questions || [])
+    const saveApiBot = api.apiBotConfig.update(siteId, {
+      enabled: api_bot.enabled,
+      ...(api_bot.api_key ? { api_key: api_bot.api_key } : {}),
+      timeout: api_bot.timeout,
+    }).catch(() => {
+      // CE 版本静默忽略
+    })
 
-        initialDataRef.current = {
-          name: updatedSite.name,
-          slug: updatedSite.slug || "",
-          description: updatedSite.description || "",
-          icon: updatedSite.icon || null,
-          isActive: updatedSite.status === "active",
-          themeColor: updatedSite.theme_color || "blue",
-          layoutMode: updatedSite.layout_mode || "sidebar",
-          quickQuestions: updatedSite.quick_questions || [],
-          botConfig: bConfig
-        }
-        toast.success(t("saveSuccess"))
+    Promise.all([saveMain, saveApiBot]).then(([updatedSite]) => {
+      const bConfig = mergeSiteBotConfig((updatedSite as any).bot_config)
+      bConfig.api_bot = api_bot
+
+      setBotConfig(bConfig)
+      setName((updatedSite as any).name)
+      setSlug((updatedSite as any).slug || "")
+      setDescription((updatedSite as any).description || "")
+      setIcon((updatedSite as any).icon || null)
+      setIsActive((updatedSite as any).status === "active")
+      setThemeColor((updatedSite as any).theme_color || "blue")
+      setLayoutMode((updatedSite as any).layout_mode || "sidebar")
+      setQuickQuestions((updatedSite as any).quick_questions || [])
+
+      initialDataRef.current = {
+        name: (updatedSite as any).name,
+        slug: (updatedSite as any).slug || "",
+        description: (updatedSite as any).description || "",
+        icon: (updatedSite as any).icon || null,
+        isActive: (updatedSite as any).status === "active",
+        themeColor: (updatedSite as any).theme_color || "blue",
+        layoutMode: (updatedSite as any).layout_mode || "sidebar",
+        quickQuestions: (updatedSite as any).quick_questions || [],
+        botConfig: bConfig
       }
+      toast.success(t("saveSuccess"))
+    }).catch(() => {
+      toast.error("保存失败")
     })
   }
 
@@ -426,6 +491,84 @@ export function SiteSettings({ siteId, onBack }: SiteSettingsProps) {
                       >
                         <div className={`absolute ${isActive ? 'right-1' : 'left-1'} top-1 w-4 h-4 bg-white rounded-full shadow-md transition-all`} />
                       </div>
+                    </div>
+
+                    {/* EE: 是否公开 + 访问密码 */}
+                    <div className={!isEnterprise ? 'pointer-events-none select-none' : undefined}>
+                      <div className="flex items-center justify-between p-3 bg-slate-50/50 border border-slate-100 rounded-xl">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <label className="text-sm font-semibold text-slate-900">{t("access.isPublic")}</label>
+                            {!isEnterprise && (
+                              <span className="inline-flex items-center gap-1 bg-gradient-to-r from-violet-500 to-purple-600 text-white text-[10px] font-bold px-1.5 py-0 rounded-full shadow-sm h-4">
+                                <Crown className="h-2.5 w-2.5" />
+                                {t("access.eeBadge")}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-500">{t("access.isPublicTip")}</p>
+                        </div>
+                        <div
+                          className={`w-11 h-6 ${eeIsPublic ? 'bg-primary' : 'bg-slate-200'} rounded-full relative cursor-pointer transition-colors`}
+                          onClick={() => {
+                            if (!isEnterprise) return
+                            const next = !eeIsPublic
+                            setEeIsPublic(next)
+                            handleSaveAccessConfig({ is_public: next })
+                          }}
+                        >
+                          <div className={`absolute ${eeIsPublic ? 'right-1' : 'left-1'} top-1 w-4 h-4 bg-white rounded-full shadow-md transition-all`} />
+                        </div>
+                      </div>
+
+                      {!isEnterprise && (
+                        <div className="flex items-center gap-3 px-3 py-2 mt-3 bg-violet-50 text-violet-700 rounded-lg border border-violet-200 shadow-sm">
+                          <Crown className="h-4 w-4 shrink-0" />
+                          <p className="text-[13px] font-medium">{t("access.enterpriseOnly")}</p>
+                        </div>
+                      )}
+
+                      {!eeIsPublic && (
+                        <div className="p-3 bg-slate-50/50 border border-slate-100 rounded-xl space-y-3 mt-3">
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <Lock className="h-3.5 w-3.5 text-slate-500" />
+                              <label className="text-sm font-semibold text-slate-900">{t("access.accessPassword")}</label>
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${eeHasPassword ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                                {eeHasPassword ? t("access.passwordSet") : t("access.passwordNotSet")}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-500">{t("access.accessPasswordTip")}</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <div className="relative flex-1">
+                              <input
+                                type={eeShowPassword ? "text" : "password"}
+                                className="flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 pr-9 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30"
+                                placeholder={t("access.passwordPlaceholder")}
+                                value={eeNewPassword}
+                                onChange={(e) => setEeNewPassword(e.target.value)}
+                              />
+                              <button
+                                type="button"
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                onClick={() => setEeShowPassword(!eeShowPassword)}
+                              >
+                                {eeShowPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </button>
+                            </div>
+                            <Button
+                              size="sm"
+                              className="h-9 px-4"
+                              disabled={!eeNewPassword.trim()}
+                              onClick={() => handleSaveAccessConfig({ password: eeNewPassword })}
+                            >
+                              <Save className="h-3.5 w-3.5 mr-1" />
+                              {t("save")}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

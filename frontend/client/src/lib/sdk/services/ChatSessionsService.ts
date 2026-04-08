@@ -24,6 +24,7 @@ export class ChatSessionsService {
         keyword,
         page = 1,
         size = 20,
+        isPager = 1,
         tenantId,
     }: {
         /**
@@ -47,6 +48,10 @@ export class ChatSessionsService {
          */
         size?: number,
         /**
+         * 是否分页，0=返回全部，1=分页
+         */
+        isPager?: number,
+        /**
          * 租户ID
          */
         tenantId?: (number | null),
@@ -60,6 +65,7 @@ export class ChatSessionsService {
                 'keyword': keyword,
                 'page': page,
                 'size': size,
+                'is_pager': isPager,
                 'tenant_id': tenantId,
             },
             errors: {

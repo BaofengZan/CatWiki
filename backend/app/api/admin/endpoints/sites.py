@@ -18,7 +18,7 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 
 from app.core.common.i18n import _
 from app.core.web.deps import get_current_user_with_tenant, is_demo_tenant
@@ -36,12 +36,13 @@ router = APIRouter()
 async def list_sites(
     page: int = 1,
     size: int = 10,
+    is_pager: int = Query(1, description="是否分页，0=返回全部，1=分页"),
     status: str | None = None,
     service: SiteService = Depends(get_site_service),
     current_user: User = Depends(get_current_user_with_tenant),
     is_demo: bool = Depends(is_demo_tenant),
 ) -> ApiResponse[PaginatedResponse[Site]]:
-    sites, paginator = await service.list_sites(page, size, status, is_demo)
+    sites, paginator = await service.list_sites(page, size, status, is_demo, is_pager=is_pager)
     return ApiResponse.ok(
         data=PaginatedResponse(
             list=sites,

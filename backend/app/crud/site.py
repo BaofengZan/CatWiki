@@ -17,7 +17,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -82,22 +82,6 @@ class CRUDSite(CRUDBase[Site, SiteCreate, SiteUpdate]):
 
         return await self._cached_get(db, f"site:slug:{slug}", _fetch, ttl=600)
 
-    async def get_by_api_token(self, db: AsyncSession, *, api_token: str) -> Site | None:
-        """根据 API Token 获取站点 (查询 bot_config->api_bot->api_key)"""
-
-        async def _fetch_from_db():
-            result = await db.execute(
-                select(self.model).where(
-                    func.json_extract_path_text(self.model.bot_config, "api_bot", "api_key")
-                    == api_token,
-                    func.json_extract_path_text(self.model.bot_config, "api_bot", "enabled")
-                    == "true",
-                )
-            )
-            return result.scalar_one_or_none()
-
-        return await self._cached_get(db, f"site_by_token:{api_token}", _fetch_from_db, ttl=3600)
-
     async def update(
         self,
         db: AsyncSession,
@@ -107,25 +91,17 @@ class CRUDSite(CRUDBase[Site, SiteCreate, SiteUpdate]):
         auto_commit: bool = False,
     ) -> Site:
         """更新站点 (重写以处理缓存失效)"""
-        # 1. 获取旧的 API Key (用于清除缓存)
-        old_api_key = None
-        if db_obj.bot_config and "api_bot" in db_obj.bot_config:
-            old_api_key = db_obj.bot_config["api_bot"].get("api_key")
-
-        # 2. 执行更新
+        # 执行更新
         updated_site = await super().update(
             db, db_obj=db_obj, obj_in=obj_in, auto_commit=auto_commit
         )
 
-        # 3. 清理缓存
+        # 清理缓存
         from app.core.infra.cache import get_cache
 
         cache = get_cache()
-
         await cache.delete(f"site:id:{updated_site.id}")
         await cache.delete(f"site:slug:{updated_site.slug}")
-        if old_api_key:
-            await cache.delete(f"site_by_token:{old_api_key}")
 
         return updated_site
 
@@ -152,7 +128,7 @@ class CRUDSite(CRUDBase[Site, SiteCreate, SiteUpdate]):
         db: AsyncSession,
         *,
         skip: int = 0,
-        limit: int = 100,
+        limit: int | None = 100,
         status: str | None = None,
     ) -> list[Site]:
         """获取站点列表（预加载租户信息）"""
@@ -162,7 +138,9 @@ class CRUDSite(CRUDBase[Site, SiteCreate, SiteUpdate]):
         if status:
             stmt = stmt.where(self.model.status == status)
 
-        stmt = stmt.offset(skip).limit(limit).order_by(self.model.id.desc())
+        stmt = stmt.offset(skip).order_by(self.model.id.desc())
+        if limit is not None:
+            stmt = stmt.limit(limit)
         result = await db.execute(stmt)
         return list(result.scalars())
 
@@ -274,10 +252,6 @@ class CRUDSite(CRUDBase[Site, SiteCreate, SiteUpdate]):
         cache = get_cache()
         await cache.delete(f"site:id:{id}")
         await cache.delete(f"site:slug:{site.slug}")
-        if site.bot_config and "api_bot" in site.bot_config:
-            k = site.bot_config["api_bot"].get("api_key")
-            if k:
-                await cache.delete(f"site_by_token:{k}")
 
         return True
 
@@ -290,6 +264,7 @@ class CRUDSite(CRUDBase[Site, SiteCreate, SiteUpdate]):
         tenant_id: int | None = None,
         tenant_slug: str | None = None,
         keyword: str | None = None,
+        is_pager: int = 1,
     ) -> tuple[list[Site], int]:
         """获取激活的站点列表（下沉自 Service 层）"""
         from sqlalchemy import func, or_, select
@@ -299,6 +274,16 @@ class CRUDSite(CRUDBase[Site, SiteCreate, SiteUpdate]):
 
         # 构建基础查询条件
         base_filters = [self.model.status == "active"]
+
+        # EE 钩子：广场列表排除非公开站点
+        try:
+            from app.ee.loader import get_ee_non_public_site_ids
+
+            non_public_ids = await get_ee_non_public_site_ids(db)
+            if non_public_ids:
+                base_filters.append(self.model.id.notin_(non_public_ids))
+        except (ImportError, AttributeError):
+            pass
 
         if tenant_id is not None:
             base_filters.append(self.model.tenant_id == tenant_id)
@@ -325,7 +310,7 @@ class CRUDSite(CRUDBase[Site, SiteCreate, SiteUpdate]):
         count_stmt = select(func.count()).select_from(self.model).where(*base_filters)
         total = (await db.execute(count_stmt)).scalar_one()
 
-        paginator = Paginator(page=page, size=size, total=total)
+        paginator = Paginator(page=page, size=size, total=total, is_pager=is_pager)
 
         # 查询列表
         from app.models.document_view_event import DocumentViewEvent
@@ -343,7 +328,10 @@ class CRUDSite(CRUDBase[Site, SiteCreate, SiteUpdate]):
             .where(*base_filters)
             .options(joinedload(self.model.tenant))
         )
-        result = await db.execute(stmt.offset(paginator.skip).limit(paginator.size))
+        stmt = stmt.offset(paginator.skip)
+        if paginator.size is not None:
+            stmt = stmt.limit(paginator.size)
+        result = await db.execute(stmt)
 
         sites = []
         for row in result:

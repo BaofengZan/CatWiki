@@ -17,6 +17,7 @@ export class DocumentsService {
     public listClientDocuments({
         page = 1,
         size = 10,
+        isPager = 1,
         siteId,
         collectionId,
         keyword,
@@ -28,6 +29,10 @@ export class DocumentsService {
     }: {
         page?: number,
         size?: number,
+        /**
+         * 是否分页，0=返回全部，1=分页
+         */
+        isPager?: number,
         /**
          * 站点ID
          */
@@ -67,6 +72,7 @@ export class DocumentsService {
             query: {
                 'page': page,
                 'size': size,
+                'is_pager': isPager,
                 'site_id': siteId,
                 'collection_id': collectionId,
                 'keyword': keyword,
